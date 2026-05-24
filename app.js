@@ -2445,9 +2445,10 @@ function renderTeamHistoryPanel(team) {
   const historicalGoalies = aggregateTeamGoalieRows(team.goalieRows).sort(function(a, b) {
     return safeNumber(b.svp) - safeNumber(a.svp) || safeNumber(a.gaa) - safeNumber(b.gaa) || safeNumber(b.sv) - safeNumber(a.sv) || a.player.localeCompare(b.player, "sv");
   });
-  const allRoster = buildTeamRosterRows(historicalPlayers, historicalGoalies);
+  const allRoster = buildTeamRosterRows(historicalPlayers, historicalGoalies).sort(compareTeamRosterHistoryRows);
 
   return `
+    ${renderTeamHistorySummary(team, historicalPlayers, historicalGoalies)}
     <article class="detail-card">
       <div class="section-heading compact">
         <p class="eyebrow">Historik</p>
@@ -2471,6 +2472,157 @@ function renderTeamHistoryPanel(team) {
         ${renderTeamGoalieStatsTable(historicalGoalies, true)}
       </article>
     </div>
+  `;
+}
+
+function renderTeamHistorySummary(team, historicalPlayers, historicalGoalies) {
+  const cups = getTeamHistoryCups(team);
+  const placements = getTeamHistoryPlacements(team, cups);
+  const topPlayers = historicalPlayers.slice().sort(function(a, b) {
+    return safeNumber(b.pts) - safeNumber(a.pts) ||
+      safeNumber(b.g) - safeNumber(a.g) ||
+      safeNumber(b.gp) - safeNumber(a.gp) ||
+      a.player.localeCompare(b.player, "sv");
+  }).slice(0, 3);
+  const topGoalies = historicalGoalies.slice().sort(function(a, b) {
+    return safeNumber(b.gp) - safeNumber(a.gp) ||
+      safeNumber(b.sv) - safeNumber(a.sv) ||
+      safeNumber(b.svp) - safeNumber(a.svp) ||
+      a.player.localeCompare(b.player, "sv");
+  }).slice(0, 3);
+  const cupList = cups.map(function(cup) {
+    return renderCupLink(cup.id, cup.code);
+  }).join(", ");
+  const placementText = placements.length
+    ? placements.map(function(entry) { return entry.text; }).join(", ")
+    : "Inga registrerade finalplaceringar.";
+  const recordText = team.matches.length
+    ? `${team.matches.length} matcher, ${team.wins} vinster och ${team.goalsFor}-${team.goalsAgainst} i målskillnad.`
+    : "Matchhistorik saknas i arkivet.";
+
+  return `
+    <article class="detail-card team-history-summary-card">
+      <div class="section-heading compact">
+        <p class="eyebrow">Lagets historik</p>
+        <h2>${escapeHtml(team.name)} i SEC</h2>
+      </div>
+      <div class="team-history-summary-grid">
+        <div class="team-history-summary-block is-wide">
+          <h3>Cuper och resultat</h3>
+          <p>Laget har deltagit i <strong>${cups.length}</strong> ${cups.length === 1 ? "cup" : "cuper"}: ${cupList || "inga cuper hittades"}.</p>
+          <p>${placementText}</p>
+          <p>${escapeHtml(recordText)}</p>
+        </div>
+        <div class="team-history-summary-block">
+          <h3>Bästa utespelare</h3>
+          ${renderTeamHistoryPlayerList(topPlayers)}
+        </div>
+        <div class="team-history-summary-block">
+          <h3>Bästa målvakter</h3>
+          ${renderTeamHistoryGoalieList(topGoalies)}
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function compareTeamRosterHistoryRows(a, b) {
+  const aGames = safeNumber(a.gp) + safeNumber(a.goalieGp);
+  const bGames = safeNumber(b.gp) + safeNumber(b.goalieGp);
+  return bGames - aGames ||
+    safeNumber(b.pts) - safeNumber(a.pts) ||
+    safeNumber(b.sv) - safeNumber(a.sv) ||
+    String(a.player || "").localeCompare(String(b.player || ""), "sv");
+}
+
+function getTeamHistoryCups(team) {
+  const cupIds = new Set();
+  team.cups.forEach(function(cup) {
+    if (cup.id) {
+      cupIds.add(String(cup.id));
+    }
+  });
+  team.matches.forEach(function(match) {
+    if (match.cupId) {
+      cupIds.add(String(match.cupId));
+    }
+  });
+  team.playerRows.concat(team.goalieRows).forEach(function(row) {
+    if (row.cupId) {
+      cupIds.add(String(row.cupId));
+    }
+  });
+
+  return Array.from(cupIds).map(function(cupId) {
+    const cup = state.cups.find(function(entry) { return String(entry.id) === cupId; });
+    return cup || { id: cupId, code: getCupCode(cupId), sortOrder: inferSortOrder(cupId) };
+  }).sort(function(a, b) {
+    return inferSortOrder(a.id) - inferSortOrder(b.id);
+  });
+}
+
+function getTeamHistoryPlacements(team, cups) {
+  const teamKey = createTeamKey(team.name);
+
+  return cups.map(function(cup) {
+    const winner = createTeamKey(cup.winner || "");
+    const runnerUp = createTeamKey(cup.runnerUp || "");
+
+    if (winner && winner === teamKey) {
+      return {
+        rank: 1,
+        text: `<strong>Mästare</strong> i ${renderCupLink(cup.id, cup.code)}`
+      };
+    }
+    if (runnerUp && runnerUp === teamKey) {
+      return {
+        rank: 2,
+        text: `<strong>Finalist</strong> i ${renderCupLink(cup.id, cup.code)}`
+      };
+    }
+    return null;
+  }).filter(Boolean).sort(function(a, b) {
+    return a.rank - b.rank;
+  });
+}
+
+function renderTeamHistoryPlayerList(rows) {
+  if (!rows.length) {
+    return `<p>Ingen utespelarstatistik hittades.</p>`;
+  }
+
+  return `
+    <ol class="team-history-mini-list">
+      ${rows.map(function(row) {
+        return `
+          <li>
+            <span>${createPlayerCell(row).display}</span>
+            <strong>${toNumber(row.pts)} PTS</strong>
+            <small>${toNumber(row.gp)} GP, ${toNumber(row.g)} G, ${toNumber(row.a)} A</small>
+          </li>
+        `;
+      }).join("")}
+    </ol>
+  `;
+}
+
+function renderTeamHistoryGoalieList(rows) {
+  if (!rows.length) {
+    return `<p>Ingen målvaktsstatistik hittades.</p>`;
+  }
+
+  return `
+    <ol class="team-history-mini-list">
+      ${rows.map(function(row) {
+        return `
+          <li>
+            <span>${createPlayerCell(row).display}</span>
+            <strong>${toNumber(row.gp)} GP</strong>
+            <small>${formatPercentage(row.svp)} SV%, ${toNumber(row.sv)} SV</small>
+          </li>
+        `;
+      }).join("")}
+    </ol>
   `;
 }
 
