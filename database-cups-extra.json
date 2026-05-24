@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-24T13:39:36.593Z",
+  "generatedAt": "2026-05-24T13:45:09.247Z",
   "source": {
     "type": "google-sheet",
     "spreadsheetId": "11uT6pvc1aK9W6lXbysanYXsjSdWFmeNlu03OZgBKucU",
@@ -7,7 +7,7 @@
   },
   "cups": [
     {
-      "id": 1,
+      "id": "1",
       "sortOrder": 1,
       "code": "SEC 1",
       "name": "Svenska eHockey Cupen 1",
@@ -3506,7 +3506,7 @@
       }
     },
     {
-      "id": 2,
+      "id": "2",
       "sortOrder": 2,
       "code": "SEC 2",
       "name": "Svenska eHockey Cupen 2",
@@ -7221,7 +7221,7 @@
       }
     },
     {
-      "id": 3,
+      "id": "3",
       "sortOrder": 3,
       "code": "SEC 3",
       "name": "Svenska eHockey Cupen 3",
@@ -11288,7 +11288,7 @@
       }
     },
     {
-      "id": 4,
+      "id": "4",
       "sortOrder": 4,
       "code": "SEC 4",
       "name": "Svenska eHockey Cupen 4",
@@ -14395,7 +14395,7 @@
       }
     },
     {
-      "id": 5,
+      "id": "5",
       "sortOrder": 5,
       "code": "SEC 5",
       "name": "Svenska eHockey Cupen 5",
@@ -21192,7 +21192,7 @@
       }
     },
     {
-      "id": 6,
+      "id": "6",
       "sortOrder": 6,
       "code": "SEC 6",
       "name": "Svenska eHockey Cupen 6",
@@ -24715,7 +24715,7 @@
       }
     },
     {
-      "id": 7,
+      "id": "7",
       "sortOrder": 7,
       "code": "SEC 7",
       "name": "Svenska eHockey Cupen 7",
@@ -26876,7 +26876,7 @@
       }
     },
     {
-      "id": 8,
+      "id": "8",
       "sortOrder": 8,
       "code": "SEC 8",
       "name": "Svenska eHockey Cupen 8",
@@ -31161,7 +31161,7 @@
       }
     },
     {
-      "id": 9,
+      "id": "9",
       "sortOrder": 9,
       "code": "SEC 9",
       "name": "Svenska eHockey Cupen 9",
@@ -33236,7 +33236,7 @@
       }
     },
     {
-      "id": 10,
+      "id": "10",
       "sortOrder": 10,
       "code": "SEC 10",
       "name": "Svenska eHockey Cupen 10",
@@ -35141,7 +35141,7 @@
       }
     },
     {
-      "id": 11,
+      "id": "11",
       "sortOrder": 11,
       "code": "SEC 11",
       "name": "Svenska eHockey Cupen 11",
@@ -36328,7 +36328,7 @@
       }
     },
     {
-      "id": 12,
+      "id": "12",
       "sortOrder": 12,
       "code": "SEC 12",
       "name": "Svenska eHockey Cupen 12",
@@ -39529,7 +39529,7 @@
       }
     },
     {
-      "id": 13,
+      "id": "13",
       "sortOrder": 13,
       "code": "SEC 13",
       "name": "Svenska eHockey Cupen 13",
@@ -42470,7 +42470,7 @@
       }
     },
     {
-      "id": 14,
+      "id": "14",
       "sortOrder": 14,
       "code": "SEC 14",
       "name": "Svenska eHockey Cupen 14",
@@ -45519,7 +45519,7 @@
       }
     },
     {
-      "id": 15,
+      "id": "15",
       "sortOrder": 15,
       "code": "SEC 15",
       "name": "Svenska eHockey Cupen 15",
@@ -45539,7 +45539,7 @@
       }
     },
     {
-      "id": 16,
+      "id": "16",
       "sortOrder": 16,
       "code": "SEC 16",
       "name": "Svenska eHockey Cupen 16",
@@ -45559,7 +45559,7 @@
       }
     },
     {
-      "id": 17,
+      "id": "17",
       "sortOrder": 17,
       "code": "SEC 17",
       "name": "Svenska eHockey Cupen 17",
@@ -45579,7 +45579,948 @@
       }
     },
     {
-      "id": 18,
+      "id": "17-challenger",
+      "sortOrder": 17.05,
+      "code": "SEC 17 challenger",
+      "name": "Svenska eHockey Cupen 17 challenger",
+      "badge": "Challenger",
+      "placements": {
+        "first": "Flädie Faxes",
+        "second": "Nordic Falcons"
+      },
+      "matches": [
+        {
+          "date": "Sunday February 2, 2025",
+          "time": "9:00 PM",
+          "awayTeam": "Phoenix",
+          "awayScore": 3,
+          "homeScore": 5,
+          "homeTeam": "Flädie Faxes",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Sunday February 2, 2025",
+          "time": "9:30 PM",
+          "awayTeam": "Flädie Faxes",
+          "awayScore": 3,
+          "homeScore": 4,
+          "homeTeam": "Phoenix",
+          "overtime": true,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Tuesday February 4, 2025",
+          "time": "8:30 PM",
+          "awayTeam": "Flädie Faxes",
+          "awayScore": 0,
+          "homeScore": 2,
+          "homeTeam": "Nordic Falcons",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Tuesday February 4, 2025",
+          "time": "9:00 PM",
+          "awayTeam": "Nordic Falcons",
+          "awayScore": 3,
+          "homeScore": 8,
+          "homeTeam": "Flädie Faxes",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Wednesday February 5, 2025",
+          "time": "9:00 PM",
+          "awayTeam": "Färjestad",
+          "awayScore": 3,
+          "homeScore": 6,
+          "homeTeam": "Phoenix",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Wednesday February 5, 2025",
+          "time": "9:30 PM",
+          "awayTeam": "Phoenix",
+          "awayScore": 4,
+          "homeScore": 2,
+          "homeTeam": "Färjestad",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Thursday February 6, 2025",
+          "time": "9:00 PM",
+          "awayTeam": "Phoenix",
+          "awayScore": 10,
+          "homeScore": 4,
+          "homeTeam": "Nordic Falcons",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Thursday February 6, 2025",
+          "time": "9:30 PM",
+          "awayTeam": "Nordic Falcons",
+          "awayScore": 6,
+          "homeScore": 4,
+          "homeTeam": "Phoenix",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Sunday February 9, 2025",
+          "time": "9:00 PM",
+          "awayTeam": "Färjestad",
+          "awayScore": 1,
+          "homeScore": 7,
+          "homeTeam": "Nordic Falcons",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Sunday February 9, 2025",
+          "time": "9:30 PM",
+          "awayTeam": "Nordic Falcons",
+          "awayScore": 4,
+          "homeScore": 3,
+          "homeTeam": "Färjestad",
+          "overtime": true,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Thursday February 13, 2025",
+          "time": "8:00 PM",
+          "awayTeam": "Flädie Faxes",
+          "awayScore": 0,
+          "homeScore": 5,
+          "homeTeam": "Färjestad",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Thursday February 13, 2025",
+          "time": "8:30 PM",
+          "awayTeam": "Färjestad",
+          "awayScore": 5,
+          "homeScore": 0,
+          "homeTeam": "Flädie Faxes",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Thursday February 13, 2025",
+          "time": "8:00 PM",
+          "awayTeam": "Flädie Faxes",
+          "awayScore": 7,
+          "homeScore": 3,
+          "homeTeam": "Phoenix",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Thursday February 13, 2025",
+          "time": "8:00 PM",
+          "awayTeam": "Färjestad",
+          "awayScore": 2,
+          "homeScore": 5,
+          "homeTeam": "Nordic Falcons",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Thursday February 13, 2025",
+          "time": "8:30 PM",
+          "awayTeam": "Nordic Falcons",
+          "awayScore": 7,
+          "homeScore": 2,
+          "homeTeam": "Färjestad",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Thursday February 13, 2025",
+          "time": "8:30 PM",
+          "awayTeam": "Phoenix",
+          "awayScore": 6,
+          "homeScore": 3,
+          "homeTeam": "Flädie Faxes",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Thursday February 13, 2025",
+          "time": "9:00 PM",
+          "awayTeam": "Flädie Faxes",
+          "awayScore": 12,
+          "homeScore": 3,
+          "homeTeam": "Phoenix",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Thursday February 20, 2025",
+          "time": "8:00 PM",
+          "awayTeam": "Flädie Faxes",
+          "awayScore": 3,
+          "homeScore": 2,
+          "homeTeam": "Nordic Falcons",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Thursday February 20, 2025",
+          "time": "8:30 PM",
+          "awayTeam": "Nordic Falcons",
+          "awayScore": 1,
+          "homeScore": 7,
+          "homeTeam": "Flädie Faxes",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Tuesday February 25, 2025",
+          "time": "8:00 PM",
+          "awayTeam": "Flädie Faxes",
+          "awayScore": 2,
+          "homeScore": 1,
+          "homeTeam": "Nordic Falcons",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Tuesday February 25, 2025",
+          "time": "8:30 PM",
+          "awayTeam": "Nordic Falcons",
+          "awayScore": 2,
+          "homeScore": 1,
+          "homeTeam": "Flädie Faxes",
+          "overtime": true,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Tuesday February 25, 2025",
+          "time": "9:30 PM",
+          "awayTeam": "Flädie Faxes",
+          "awayScore": 3,
+          "homeScore": 2,
+          "homeTeam": "Nordic Falcons",
+          "overtime": true,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        }
+      ],
+      "playerStats": {
+        "group": [
+          {
+            "player": "HyDraVenoM92, SWE",
+            "team": "Nordic Falcons",
+            "gp": 6,
+            "g": 6,
+            "a": 8,
+            "pts": 14,
+            "pim": 2,
+            "playerId": "16124"
+          },
+          {
+            "player": "Dan9105, SWE",
+            "team": "Flädie Faxes",
+            "gp": 4,
+            "g": 5,
+            "a": 5,
+            "pts": 10,
+            "pim": 4,
+            "playerId": "15085"
+          },
+          {
+            "player": "Drummerking83, SWE",
+            "team": "Nordic Falcons",
+            "gp": 6,
+            "g": 3,
+            "a": 9,
+            "pts": 12,
+            "pim": 8,
+            "playerId": "8444"
+          },
+          {
+            "player": "Handsken111, SWE",
+            "team": "Nordic Falcons",
+            "gp": 1,
+            "g": 0,
+            "a": 0,
+            "pts": 0,
+            "pim": 0,
+            "playerId": "14469"
+          },
+          {
+            "player": "Hescoores, SWE",
+            "team": "Flädie Faxes",
+            "gp": 4,
+            "g": 0,
+            "a": 5,
+            "pts": 5,
+            "pim": 0,
+            "playerId": "15073"
+          },
+          {
+            "player": "chrille03164, SWE",
+            "team": "Färjestad",
+            "gp": 4,
+            "g": 2,
+            "a": 2,
+            "pts": 4,
+            "pim": 2,
+            "playerId": "10996"
+          },
+          {
+            "player": "Jonsson03, SWE",
+            "team": "Flädie Faxes",
+            "gp": 4,
+            "g": 3,
+            "a": 5,
+            "pts": 8,
+            "pim": 2,
+            "playerId": "15086"
+          },
+          {
+            "player": "KabbeTV, SWE",
+            "team": "Nordic Falcons",
+            "gp": 6,
+            "g": 0,
+            "a": 9,
+            "pts": 9,
+            "pim": 0,
+            "playerId": "16664"
+          },
+          {
+            "player": "Lypsaaja6365, FIN",
+            "team": "Flädie Faxes",
+            "gp": 2,
+            "g": 4,
+            "a": 2,
+            "pts": 6,
+            "pim": 4,
+            "playerId": "16641"
+          },
+          {
+            "player": "M3F_handelspuben, SWE",
+            "team": "Färjestad",
+            "gp": 4,
+            "g": 1,
+            "a": 1,
+            "pts": 2,
+            "pim": 0,
+            "playerId": "16742"
+          },
+          {
+            "player": "MarreMurre, SWE",
+            "team": "Phoenix",
+            "gp": 6,
+            "g": 0,
+            "a": 12,
+            "pts": 12,
+            "pim": 10,
+            "playerId": "16215"
+          },
+          {
+            "player": "max-persson, SWE",
+            "team": "Färjestad",
+            "gp": 2,
+            "g": 1,
+            "a": 1,
+            "pts": 2,
+            "pim": 0,
+            "playerId": "16730"
+          },
+          {
+            "player": "morgonsoffan, SWE",
+            "team": "Färjestad",
+            "gp": 4,
+            "g": 2,
+            "a": 3,
+            "pts": 5,
+            "pim": 0,
+            "playerId": "16642"
+          },
+          {
+            "player": "Olsson_lir89, SWE",
+            "team": "Phoenix",
+            "gp": 6,
+            "g": 8,
+            "a": 13,
+            "pts": 21,
+            "pim": 2,
+            "playerId": "15202"
+          },
+          {
+            "player": "OSKI5196, SWE",
+            "team": "Nordic Falcons",
+            "gp": 6,
+            "g": 11,
+            "a": 8,
+            "pts": 19,
+            "pim": 2,
+            "playerId": "16123"
+          },
+          {
+            "player": "Phyreon, SWE",
+            "team": "Nordic Falcons",
+            "gp": 2,
+            "g": 0,
+            "a": 1,
+            "pts": 1,
+            "pim": 0,
+            "playerId": "3429"
+          },
+          {
+            "player": "Rizlan, SWE",
+            "team": "Flädie Faxes",
+            "gp": 2,
+            "g": 1,
+            "a": 2,
+            "pts": 3,
+            "pim": 0,
+            "playerId": "16643"
+          },
+          {
+            "player": "robin_86_6, SWE",
+            "team": "Nordic Falcons",
+            "gp": 2,
+            "g": 1,
+            "a": 3,
+            "pts": 4,
+            "pim": 2,
+            "playerId": "16303"
+          },
+          {
+            "player": "Runhager96, SWE",
+            "team": "Phoenix",
+            "gp": 4,
+            "g": 0,
+            "a": 2,
+            "pts": 2,
+            "pim": 6,
+            "playerId": "16570"
+          },
+          {
+            "player": "samuelpersson-, SWE",
+            "team": "Färjestad",
+            "gp": 4,
+            "g": 1,
+            "a": 4,
+            "pts": 5,
+            "pim": 4,
+            "playerId": "99932"
+          },
+          {
+            "player": "Shn1pez, SWE",
+            "team": "Phoenix",
+            "gp": 6,
+            "g": 7,
+            "a": 12,
+            "pts": 19,
+            "pim": 2,
+            "playerId": "16551"
+          },
+          {
+            "player": "SoldatUgglan, SWE",
+            "team": "Flädie Faxes",
+            "gp": 4,
+            "g": 3,
+            "a": 3,
+            "pts": 6,
+            "pim": 2,
+            "playerId": "16636"
+          },
+          {
+            "player": "Twitch_wannika, SWE",
+            "team": "Phoenix",
+            "gp": 4,
+            "g": 12,
+            "a": 6,
+            "pts": 18,
+            "pim": 2,
+            "playerId": "16573"
+          },
+          {
+            "player": "Wiggoedluund, SWE",
+            "team": "Nordic Falcons",
+            "gp": 2,
+            "g": 5,
+            "a": 2,
+            "pts": 7,
+            "pim": 0,
+            "playerId": "16102"
+          },
+          {
+            "player": "ZepsyY22-, SWE",
+            "team": "Färjestad",
+            "gp": 2,
+            "g": 2,
+            "a": 1,
+            "pts": 3,
+            "pim": 0,
+            "playerId": "15629"
+          },
+          {
+            "player": "l henko l, SWE",
+            "team": "Phoenix",
+            "gp": 2,
+            "g": 4,
+            "a": 0,
+            "pts": 4,
+            "pim": 2,
+            "playerId": "16615"
+          },
+          {
+            "player": "Zwelitzo, SWE",
+            "team": "Phoenix",
+            "gp": 2,
+            "g": 0,
+            "a": 5,
+            "pts": 5,
+            "pim": 0,
+            "playerId": "11838"
+          }
+        ],
+        "playoffs": [
+          {
+            "player": "HyDraVenoM92, SWE",
+            "team": "Nordic Falcons",
+            "gp": 5,
+            "g": 2,
+            "a": 5,
+            "pts": 7,
+            "pim": 4,
+            "playerId": "16124"
+          },
+          {
+            "player": "Dan9105, SWE",
+            "team": "Flädie Faxes",
+            "gp": 8,
+            "g": 13,
+            "a": 14,
+            "pts": 27,
+            "pim": 2,
+            "playerId": "15085"
+          },
+          {
+            "player": "Drummerking83, SWE",
+            "team": "Nordic Falcons",
+            "gp": 5,
+            "g": 4,
+            "a": 5,
+            "pts": 9,
+            "pim": 0,
+            "playerId": "8444"
+          },
+          {
+            "player": "Hescoores, SWE",
+            "team": "Flädie Faxes",
+            "gp": 8,
+            "g": 3,
+            "a": 8,
+            "pts": 11,
+            "pim": 2,
+            "playerId": "15073"
+          },
+          {
+            "player": "chrille03164, SWE",
+            "team": "Färjestad",
+            "gp": 2,
+            "g": 2,
+            "a": 0,
+            "pts": 2,
+            "pim": 0,
+            "playerId": "10996"
+          },
+          {
+            "player": "Jonsson03, SWE",
+            "team": "Flädie Faxes",
+            "gp": 6,
+            "g": 7,
+            "a": 7,
+            "pts": 14,
+            "pim": 2,
+            "playerId": "15086"
+          },
+          {
+            "player": "KabbeTV, SWE",
+            "team": "Nordic Falcons",
+            "gp": 5,
+            "g": 2,
+            "a": 4,
+            "pts": 6,
+            "pim": 2,
+            "playerId": "16664"
+          },
+          {
+            "player": "LazyFinnen67, SWE",
+            "team": "Nordic Falcons",
+            "gp": 1,
+            "g": 0,
+            "a": 0,
+            "pts": 0,
+            "pim": 0,
+            "playerId": "3206"
+          },
+          {
+            "player": "Lypsaaja6365, FIN",
+            "team": "Flädie Faxes",
+            "gp": 8,
+            "g": 11,
+            "a": 13,
+            "pts": 24,
+            "pim": 4,
+            "playerId": "16641"
+          },
+          {
+            "player": "M3F_handelspuben, SWE",
+            "team": "Färjestad",
+            "gp": 2,
+            "g": 0,
+            "a": 1,
+            "pts": 1,
+            "pim": 2,
+            "playerId": "16742"
+          },
+          {
+            "player": "MarreMurre, SWE",
+            "team": "Phoenix",
+            "gp": 3,
+            "g": 1,
+            "a": 3,
+            "pts": 4,
+            "pim": 0,
+            "playerId": "16215"
+          },
+          {
+            "player": "morgonsoffan, SWE",
+            "team": "Färjestad",
+            "gp": 2,
+            "g": 1,
+            "a": 1,
+            "pts": 2,
+            "pim": 0,
+            "playerId": "16642"
+          },
+          {
+            "player": "Olsson_lir89, SWE",
+            "team": "Phoenix",
+            "gp": 3,
+            "g": 1,
+            "a": 11,
+            "pts": 12,
+            "pim": 2,
+            "playerId": "15202"
+          },
+          {
+            "player": "OSKI5196, SWE",
+            "team": "Nordic Falcons",
+            "gp": 1,
+            "g": 0,
+            "a": 0,
+            "pts": 0,
+            "pim": 0,
+            "playerId": "16123"
+          },
+          {
+            "player": "Phyreon, SWE",
+            "team": "Nordic Falcons",
+            "gp": 3,
+            "g": 1,
+            "a": 1,
+            "pts": 2,
+            "pim": 4,
+            "playerId": "3429"
+          },
+          {
+            "player": "Rizlan, SWE",
+            "team": "Flädie Faxes",
+            "gp": 2,
+            "g": 0,
+            "a": 3,
+            "pts": 3,
+            "pim": 2,
+            "playerId": "16643"
+          },
+          {
+            "player": "robin_86_6, SWE",
+            "team": "Nordic Falcons",
+            "gp": 2,
+            "g": 0,
+            "a": 4,
+            "pts": 4,
+            "pim": 0,
+            "playerId": "16303"
+          },
+          {
+            "player": "Runhager96, SWE",
+            "team": "Phoenix",
+            "gp": 3,
+            "g": 0,
+            "a": 1,
+            "pts": 1,
+            "pim": 6,
+            "playerId": "16570"
+          },
+          {
+            "player": "samuelpersson-, SWE",
+            "team": "Färjestad",
+            "gp": 2,
+            "g": 0,
+            "a": 3,
+            "pts": 3,
+            "pim": 2,
+            "playerId": "99932"
+          },
+          {
+            "player": "Shn1pez, SWE",
+            "team": "Phoenix",
+            "gp": 3,
+            "g": 5,
+            "a": 3,
+            "pts": 8,
+            "pim": 0,
+            "playerId": "16551"
+          },
+          {
+            "player": "SoldatUgglan, SWE",
+            "team": "Flädie Faxes",
+            "gp": 8,
+            "g": 4,
+            "a": 8,
+            "pts": 12,
+            "pim": 0,
+            "playerId": "16636"
+          },
+          {
+            "player": "Twitch_wannika, SWE",
+            "team": "Phoenix",
+            "gp": 2,
+            "g": 5,
+            "a": 2,
+            "pts": 7,
+            "pim": 0,
+            "playerId": "16573"
+          },
+          {
+            "player": "Wiggoedluund, SWE",
+            "team": "Nordic Falcons",
+            "gp": 5,
+            "g": 8,
+            "a": 6,
+            "pts": 14,
+            "pim": 8,
+            "playerId": "16102"
+          },
+          {
+            "player": "ZepsyY22-, SWE",
+            "team": "Färjestad",
+            "gp": 2,
+            "g": 1,
+            "a": 2,
+            "pts": 3,
+            "pim": 2,
+            "playerId": "15629"
+          },
+          {
+            "player": "l henko l, SWE",
+            "team": "Phoenix",
+            "gp": 1,
+            "g": 0,
+            "a": 2,
+            "pts": 2,
+            "pim": 4,
+            "playerId": "16615"
+          }
+        ]
+      },
+      "goalieStats": {
+        "group": [
+          {
+            "player": "E1vira123, SWE",
+            "team": "Flädie Faxes",
+            "gp": 2,
+            "sa": 24,
+            "ga": 5,
+            "sv": 19,
+            "gaa": 2.5,
+            "svp": 0.792,
+            "so": 0,
+            "playerId": "16635"
+          },
+          {
+            "player": "Handsken111, SWE",
+            "team": "Nordic Falcons",
+            "gp": 6,
+            "sa": 120,
+            "ga": 26,
+            "sv": 94,
+            "gaa": 4.33,
+            "svp": 0.783,
+            "so": 0,
+            "playerId": "14469"
+          },
+          {
+            "player": "Krumme92, SWE",
+            "team": "Phoenix",
+            "gp": 4,
+            "sa": 66,
+            "ga": 11,
+            "sv": 55,
+            "gaa": 3.15,
+            "svp": 0.833,
+            "so": 1,
+            "playerId": "6996"
+          },
+          {
+            "player": "Persson_17, SWE",
+            "team": "Färjestad",
+            "gp": 4,
+            "sa": 97,
+            "ga": 21,
+            "sv": 76,
+            "gaa": 5.25,
+            "svp": 0.784,
+            "so": 0,
+            "playerId": "9369"
+          },
+          {
+            "player": "Rizlan, SWE",
+            "team": "Flädie Faxes",
+            "gp": 2,
+            "sa": 24,
+            "ga": 7,
+            "sv": 17,
+            "gaa": 3.5,
+            "svp": 0.708,
+            "so": 0,
+            "playerId": "16643"
+          },
+          {
+            "player": "l henko l, SWE",
+            "team": "Phoenix",
+            "gp": 2,
+            "sa": 35,
+            "ga": 10,
+            "sv": 25,
+            "gaa": 5,
+            "svp": 0.714,
+            "so": 0,
+            "playerId": "16615"
+          }
+        ],
+        "playoffs": [
+          {
+            "player": "E1vira123, SWE",
+            "team": "Flädie Faxes",
+            "gp": 8,
+            "sa": 96,
+            "ga": 20,
+            "sv": 76,
+            "gaa": 2.49,
+            "svp": 0.792,
+            "so": 0,
+            "playerId": "16635"
+          },
+          {
+            "player": "Handsken111, SWE",
+            "team": "Nordic Falcons",
+            "gp": 3,
+            "sa": 41,
+            "ga": 6,
+            "sv": 35,
+            "gaa": 2.37,
+            "svp": 0.854,
+            "so": 0,
+            "playerId": "14469"
+          },
+          {
+            "player": "Krumme92, SWE",
+            "team": "Phoenix",
+            "gp": 3,
+            "sa": 70,
+            "ga": 22,
+            "sv": 48,
+            "gaa": 7.33,
+            "svp": 0.686,
+            "so": 0,
+            "playerId": "6996"
+          },
+          {
+            "player": "LazyFinnen67, SWE",
+            "team": "Nordic Falcons",
+            "gp": 4,
+            "sa": 92,
+            "ga": 14,
+            "sv": 78,
+            "gaa": 3.37,
+            "svp": 0.848,
+            "so": 0,
+            "playerId": "3206"
+          },
+          {
+            "player": "Persson_17, SWE",
+            "team": "Färjestad",
+            "gp": 2,
+            "sa": 33,
+            "ga": 12,
+            "sv": 21,
+            "gaa": 6,
+            "svp": 0.636,
+            "so": 0,
+            "playerId": "9369"
+          }
+        ]
+      }
+    },
+    {
+      "id": "18",
       "sortOrder": 18,
       "code": "SEC 18",
       "name": "Svenska eHockey Cupen 18",
@@ -45599,7 +46540,7 @@
       }
     },
     {
-      "id": 19,
+      "id": "19",
       "sortOrder": 19,
       "code": "SEC 19",
       "name": "Svenska eHockey Cupen 19",
@@ -45616,6 +46557,1253 @@
       "goalieStats": {
         "group": [],
         "playoffs": []
+      }
+    },
+    {
+      "id": "19-5",
+      "sortOrder": 19.5,
+      "code": "SEC 19.5",
+      "name": "Svenska eHockey Cupen 19.5",
+      "badge": "",
+      "placements": {
+        "first": "vNexs Vipers",
+        "second": "Veterankraft"
+      },
+      "matches": [
+        {
+          "date": "onsdag oktober 8, 2025",
+          "time": "20:00",
+          "awayTeam": "Sunne IK Esport",
+          "awayScore": 2,
+          "homeScore": 4,
+          "homeTeam": "Veterankraft",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "onsdag oktober 8, 2025",
+          "time": "20:00",
+          "awayTeam": "SSK Academy",
+          "awayScore": 2,
+          "homeScore": 6,
+          "homeTeam": "vNexs Vipers",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "onsdag oktober 8, 2025",
+          "time": "20:30",
+          "awayTeam": "Veterankraft",
+          "awayScore": 2,
+          "homeScore": 5,
+          "homeTeam": "Sunne IK Esport",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "onsdag oktober 8, 2025",
+          "time": "20:30",
+          "awayTeam": "vNexs Vipers",
+          "awayScore": 4,
+          "homeScore": 1,
+          "homeTeam": "SSK Academy",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "onsdag oktober 8, 2025",
+          "time": "21:00",
+          "awayTeam": "vNexs Vipers",
+          "awayScore": 4,
+          "homeScore": 3,
+          "homeTeam": "Veterankraft",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "onsdag oktober 8, 2025",
+          "time": "21:30",
+          "awayTeam": "Veterankraft",
+          "awayScore": 2,
+          "homeScore": 3,
+          "homeTeam": "vNexs Vipers",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "torsdag oktober 9, 2025",
+          "time": "20:00",
+          "awayTeam": "Modo Hockey",
+          "awayScore": 2,
+          "homeScore": 3,
+          "homeTeam": "Veterankraft",
+          "overtime": true,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "torsdag oktober 9, 2025",
+          "time": "20:30",
+          "awayTeam": "Veterankraft",
+          "awayScore": 5,
+          "homeScore": 2,
+          "homeTeam": "Modo Hockey",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 12, 2025",
+          "time": "20:00",
+          "awayTeam": "Veterankraft",
+          "awayScore": 3,
+          "homeScore": 2,
+          "homeTeam": "SSK Academy",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 12, 2025",
+          "time": "20:00",
+          "awayTeam": "Modo Hockey",
+          "awayScore": 4,
+          "homeScore": 0,
+          "homeTeam": "Surte Sisu HC",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 12, 2025",
+          "time": "20:00",
+          "awayTeam": "Sunne IK Esport",
+          "awayScore": 3,
+          "homeScore": 4,
+          "homeTeam": "vNexs Vipers",
+          "overtime": true,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 12, 2025",
+          "time": "20:30",
+          "awayTeam": "SSK Academy",
+          "awayScore": 4,
+          "homeScore": 7,
+          "homeTeam": "Veterankraft",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 12, 2025",
+          "time": "20:30",
+          "awayTeam": "Surte Sisu HC",
+          "awayScore": 0,
+          "homeScore": 1,
+          "homeTeam": "Modo Hockey",
+          "overtime": true,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 12, 2025",
+          "time": "20:30",
+          "awayTeam": "vNexs Vipers",
+          "awayScore": 3,
+          "homeScore": 1,
+          "homeTeam": "Sunne IK Esport",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 12, 2025",
+          "time": "21:00",
+          "awayTeam": "vNexs Vipers",
+          "awayScore": 6,
+          "homeScore": 4,
+          "homeTeam": "Modo Hockey",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 12, 2025",
+          "time": "21:30",
+          "awayTeam": "Modo Hockey",
+          "awayScore": 5,
+          "homeScore": 1,
+          "homeTeam": "vNexs Vipers",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "onsdag oktober 15, 2025",
+          "time": "20:00",
+          "awayTeam": "Veterankraft",
+          "awayScore": 4,
+          "homeScore": 2,
+          "homeTeam": "Surte Sisu HC",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "onsdag oktober 15, 2025",
+          "time": "20:30",
+          "awayTeam": "Surte Sisu HC",
+          "awayScore": 5,
+          "homeScore": 2,
+          "homeTeam": "Veterankraft",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "torsdag oktober 16, 2025",
+          "time": "20:00",
+          "awayTeam": "SSK Academy",
+          "awayScore": 1,
+          "homeScore": 3,
+          "homeTeam": "Modo Hockey",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "torsdag oktober 16, 2025",
+          "time": "20:30",
+          "awayTeam": "Modo Hockey",
+          "awayScore": 3,
+          "homeScore": 0,
+          "homeTeam": "SSK Academy",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "torsdag oktober 16, 2025",
+          "time": "21:00",
+          "awayTeam": "SSK Academy",
+          "awayScore": 0,
+          "homeScore": 1,
+          "homeTeam": "Surte Sisu HC",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "torsdag oktober 16, 2025",
+          "time": "21:30",
+          "awayTeam": "Surte Sisu HC",
+          "awayScore": 0,
+          "homeScore": 5,
+          "homeTeam": "SSK Academy",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 19, 2025",
+          "time": "20:00",
+          "awayTeam": "Surte Sisu HC",
+          "awayScore": 0,
+          "homeScore": 6,
+          "homeTeam": "Sunne IK Esport",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 19, 2025",
+          "time": "20:00",
+          "awayTeam": "Surte Sisu HC",
+          "awayScore": 4,
+          "homeScore": 5,
+          "homeTeam": "vNexs Vipers",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 19, 2025",
+          "time": "20:00",
+          "awayTeam": "Sunne IK Esport",
+          "awayScore": 5,
+          "homeScore": 4,
+          "homeTeam": "SSK Academy",
+          "overtime": true,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 19, 2025",
+          "time": "20:00",
+          "awayTeam": "Modo Hockey",
+          "awayScore": 1,
+          "homeScore": 6,
+          "homeTeam": "Sunne IK Esport",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 19, 2025",
+          "time": "20:30",
+          "awayTeam": "Sunne IK Esport",
+          "awayScore": 5,
+          "homeScore": 3,
+          "homeTeam": "Surte Sisu HC",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 19, 2025",
+          "time": "20:30",
+          "awayTeam": "vNexs Vipers",
+          "awayScore": 8,
+          "homeScore": 4,
+          "homeTeam": "Surte Sisu HC",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 19, 2025",
+          "time": "20:30",
+          "awayTeam": "SSK Academy",
+          "awayScore": 6,
+          "homeScore": 2,
+          "homeTeam": "Sunne IK Esport",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 19, 2025",
+          "time": "20:30",
+          "awayTeam": "Sunne IK Esport",
+          "awayScore": 3,
+          "homeScore": 2,
+          "homeTeam": "Modo Hockey",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null
+        },
+        {
+          "date": "Tisdag October 21, 2025",
+          "time": "20:00",
+          "awayTeam": "Modo Hockey",
+          "awayScore": 0,
+          "homeScore": 6,
+          "homeTeam": "vNexs Vipers",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Tisdag October 21, 2025",
+          "time": "20:00",
+          "awayTeam": "Veterankraft",
+          "awayScore": 0,
+          "homeScore": 3,
+          "homeTeam": "Sunne IK Esport",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Tisdag October 21, 2025",
+          "time": "20:30",
+          "awayTeam": "vNexs Vipers",
+          "awayScore": 3,
+          "homeScore": 2,
+          "homeTeam": "Modo Hockey",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Tisdag October 21, 2025",
+          "time": "20:30",
+          "awayTeam": "Sunne IK Esport",
+          "awayScore": 4,
+          "homeScore": 5,
+          "homeTeam": "Veterankraft",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Tisdag October 21, 2025",
+          "time": "21:00",
+          "awayTeam": "Modo Hockey",
+          "awayScore": 1,
+          "homeScore": 3,
+          "homeTeam": "vNexs Vipers",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Tisdag October 21, 2025",
+          "time": "21:00",
+          "awayTeam": "Veterankraft",
+          "awayScore": 4,
+          "homeScore": 3,
+          "homeTeam": "Sunne IK Esport",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Tisdag October 21, 2025",
+          "time": "21:30",
+          "awayTeam": "Sunne IK Esport",
+          "awayScore": 5,
+          "homeScore": 3,
+          "homeTeam": "Veterankraft",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Tisdag October 21, 2025",
+          "time": "22:00",
+          "awayTeam": "Veterankraft",
+          "awayScore": 3,
+          "homeScore": 2,
+          "homeTeam": "Sunne IK Esport",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 26, 2025",
+          "time": "20:00",
+          "awayTeam": "Veterankraft",
+          "awayScore": 1,
+          "homeScore": 5,
+          "homeTeam": "vNexs Vipers",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 26, 2025",
+          "time": "20:30",
+          "awayTeam": "vNexs Vipers",
+          "awayScore": 4,
+          "homeScore": 2,
+          "homeTeam": "Veterankraft",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 26, 2025",
+          "time": "21:00",
+          "awayTeam": "Veterankraft",
+          "awayScore": 3,
+          "homeScore": 2,
+          "homeTeam": "vNexs Vipers",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        },
+        {
+          "date": "Södag Oktober 26, 2025",
+          "time": "21:30",
+          "awayTeam": "vNexs Vipers",
+          "awayScore": 3,
+          "homeScore": 2,
+          "homeTeam": "Veterankraft",
+          "overtime": false,
+          "stage": "playoffs",
+          "group": null,
+          "goalsSummary": null
+        }
+      ],
+      "playerStats": {
+        "group": [
+          {
+            "player": "Lypsaaja6365, FIN",
+            "team": "vNexs Vipers",
+            "gp": 10,
+            "g": 18,
+            "a": 20,
+            "pts": 38,
+            "pim": 8,
+            "playerId": "16641"
+          },
+          {
+            "player": "vPahlen, SWE",
+            "team": "Sunne IK Esport",
+            "gp": 10,
+            "g": 7,
+            "a": 21,
+            "pts": 28,
+            "pim": 0,
+            "playerId": "14484"
+          },
+          {
+            "player": "l henko l, SWE",
+            "team": "vNexs Vipers",
+            "gp": 10,
+            "g": 14,
+            "a": 14,
+            "pts": 28,
+            "pim": 0,
+            "playerId": "16615"
+          },
+          {
+            "player": "Mathiasgamer_07, NOR",
+            "team": "Sunne IK Esport",
+            "gp": 10,
+            "g": 19,
+            "a": 7,
+            "pts": 26,
+            "pim": 0,
+            "playerId": "13298"
+          },
+          {
+            "player": "STRANDMANNEN11, SWE",
+            "team": "Veterankraft",
+            "gp": 10,
+            "g": 13,
+            "a": 12,
+            "pts": 25,
+            "pim": 8,
+            "playerId": "7922"
+          },
+          {
+            "player": "Dan9105, SWE",
+            "team": "vNexs Vipers",
+            "gp": 10,
+            "g": 9,
+            "a": 16,
+            "pts": 25,
+            "pim": 4,
+            "playerId": "15085"
+          },
+          {
+            "player": "Svana_22, SWE",
+            "team": "Sunne IK Esport",
+            "gp": 10,
+            "g": 10,
+            "a": 13,
+            "pts": 23,
+            "pim": 6,
+            "playerId": "11445"
+          },
+          {
+            "player": "RookieLIAMOVIC, SWE",
+            "team": "Modo Hockey",
+            "gp": 10,
+            "g": 8,
+            "a": 13,
+            "pts": 21,
+            "pim": 4,
+            "playerId": "5102"
+          },
+          {
+            "player": "Bu-ffy, SWE",
+            "team": "Veterankraft",
+            "gp": 10,
+            "g": 9,
+            "a": 12,
+            "pts": 21,
+            "pim": 4,
+            "playerId": "1600"
+          },
+          {
+            "player": "Kaxen88, SWE",
+            "team": "SSK Academy",
+            "gp": 10,
+            "g": 13,
+            "a": 7,
+            "pts": 20,
+            "pim": 8,
+            "playerId": "17215"
+          },
+          {
+            "player": "sneipthegunner, NOR",
+            "team": "SSK Academy",
+            "gp": 10,
+            "g": 8,
+            "a": 10,
+            "pts": 18,
+            "pim": 4,
+            "playerId": "8299"
+          },
+          {
+            "player": "Prolane, SWE",
+            "team": "Veterankraft",
+            "gp": 6,
+            "g": 6,
+            "a": 11,
+            "pts": 17,
+            "pim": 10,
+            "playerId": "4857"
+          },
+          {
+            "player": "Hescoores, SWE",
+            "team": "vNexs Vipers",
+            "gp": 10,
+            "g": 2,
+            "a": 15,
+            "pts": 17,
+            "pim": 2,
+            "playerId": "15073"
+          },
+          {
+            "player": "O3_DAFA, SWE",
+            "team": "Sunne IK Esport",
+            "gp": 10,
+            "g": 1,
+            "a": 15,
+            "pts": 16,
+            "pim": 2,
+            "playerId": "7099"
+          },
+          {
+            "player": "MrXbox79, SWE",
+            "team": "Modo Hockey",
+            "gp": 10,
+            "g": 7,
+            "a": 9,
+            "pts": 16,
+            "pim": 4,
+            "playerId": "10332"
+          },
+          {
+            "player": "Kungenanton02, SWE",
+            "team": "vNexs Vipers",
+            "gp": 10,
+            "g": 1,
+            "a": 12,
+            "pts": 13,
+            "pim": 8,
+            "playerId": "17394"
+          },
+          {
+            "player": "basseman_, SWE",
+            "team": "Veterankraft",
+            "gp": 6,
+            "g": 4,
+            "a": 8,
+            "pts": 12,
+            "pim": 6,
+            "playerId": "7065"
+          },
+          {
+            "player": "SWE_KARLSSON16, SWE",
+            "team": "Surte Sisu HC",
+            "gp": 10,
+            "g": 8,
+            "a": 3,
+            "pts": 11,
+            "pim": 4,
+            "playerId": "4844"
+          },
+          {
+            "player": "skillfull85, SWE",
+            "team": "Surte Sisu HC",
+            "gp": 10,
+            "g": 6,
+            "a": 5,
+            "pts": 11,
+            "pim": 4,
+            "playerId": "15208"
+          },
+          {
+            "player": "FezH_88, SWE",
+            "team": "Surte Sisu HC",
+            "gp": 10,
+            "g": 1,
+            "a": 9,
+            "pts": 10,
+            "pim": 2,
+            "playerId": "4390"
+          },
+          {
+            "player": "jojjep-, SWE",
+            "team": "Modo Hockey",
+            "gp": 6,
+            "g": 6,
+            "a": 4,
+            "pts": 10,
+            "pim": 0,
+            "playerId": "14619"
+          },
+          {
+            "player": "Supremski, SWE",
+            "team": "Veterankraft",
+            "gp": 8,
+            "g": 2,
+            "a": 8,
+            "pts": 10,
+            "pim": 2,
+            "playerId": "41"
+          },
+          {
+            "player": "Diizzylicious, SWE",
+            "team": "Veterankraft",
+            "gp": 10,
+            "g": 1,
+            "a": 8,
+            "pts": 9,
+            "pim": 0,
+            "playerId": "2315"
+          },
+          {
+            "player": "Larzzon96, SWE",
+            "team": "Sunne IK Esport",
+            "gp": 10,
+            "g": 1,
+            "a": 7,
+            "pts": 8,
+            "pim": 4,
+            "playerId": "11444"
+          },
+          {
+            "player": "BigKaxen, SWE",
+            "team": "SSK Academy",
+            "gp": 8,
+            "g": 0,
+            "a": 8,
+            "pts": 8,
+            "pim": 2,
+            "playerId": "17214"
+          },
+          {
+            "player": "Antites_, SWE",
+            "team": "Modo Hockey",
+            "gp": 9,
+            "g": 1,
+            "a": 6,
+            "pts": 7,
+            "pim": 6,
+            "playerId": "2989"
+          },
+          {
+            "player": "Nephenzy, SWE",
+            "team": "Surte Sisu HC",
+            "gp": 10,
+            "g": 3,
+            "a": 4,
+            "pts": 7,
+            "pim": 0,
+            "playerId": "40"
+          },
+          {
+            "player": "I Braxsiö I, SWE",
+            "team": "Modo Hockey",
+            "gp": 8,
+            "g": 1,
+            "a": 6,
+            "pts": 7,
+            "pim": 0,
+            "playerId": "15013"
+          },
+          {
+            "player": "foxflyers, SWE",
+            "team": "SSK Academy",
+            "gp": 10,
+            "g": 2,
+            "a": 5,
+            "pts": 7,
+            "pim": 0,
+            "playerId": "12388"
+          },
+          {
+            "player": "Borjewiseman, SWE",
+            "team": "Surte Sisu HC",
+            "gp": 10,
+            "g": 1,
+            "a": 6,
+            "pts": 7,
+            "pim": 6,
+            "playerId": "16245"
+          },
+          {
+            "player": "gtasir1, NOR",
+            "team": "SSK Academy",
+            "gp": 2,
+            "g": 0,
+            "a": 6,
+            "pts": 6,
+            "pim": 0,
+            "playerId": "1403"
+          },
+          {
+            "player": "Elisx95, SWE",
+            "team": "Modo Hockey",
+            "gp": 6,
+            "g": 3,
+            "a": 3,
+            "pts": 6,
+            "pim": 2,
+            "playerId": "15864"
+          },
+          {
+            "player": "Toivo4936, SWE",
+            "team": "SSK Academy",
+            "gp": 4,
+            "g": 1,
+            "a": 3,
+            "pts": 4,
+            "pim": 2,
+            "playerId": "16145"
+          },
+          {
+            "player": "l0veett8, SWE",
+            "team": "SSK Academy",
+            "gp": 6,
+            "g": 1,
+            "a": 2,
+            "pts": 3,
+            "pim": 8,
+            "playerId": "15579"
+          },
+          {
+            "player": "Disctrasan-, SWE",
+            "team": "Modo Hockey",
+            "gp": 2,
+            "g": 1,
+            "a": 0,
+            "pts": 1,
+            "pim": 0,
+            "playerId": "9282"
+          }
+        ],
+        "playoffs": [
+          {
+            "player": "l henko l, SWE",
+            "team": "vNexs Vipers",
+            "gp": 7,
+            "g": 11,
+            "a": 10,
+            "pts": 21,
+            "pim": 2,
+            "playerId": "16615"
+          },
+          {
+            "player": "Bu-ffy, SWE",
+            "team": "Veterankraft",
+            "gp": 9,
+            "g": 9,
+            "a": 10,
+            "pts": 19,
+            "pim": 4,
+            "playerId": "1600"
+          },
+          {
+            "player": "STRANDMANNEN11, SWE",
+            "team": "Veterankraft",
+            "gp": 9,
+            "g": 10,
+            "a": 9,
+            "pts": 19,
+            "pim": 0,
+            "playerId": "7922"
+          },
+          {
+            "player": "Prolane, SWE",
+            "team": "Veterankraft",
+            "gp": 9,
+            "g": 4,
+            "a": 14,
+            "pts": 18,
+            "pim": 2,
+            "playerId": "4857"
+          },
+          {
+            "player": "Lypsaaja6365, FIN",
+            "team": "vNexs Vipers",
+            "gp": 7,
+            "g": 6,
+            "a": 9,
+            "pts": 15,
+            "pim": 0,
+            "playerId": "16641"
+          },
+          {
+            "player": "Mathiasgamer_07, NOR",
+            "team": "Sunne IK Esport",
+            "gp": 5,
+            "g": 12,
+            "a": 2,
+            "pts": 14,
+            "pim": 0,
+            "playerId": "13298"
+          },
+          {
+            "player": "Dan9105, SWE",
+            "team": "vNexs Vipers",
+            "gp": 7,
+            "g": 6,
+            "a": 6,
+            "pts": 12,
+            "pim": 0,
+            "playerId": "15085"
+          },
+          {
+            "player": "vPahlen, SWE",
+            "team": "Sunne IK Esport",
+            "gp": 5,
+            "g": 3,
+            "a": 7,
+            "pts": 10,
+            "pim": 2,
+            "playerId": "14484"
+          },
+          {
+            "player": "Svana_22, SWE",
+            "team": "Sunne IK Esport",
+            "gp": 5,
+            "g": 2,
+            "a": 7,
+            "pts": 9,
+            "pim": 0,
+            "playerId": "11445"
+          },
+          {
+            "player": "Hescoores, SWE",
+            "team": "vNexs Vipers",
+            "gp": 7,
+            "g": 2,
+            "a": 7,
+            "pts": 9,
+            "pim": 0,
+            "playerId": "15073"
+          },
+          {
+            "player": "O3_DAFA, SWE",
+            "team": "Sunne IK Esport",
+            "gp": 5,
+            "g": 0,
+            "a": 6,
+            "pts": 6,
+            "pim": 0,
+            "playerId": "7099"
+          },
+          {
+            "player": "Kungenanton02, SWE",
+            "team": "vNexs Vipers",
+            "gp": 7,
+            "g": 1,
+            "a": 4,
+            "pts": 5,
+            "pim": 0,
+            "playerId": "17394"
+          },
+          {
+            "player": "Supremski, SWE",
+            "team": "Veterankraft",
+            "gp": 9,
+            "g": 0,
+            "a": 4,
+            "pts": 4,
+            "pim": 0,
+            "playerId": "41"
+          },
+          {
+            "player": "Diizzylicious, SWE",
+            "team": "Veterankraft",
+            "gp": 9,
+            "g": 0,
+            "a": 3,
+            "pts": 3,
+            "pim": 0,
+            "playerId": "2315"
+          },
+          {
+            "player": "I Braxsiö I, SWE",
+            "team": "Modo Hockey",
+            "gp": 3,
+            "g": 0,
+            "a": 3,
+            "pts": 3,
+            "pim": 0,
+            "playerId": "15013"
+          },
+          {
+            "player": "RookieLIAMOVIC, SWE",
+            "team": "Modo Hockey",
+            "gp": 3,
+            "g": 1,
+            "a": 1,
+            "pts": 2,
+            "pim": 2,
+            "playerId": "5102"
+          },
+          {
+            "player": "Antites_, SWE",
+            "team": "Modo Hockey",
+            "gp": 3,
+            "g": 1,
+            "a": 1,
+            "pts": 2,
+            "pim": 0,
+            "playerId": "2989"
+          },
+          {
+            "player": "Larzzon96, SWE",
+            "team": "Sunne IK Esport",
+            "gp": 5,
+            "g": 0,
+            "a": 1,
+            "pts": 1,
+            "pim": 2,
+            "playerId": "11444"
+          },
+          {
+            "player": "MrXbox79, SWE",
+            "team": "Modo Hockey",
+            "gp": 3,
+            "g": 1,
+            "a": 0,
+            "pts": 1,
+            "pim": 2,
+            "playerId": "10332"
+          },
+          {
+            "player": "jojjep-, SWE",
+            "team": "Modo Hockey",
+            "gp": 3,
+            "g": 0,
+            "a": 1,
+            "pts": 1,
+            "pim": 0,
+            "playerId": "14619"
+          }
+        ]
+      },
+      "goalieStats": {
+        "group": [
+          {
+            "player": "DobbyTheJoker_, SWE",
+            "team": "Modo Hockey",
+            "gp": 8,
+            "sa": 123,
+            "ga": 17,
+            "sv": 106,
+            "gaa": 2.07,
+            "svp": 0.862,
+            "so": 3,
+            "playerId": "98"
+          },
+          {
+            "player": "DANNU1237, FIN",
+            "team": "vNexs Vipers",
+            "gp": 4,
+            "sa": 64,
+            "ga": 9,
+            "sv": 55,
+            "gaa": 2.2,
+            "svp": 0.859,
+            "so": 0,
+            "playerId": "17605"
+          },
+          {
+            "player": "SmAyK99, SWE",
+            "team": "Veterankraft",
+            "gp": 10,
+            "sa": 175,
+            "ga": 31,
+            "sv": 144,
+            "gaa": 3.33,
+            "svp": 0.823,
+            "so": 0,
+            "playerId": "12146"
+          },
+          {
+            "player": "KabbeTV, SWE",
+            "team": "Modo Hockey",
+            "gp": 2,
+            "sa": 43,
+            "ga": 8,
+            "sv": 35,
+            "gaa": 3.08,
+            "svp": 0.814,
+            "so": 0,
+            "playerId": "16664"
+          },
+          {
+            "player": "DE BOHM, SWE",
+            "team": "vNexs Vipers",
+            "gp": 4,
+            "sa": 61,
+            "ga": 12,
+            "sv": 49,
+            "gaa": 3,
+            "svp": 0.803,
+            "so": 0,
+            "playerId": "17393"
+          },
+          {
+            "player": "Edvvinio, SWE",
+            "team": "Sunne IK Esport",
+            "gp": 10,
+            "sa": 141,
+            "ga": 29,
+            "sv": 112,
+            "gaa": 3.21,
+            "svp": 0.794,
+            "so": 1,
+            "playerId": "3739"
+          },
+          {
+            "player": "MekNoXEr, SWE",
+            "team": "SSK Academy",
+            "gp": 10,
+            "sa": 143,
+            "ga": 34,
+            "sv": 109,
+            "gaa": 3.4,
+            "svp": 0.762,
+            "so": 1,
+            "playerId": "17390"
+          },
+          {
+            "player": "fakespear, SWE",
+            "team": "Surte Sisu HC",
+            "gp": 10,
+            "sa": 151,
+            "ga": 40,
+            "sv": 111,
+            "gaa": 4.34,
+            "svp": 0.735,
+            "so": 1,
+            "playerId": "8708"
+          },
+          {
+            "player": "KFC Melker, SWE",
+            "team": "vNexs Vipers",
+            "gp": 2,
+            "sa": 21,
+            "ga": 8,
+            "sv": 13,
+            "gaa": 4,
+            "svp": 0.619,
+            "so": 0,
+            "playerId": "16500"
+          }
+        ],
+        "playoffs": [
+          {
+            "player": "DE BOHM, SWE",
+            "team": "vNexs Vipers",
+            "gp": 3,
+            "sa": 45,
+            "ga": 3,
+            "sv": 42,
+            "gaa": 1,
+            "svp": 0.933,
+            "so": 1,
+            "playerId": "17393"
+          },
+          {
+            "player": "DANNU1237, FIN",
+            "team": "vNexs Vipers",
+            "gp": 4,
+            "sa": 62,
+            "ga": 8,
+            "sv": 54,
+            "gaa": 2,
+            "svp": 0.871,
+            "so": 0,
+            "playerId": "17605"
+          },
+          {
+            "player": "Edvvinio, SWE",
+            "team": "Sunne IK Esport",
+            "gp": 5,
+            "sa": 78,
+            "ga": 15,
+            "sv": 63,
+            "gaa": 3,
+            "svp": 0.808,
+            "so": 1,
+            "playerId": "3739"
+          },
+          {
+            "player": "SmAyK99, SWE",
+            "team": "Veterankraft",
+            "gp": 9,
+            "sa": 115,
+            "ga": 31,
+            "sv": 84,
+            "gaa": 3.44,
+            "svp": 0.73,
+            "so": 0,
+            "playerId": "12146"
+          },
+          {
+            "player": "DobbyTheJoker_, SWE",
+            "team": "Modo Hockey",
+            "gp": 3,
+            "sa": 39,
+            "ga": 12,
+            "sv": 27,
+            "gaa": 4,
+            "svp": 0.692,
+            "so": 0,
+            "playerId": "98"
+          }
+        ]
       }
     },
     {
