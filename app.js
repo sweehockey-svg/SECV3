@@ -3918,21 +3918,22 @@ function bindGlobalSearch() {
 
   input.dataset.bound = "true";
 
-  const items = state.teams.map(function(team) {
+  const teamItems = state.teams.map(function(team) {
     return {
       type: "team",
       label: team.name,
       href: "#/team/" + encodeURIComponent(team.key),
-      meta: team.cups[0] ? team.cups[0].code : "Lag"
+      meta: formatTeamSearchCups(team)
     };
-  }).concat(state.players.map(function(player) {
+  });
+  const playerItems = state.players.map(function(player) {
     return {
       type: "player",
       label: player.name,
       href: "#/player/" + encodeURIComponent(player.key),
-      meta: player.teamNames[0] || "Spelare"
+      meta: getLatestPlayerTeam(player) || "Spelare"
     };
-  }));
+  });
 
   function closeResults() {
     results.style.display = "none";
@@ -3947,9 +3948,13 @@ function bindGlobalSearch() {
       return;
     }
 
-    const matched = items.filter(function(item) {
-      return slugify(item.label).indexOf(query) !== -1 || slugify(item.meta).indexOf(query) !== -1;
-    }).slice(0, 20);
+    const matchedTeams = teamItems.filter(function(item) {
+      return slugify(item.label).indexOf(query) !== -1;
+    });
+    const matchedPlayers = playerItems.filter(function(item) {
+      return slugify(item.label).indexOf(query) !== -1;
+    });
+    const matched = (matchedTeams.length ? matchedTeams : matchedPlayers).slice(0, 20);
 
     if (!matched.length) {
       closeResults();
@@ -3982,6 +3987,18 @@ function bindGlobalSearch() {
       closeResults();
     }
   });
+}
+
+function formatTeamSearchCups(team) {
+  const cups = (team.cups || []).slice().sort(function(a, b) {
+    return inferSortOrder(a.id) - inferSortOrder(b.id);
+  });
+  if (!cups.length) {
+    return "Lag";
+  }
+  return cups.map(function(cup) {
+    return cup.code;
+  }).join(", ");
 }
 
 function bindCupTabs() {
