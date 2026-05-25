@@ -2223,6 +2223,28 @@ h3,
   background: rgba(255, 255, 255, 0.03);
 }
 
+.rule-list-item {
+  line-height: 1.45;
+}
+
+.rule-list-item strong {
+  color: #dce8f8;
+}
+
+.rule-paragraphs {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.rule-list-item > .rule-paragraphs:first-child {
+  margin-top: 0;
+}
+
+.rule-paragraphs p {
+  margin: 0;
+}
+
 .match-header,
 .match-score,
 .stage-block-header,

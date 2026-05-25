@@ -3307,31 +3307,120 @@ function renderCupSettingsSummary(settings) {
   ].filter(Boolean);
 
   if (safeSettings.playoffCut1) {
-    items.push("Slutspelsstreck: topp " + safeSettings.playoffCut1 + (safeSettings.playoffCut2 ? " / " + safeSettings.playoffCut2 : ""));
+    items.push({
+      label: "Slutspelsstreck",
+      text: "topp " + safeSettings.playoffCut1 + (safeSettings.playoffCut2 ? " / " + safeSettings.playoffCut2 : "")
+    });
   }
   if (bestOf.length) {
-    items.push("Best of: " + Array.from(new Set(bestOf.map(String))).map(function(value) {
+    items.push({
+      label: "Best of",
+      text: Array.from(new Set(bestOf.map(String))).map(function(value) {
       return "BO" + value;
-    }).join(", "));
+    }).join(", ")
+    });
   }
   if (safeSettings.minPlayers || safeSettings.maxPlayers) {
-    items.push("Trupp: " + (safeSettings.minPlayers || "?") + "-" + (safeSettings.maxPlayers || "?") + " spelare");
+    items.push({
+      label: "Trupp",
+      text: (safeSettings.minPlayers || "?") + "-" + (safeSettings.maxPlayers || "?") + " spelare"
+    });
   }
   if (safeSettings.eligibility) {
-    items.push("Behorighet: " + safeSettings.eligibility);
+    items.push({
+      label: "Behörighet",
+      text: stripRuleLabel(safeSettings.eligibility, "Behörighet")
+    });
   }
 
   splitSettingsInfo(safeSettings.info).slice(0, 2).forEach(function(info) {
-    items.push(info);
+    items.push({
+      label: "",
+      text: info
+    });
   });
 
   if (!items.length) {
-    items.push("Ingen extra cupinfo finns angiven i regler-sheetet.");
+    items.push({
+      label: "",
+      text: "Ingen extra cupinfo finns angiven i regler-sheetet."
+    });
   }
 
   return items.map(function(item) {
-    return `<div class="simple-list-item">${escapeHtml(item)}</div>`;
+    return renderRuleListItem(item);
   }).join("");
+}
+
+function renderRuleListItem(item) {
+  const paragraphs = splitRuleParagraphs(item.text);
+  const label = item.label ? `<strong>${escapeHtml(item.label)}:</strong> ` : "";
+
+  if (paragraphs.length <= 1) {
+    return `<div class="simple-list-item rule-list-item">${label}${escapeHtml(paragraphs[0] || "")}</div>`;
+  }
+
+  return `
+    <div class="simple-list-item rule-list-item">
+      ${label}
+      <div class="rule-paragraphs">
+        ${paragraphs.map(function(paragraph) {
+          return `<p>${escapeHtml(paragraph)}</p>`;
+        }).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function stripRuleLabel(value, label) {
+  const text = normalizeText(value);
+  const normalizedLabel = normalizeLookupKey(label);
+  const parts = text.split(":");
+
+  if (parts.length > 1 && normalizeLookupKey(parts[0]) === normalizedLabel) {
+    return parts.slice(1).join(":").trim();
+  }
+
+  return text;
+}
+
+function splitRuleParagraphs(value) {
+  const text = normalizeText(value);
+
+  if (!text) {
+    return [];
+  }
+
+  const sentenceParts = text
+    .split(/(?<=\.)\s+(?=[A-ZÅÄÖ])|(?<=\))\s+(?=[A-ZÅÄÖ])/g)
+    .map(function(part) { return part.trim(); })
+    .filter(Boolean);
+
+  if (sentenceParts.length <= 1) {
+    return [text];
+  }
+
+  const paragraphs = [];
+  let current = "";
+
+  sentenceParts.forEach(function(part) {
+    if (!current) {
+      current = part;
+      return;
+    }
+    if ((current + " " + part).length > 210) {
+      paragraphs.push(current);
+      current = part;
+      return;
+    }
+    current += " " + part;
+  });
+
+  if (current) {
+    paragraphs.push(current);
+  }
+
+  return paragraphs;
 }
 
 function renderCupHighlightCard(label, item, options) {
@@ -3636,7 +3725,10 @@ function renderCupRules(cup) {
           <div class="simple-list">
             <div class="simple-list-item">Minst antal spelare: ${settings.minPlayers ? escapeHtml(settings.minPlayers) : "Ej angivet"}</div>
             <div class="simple-list-item">Max antal spelare: ${settings.maxPlayers ? escapeHtml(settings.maxPlayers) : "Ej angivet"}</div>
-            <div class="simple-list-item">Behorighet: ${settings.eligibility ? escapeHtml(settings.eligibility) : "Ej angivet"}</div>
+            ${renderRuleListItem({
+              label: "Behörighet",
+              text: settings.eligibility ? stripRuleLabel(settings.eligibility, "Behörighet") : "Ej angivet"
+            })}
           </div>
         </article>
 
@@ -3658,7 +3750,7 @@ function renderCupRules(cup) {
           </div>
           <div class="simple-list">
             ${infoItems.length ? infoItems.map(function(item) {
-              return `<div class="simple-list-item">${escapeHtml(item)}</div>`;
+              return renderRuleListItem({ label: "", text: item });
             }).join("") : `<div class="simple-list-item">Ingen extra info finns angiven for cupen.</div>`}
           </div>
         </article>
