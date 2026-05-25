@@ -707,13 +707,6 @@ function normalizeCups(cups, settingsByCup, placementsByCup) {
       const playoffPlayers = normalizePlayerRows(cup.playerStats?.playoffs || [], "playoffs");
       const groupGoalies = normalizeGoalieRows(cup.goalieStats?.group || [], "group");
       const playoffGoalies = normalizeGoalieRows(cup.goalieStats?.playoffs || [], "playoffs");
-      const allPlayerStats = groupPlayers.concat(playoffPlayers);
-      const allGoalieStats = groupGoalies.concat(playoffGoalies);
-      const topScorer = allPlayerStats
-        .slice()
-        .sort(function(a, b) {
-          return (b.pts - a.pts) || (b.g - a.g) || a.player.localeCompare(b.player, "sv");
-        })[0] || null;
 
       const normalizedMatches = (cup.matches || []).map(function(match, matchIndex) {
         return {
@@ -734,6 +727,18 @@ function normalizeCups(cups, settingsByCup, placementsByCup) {
           goalieStats: normalizeMatchStatSides(match.goalieStats, normalizeGoalieRows, "match")
         };
       });
+      const normalizedPlayoffPlayers = playoffPlayers.length
+        ? playoffPlayers
+        : aggregateMatchPlayerStats(normalizedMatches, "playoffs");
+      const normalizedPlayoffGoalies = playoffGoalies.length
+        ? playoffGoalies
+        : aggregateMatchGoalieStats(normalizedMatches, "playoffs");
+      const allPlayerStats = groupPlayers.concat(normalizedPlayoffPlayers);
+      const topScorer = allPlayerStats
+        .slice()
+        .sort(function(a, b) {
+          return (b.pts - a.pts) || (b.g - a.g) || a.player.localeCompare(b.player, "sv");
+        })[0] || null;
 
       const id = String(cup.id || index + 1);
       const code = String(cup.code || ("SEC " + (index + 1)));
@@ -758,11 +763,11 @@ function normalizeCups(cups, settingsByCup, placementsByCup) {
         matches: normalizedMatches,
         playerStats: {
           group: groupPlayers,
-          playoffs: playoffPlayers
+          playoffs: normalizedPlayoffPlayers
         },
         goalieStats: {
           group: groupGoalies,
-          playoffs: playoffGoalies
+          playoffs: normalizedPlayoffGoalies
         },
         matchCount: normalizedMatches.length,
         topScorer: topScorer ? formatPlayerLabel(topScorer) : "Ingen data an"
@@ -820,6 +825,90 @@ function normalizeMatchStatSides(stats, normalizer, stage) {
     away: normalizer(Array.isArray(source.away) ? source.away : [], stage),
     home: normalizer(Array.isArray(source.home) ? source.home : [], stage)
   };
+}
+
+function aggregateMatchPlayerStats(matches, stage) {
+  const map = new Map();
+
+  matches.filter(function(match) {
+    return match.stage === stage;
+  }).forEach(function(match) {
+    match.playerStats.away.concat(match.playerStats.home).forEach(function(row) {
+      const key = row.playerId || normalizeLookupKey(row.player + "|" + row.team);
+      if (!map.has(key)) {
+        map.set(key, {
+          player: row.player,
+          displayName: row.displayName,
+          countryCode: row.countryCode,
+          team: row.team,
+          gp: 0,
+          g: 0,
+          a: 0,
+          pts: 0,
+          pim: 0,
+          shots: 0,
+          playerId: row.playerId,
+          stage: stage
+        });
+      }
+
+      const target = map.get(key);
+      target.gp += toNumber(row.gp) || 1;
+      target.g += toNumber(row.g);
+      target.a += toNumber(row.a);
+      target.pts += toNumber(row.pts);
+      target.pim += toNumber(row.pim);
+      target.shots += toNumber(row.shots);
+    });
+  });
+
+  return Array.from(map.values()).sort(function(a, b) {
+    return b.pts - a.pts || b.g - a.g || b.a - a.a || b.shots - a.shots || a.player.localeCompare(b.player, "sv");
+  });
+}
+
+function aggregateMatchGoalieStats(matches, stage) {
+  const map = new Map();
+
+  matches.filter(function(match) {
+    return match.stage === stage;
+  }).forEach(function(match) {
+    match.goalieStats.away.concat(match.goalieStats.home).forEach(function(row) {
+      const key = row.playerId || normalizeLookupKey(row.player + "|" + row.team);
+      if (!map.has(key)) {
+        map.set(key, {
+          player: row.player,
+          displayName: row.displayName,
+          countryCode: row.countryCode,
+          team: row.team,
+          gp: 0,
+          sa: 0,
+          ga: 0,
+          sv: 0,
+          gaa: 0,
+          svp: null,
+          so: 0,
+          playerId: row.playerId,
+          stage: stage
+        });
+      }
+
+      const target = map.get(key);
+      target.gp += toNumber(row.gp) || 1;
+      target.sa += toNumber(row.sa);
+      target.ga += toNumber(row.ga);
+      target.sv += toNumber(row.sv);
+      target.so += toNumber(row.so);
+    });
+  });
+
+  return Array.from(map.values()).map(function(row) {
+    row.svp = row.sa > 0 ? row.sv / row.sa : null;
+    row.gaa = row.gp > 0 ? row.ga / row.gp : 0;
+    return row;
+  }).sort(function(a, b) {
+    return safeNumber(b.svp) - safeNumber(a.svp) || safeNumber(a.gaa) - safeNumber(b.gaa) || safeNumber(b.sv) - safeNumber(a.sv) || a.player.localeCompare(b.player, "sv");
+  });
 }
 
 function buildTeams(cups) {

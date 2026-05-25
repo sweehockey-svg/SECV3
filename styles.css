@@ -23,10 +23,6 @@
   box-sizing: border-box;
 }
 
-[hidden] {
-  display: none !important;
-}
-
 html {
   scroll-behavior: smooth;
 }
@@ -2300,6 +2296,12 @@ h3,
 .match-score .team-identity:last-child {
   justify-content: flex-end;
   text-align: right;
+}
+
+[data-match-card][hidden],
+[data-match-stage-block][hidden],
+[data-match-filter-empty][hidden] {
+  display: none !important;
 }
 
 .match-card,
