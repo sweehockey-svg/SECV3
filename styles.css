@@ -2245,6 +2245,36 @@ h3,
   margin: 0;
 }
 
+.rule-list-item p,
+.rule-heading,
+.rule-list {
+  margin: 0;
+}
+
+.rule-list-item p + p,
+.rule-list-item p + .rule-list,
+.rule-list + p,
+.rule-heading + p,
+.rule-heading + .rule-list {
+  margin-top: 10px;
+}
+
+.rule-heading {
+  color: var(--gold-soft);
+  font-size: 0.96rem;
+  line-height: 1.25;
+}
+
+.rule-list {
+  display: grid;
+  gap: 6px;
+  padding-left: 20px;
+}
+
+.rule-list li::marker {
+  color: var(--gold);
+}
+
 .match-header,
 .match-score,
 .stage-block-header,

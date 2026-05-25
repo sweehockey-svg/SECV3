@@ -3357,7 +3357,7 @@ function renderRuleListItem(item) {
   const label = item.label ? `<strong>${escapeHtml(item.label)}:</strong> ` : "";
 
   if (paragraphs.length <= 1) {
-    return `<div class="simple-list-item rule-list-item">${label}${escapeHtml(paragraphs[0] || "")}</div>`;
+    return `<div class="simple-list-item rule-list-item">${label}${renderRuleRichText(paragraphs[0] || "")}</div>`;
   }
 
   return `
@@ -3365,11 +3365,70 @@ function renderRuleListItem(item) {
       ${label}
       <div class="rule-paragraphs">
         ${paragraphs.map(function(paragraph) {
-          return `<p>${escapeHtml(paragraph)}</p>`;
+          return `<p>${renderRuleInlineText(paragraph)}</p>`;
         }).join("")}
       </div>
     </div>
   `;
+}
+
+function renderRuleRichText(value) {
+  const lines = String(value || "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .split("\n")
+    .map(function(line) { return line.trim(); });
+
+  const output = [];
+  let listItems = [];
+
+  function flushList() {
+    if (!listItems.length) {
+      return;
+    }
+    output.push(`
+      <ul class="rule-list">
+        ${listItems.map(function(item) {
+          return `<li>${renderRuleInlineText(item)}</li>`;
+        }).join("")}
+      </ul>
+    `);
+    listItems = [];
+  }
+
+  lines.forEach(function(line) {
+    if (!line) {
+      flushList();
+      output.push(`<br>`);
+      return;
+    }
+
+    const bulletMatch = line.match(/^[-*]\s+(.+)$/);
+    if (bulletMatch) {
+      listItems.push(bulletMatch[1]);
+      return;
+    }
+
+    flushList();
+
+    const headingMatch = line.match(/^(#{1,3})\s+(.+)$/);
+    if (headingMatch) {
+      const level = Math.min(3, headingMatch[1].length);
+      output.push(`<h${level + 3} class="rule-heading">${renderRuleInlineText(headingMatch[2])}</h${level + 3}>`);
+      return;
+    }
+
+    output.push(`<p>${renderRuleInlineText(line)}</p>`);
+  });
+
+  flushList();
+
+  return output.join("");
+}
+
+function renderRuleInlineText(value) {
+  return escapeHtml(value)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/__(.+?)__/g, "<strong>$1</strong>");
 }
 
 function stripRuleLabel(value, label) {
@@ -3389,6 +3448,10 @@ function splitRuleParagraphs(value) {
 
   if (!text) {
     return [];
+  }
+
+  if (/<br\s*\/?>/i.test(text)) {
+    return [text];
   }
 
   const sentenceParts = text
