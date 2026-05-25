@@ -4468,7 +4468,8 @@ function updateNavState(route) {
     route.type === "players" || route.type === "player" ? "#/players" : "#/";
 
   document.querySelectorAll(".nav__link, .mobile__link").forEach(function(link) {
-    link.classList.toggle("is-active", link.getAttribute("href") === active);
+    const isSecRoot = link.hasAttribute("data-sec-root");
+    link.classList.toggle("is-active", isSecRoot || link.getAttribute("href") === active);
   });
 }
 
