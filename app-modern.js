@@ -557,7 +557,11 @@
       return `
         <div class="matchRow">
           <span>${escapeHtml(entry.cup.code)}</span>
-          <strong>${escapeHtml(entry.match.awayTeam)} <b>${score(entry.match)}</b> ${escapeHtml(entry.match.homeTeam)}</strong>
+          <strong class="matchTeams">
+            ${renderTeamIdentity(entry.match.awayTeam, "teamLogoInline")}
+            <b>${score(entry.match)}</b>
+            ${renderTeamIdentity(entry.match.homeTeam, "teamLogoInline")}
+          </strong>
           <em>${escapeHtml(formatDate(entry.match.date))} · ${escapeHtml(entry.match.group || entry.match.stage || "Match")}</em>
         </div>
       `;
@@ -683,7 +687,7 @@
                   ${group.rows.map(function (row) {
                     return `
                       <tr>
-                        <td><a href="#/teams/${encodeURIComponent(row.team)}">${escapeHtml(row.team)}</a></td>
+                        <td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td>
                         <td>${row.gp}</td><td>${row.w}</td><td>${row.l}</td><td>${row.otl}</td>
                         <td>${row.gf - row.ga}</td><td><strong>${row.pts}</strong></td>
                       </tr>
@@ -726,8 +730,8 @@
                 const winner = number(match.awayScore) > number(match.homeScore) ? match.awayTeam : number(match.homeScore) > number(match.awayScore) ? match.homeTeam : "";
                 return `
                   <div class="series">
-                    <span class="${winner === match.awayTeam ? "winner" : ""}">${escapeHtml(match.awayTeam)} <b>${display(match.awayScore)}</b></span>
-                    <span class="${winner === match.homeTeam ? "winner" : ""}">${escapeHtml(match.homeTeam)} <b>${display(match.homeScore)}</b></span>
+                    <span class="${winner === match.awayTeam ? "winner" : ""}">${renderTeamIdentity(match.awayTeam, "teamLogoTiny")} <b>${display(match.awayScore)}</b></span>
+                    <span class="${winner === match.homeTeam ? "winner" : ""}">${renderTeamIdentity(match.homeTeam, "teamLogoTiny")} <b>${display(match.homeScore)}</b></span>
                   </div>
                 `;
               }).join("")}
@@ -808,7 +812,7 @@
           <thead><tr><th>Cup</th><th>Lag</th><th>GP</th><th>G</th><th>A</th><th>PTS</th><th>PIM</th></tr></thead>
           <tbody>
             ${rows.map(function (row) {
-              return `<tr><td><a href="#/cups/${encodeURIComponent(row.cupId)}">${escapeHtml(row.cupCode)}</a></td><td><a href="#/teams/${encodeURIComponent(row.team)}">${escapeHtml(row.team)}</a></td><td>${row.gp}</td><td>${row.g}</td><td>${row.a}</td><td><strong>${row.pts}</strong></td><td>${row.pim}</td></tr>`;
+              return `<tr><td><a href="#/cups/${encodeURIComponent(row.cupId)}">${escapeHtml(row.cupCode)}</a></td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.g}</td><td>${row.a}</td><td><strong>${row.pts}</strong></td><td>${row.pim}</td></tr>`;
             }).join("")}
           </tbody>
         </table>
@@ -827,7 +831,7 @@
           <thead><tr><th>Cup</th><th>Lag</th><th>GP</th><th>SA</th><th>GA</th><th>SV</th><th>SV%</th><th>GAA</th><th>SO</th></tr></thead>
           <tbody>
             ${rows.map(function (row) {
-              return `<tr><td><a href="#/cups/${encodeURIComponent(row.cupId)}">${escapeHtml(row.cupCode)}</a></td><td><a href="#/teams/${encodeURIComponent(row.team)}">${escapeHtml(row.team)}</a></td><td>${row.gp}</td><td>${row.sa}</td><td>${row.ga}</td><td>${row.sv}</td><td><strong>${formatPercent(row.svp)}</strong></td><td>${formatDecimal(row.gaa)}</td><td>${row.so}</td></tr>`;
+              return `<tr><td><a href="#/cups/${encodeURIComponent(row.cupId)}">${escapeHtml(row.cupCode)}</a></td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.sa}</td><td>${row.ga}</td><td>${row.sv}</td><td><strong>${formatPercent(row.svp)}</strong></td><td>${formatDecimal(row.gaa)}</td><td>${row.so}</td></tr>`;
             }).join("")}
           </tbody>
         </table>
@@ -844,6 +848,16 @@
       <span class="teamLogo ${className || ""}" data-initials="${escapeHtml(getTeamInitials(safeName))}">
         ${first ? `<img src="${escapeHtml(first)}" data-fallback-srcs="${escapeHtml(JSON.stringify(fallbacks))}" onerror="window.SEC_LOGO_FALLBACK(this)" alt="${escapeHtml(safeName)} logga" loading="eager" decoding="async">` : ""}
       </span>
+    `;
+  }
+
+  function renderTeamIdentity(teamName, logoClass) {
+    const safeName = text(teamName || "Okänt lag");
+    return `
+      <a class="teamIdentity" href="#/teams/${encodeURIComponent(safeName)}">
+        ${renderTeamLogo(safeName, logoClass || "teamLogoTiny")}
+        <span>${escapeHtml(safeName)}</span>
+      </a>
     `;
   }
 

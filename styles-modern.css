@@ -659,7 +659,7 @@ input {
   grid-template-columns: 40px minmax(0, 1fr) minmax(110px, auto) 64px;
 }
 
-.leader span {
+.leader > span {
   display: grid;
   place-items: center;
   width: 30px;
@@ -835,6 +835,45 @@ input {
 
 .teamLogoChip::before {
   font-size: 12px;
+}
+
+.teamLogoInline,
+.teamLogoTiny {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.teamLogoInline::before,
+.teamLogoTiny::before {
+  font-size: 12px;
+}
+
+.teamIdentity {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: inherit;
+  vertical-align: middle;
+}
+
+.teamIdentity span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.matchTeams {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.matchTeams .teamIdentity:last-child {
+  justify-content: end;
 }
 
 .teamTile strong,
