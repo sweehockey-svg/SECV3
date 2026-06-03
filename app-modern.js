@@ -5,6 +5,7 @@
     teams: [],
     players: [],
     goalies: [],
+    teamLogoIndex: new Map(),
     view: "overview",
     query: "",
     activeCupId: "",
@@ -14,6 +15,23 @@
   };
 
   const routes = new Set(["overview", "cups", "teams", "players", "goalies", "matches", "about"]);
+
+  window.SEC_LOGO_FALLBACK = function (image) {
+    const parent = image.closest(".teamLogo");
+    let fallbacks = [];
+    try {
+      fallbacks = JSON.parse(image.dataset.fallbackSrcs || "[]");
+    } catch (_error) {
+      fallbacks = [];
+    }
+    if (fallbacks.length) {
+      image.dataset.fallbackSrcs = JSON.stringify(fallbacks.slice(1));
+      image.src = fallbacks[0];
+      return;
+    }
+    if (parent) parent.classList.add("missing");
+    image.remove();
+  };
 
   init();
 
@@ -26,6 +44,12 @@
       state.goalies = buildGoalies(state.cups);
       readRoute();
       render();
+      loadTeamLogoIndex().then(function (index) {
+        if (index.size) {
+          state.teamLogoIndex = index;
+          render();
+        }
+      });
       window.addEventListener("hashchange", function () {
         readRoute();
         render();
@@ -59,6 +83,33 @@
     return mergeRawCups(payloads.flatMap(function (payload) {
       return payload.cups || payload.data || [];
     }));
+  }
+
+  async function loadTeamLogoIndex() {
+    const url = window.SEC_CONFIG?.teamLogoManifestUrl || "";
+    if (!url) return new Map();
+    try {
+      const payload = await loadJson(url);
+      const files = (Array.isArray(payload) ? payload : []).map(function (item) {
+        return item?.name || "";
+      }).filter(function (name) {
+        return /\.(png|jpe?g|webp|svg)$/i.test(name);
+      });
+      const index = new Map();
+      files.forEach(function (filename) {
+        const base = filename.replace(/\.[^.]+$/, "");
+        const keys = uniqueStrings([
+          fold(base),
+          normalizeLogoKey(base)
+        ]);
+        keys.forEach(function (key) {
+          if (key && !index.has(key)) index.set(key, filename);
+        });
+      });
+      return index;
+    } catch (_error) {
+      return new Map();
+    }
   }
 
   function mergeRawCups(cups) {
@@ -349,7 +400,7 @@
         ${state.teams.slice(0, 240).map(function (team) {
           return `
             <a class="teamTile" href="#/teams/${encodeURIComponent(team.name)}">
-              <span>${team.cups}</span>
+              ${renderTeamLogo(team.name, "teamLogoTile")}
               <strong>${escapeHtml(team.name)}</strong>
               <em>${team.matches} matcher · ${team.wins} vinster</em>
             </a>
@@ -369,6 +420,7 @@
     return `
       <section class="detailHero">
         <a href="#/teams">Tillbaka till lag</a>
+        ${renderTeamLogo(team.name, "teamLogoHero")}
         <h2>${escapeHtml(team.name)}</h2>
         <p>${team.cups} cuper, ${team.matches} matcher, ${team.wins} vinster och ${team.goalsFor} mål framåt.</p>
       </section>
@@ -568,7 +620,7 @@
     return `
       <div class="tagCloud">
         ${items.slice(0, 80).map(function (item) {
-          return `<a href="${hrefBase}${encodeURIComponent(item)}">${escapeHtml(item)}</a>`;
+          return `<a href="${hrefBase}${encodeURIComponent(item)}">${type === "teams" ? renderTeamLogo(item, "teamLogoChip") : ""}<span>${escapeHtml(item)}</span></a>`;
         }).join("")}
       </div>
     `;
@@ -781,6 +833,61 @@
         </table>
       </div>
     `;
+  }
+
+  function renderTeamLogo(teamName, className) {
+    const safeName = text(teamName);
+    const urls = getTeamLogoCandidates(safeName);
+    const first = urls[0] || "";
+    const fallbacks = urls.slice(1);
+    return `
+      <span class="teamLogo ${className || ""}" data-initials="${escapeHtml(getTeamInitials(safeName))}">
+        ${first ? `<img src="${escapeHtml(first)}" data-fallback-srcs="${escapeHtml(JSON.stringify(fallbacks))}" onerror="window.SEC_LOGO_FALLBACK(this)" alt="${escapeHtml(safeName)} logga" loading="eager" decoding="async">` : ""}
+      </span>
+    `;
+  }
+
+  function getTeamLogoCandidates(teamName) {
+    if (!teamName || teamName === "Ej klar") return [];
+    const base = String(window.SEC_CONFIG?.teamLogoBaseUrl || "https://sweehockey-svg.github.io/teamlogos").replace(/\/+$/, "");
+    const matched = resolveTeamLogoFilename(teamName);
+    const names = uniqueStrings([
+      teamName,
+      removeDiacritics(teamName),
+      teamName.replace(/\s+/g, "_"),
+      removeDiacritics(teamName).replace(/\s+/g, "_"),
+      teamName.replace(/\s+/g, "-"),
+      removeDiacritics(teamName).replace(/\s+/g, "-"),
+      teamName.replace(/[^a-z0-9]+/gi, ""),
+      removeDiacritics(teamName).replace(/[^a-z0-9]+/gi, "")
+    ].map(function (name) { return name.trim(); }).filter(Boolean));
+    const guessed = uniqueStrings(names.flatMap(function (name) {
+      return ["png", "jpg", "jpeg", "webp", "svg"].map(function (ext) {
+        return base + "/" + encodeURIComponent(name + "." + ext);
+      });
+    })).slice(0, 20);
+    return uniqueStrings((matched ? [base + "/" + encodeURIComponent(matched)] : []).concat(guessed));
+  }
+
+  function resolveTeamLogoFilename(teamName) {
+    const keys = uniqueStrings([
+      fold(teamName),
+      normalizeLogoKey(teamName),
+      fold(removeDiacritics(teamName)),
+      normalizeLogoKey(removeDiacritics(teamName))
+    ]);
+    for (let index = 0; index < keys.length; index += 1) {
+      const match = state.teamLogoIndex.get(keys[index]);
+      if (match) return match;
+    }
+    return "";
+  }
+
+  function getTeamInitials(teamName) {
+    const clean = removeDiacritics(teamName).replace(/[^a-z0-9\s]/gi, " ").trim();
+    const parts = clean.split(/\s+/).filter(Boolean);
+    if (!parts.length) return "SEC";
+    return parts.slice(0, 3).map(function (part) { return part[0]; }).join("").toUpperCase();
   }
 
   function buildModel() {
@@ -1132,6 +1239,26 @@
 
   function fold(value) {
     return text(value).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function removeDiacritics(value) {
+    return text(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function normalizeLogoKey(value) {
+    return removeDiacritics(value).toLowerCase().replace(/[^a-z0-9]/g, "");
+  }
+
+  function uniqueStrings(values) {
+    const seen = new Set();
+    const output = [];
+    (values || []).forEach(function (value) {
+      const clean = String(value || "").trim();
+      if (!clean || seen.has(clean)) return;
+      seen.add(clean);
+      output.push(clean);
+    });
+    return output;
   }
 
   function fixEncoding(value) {
