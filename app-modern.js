@@ -272,6 +272,10 @@
       if (!cup) return "Cup";
       if (state.activeCupSection === "tables") return cup.name + " - tabeller";
       if (state.activeCupSection === "bracket") return cup.name + " - slutspel";
+      if (state.activeCupSection === "players") return cup.name + " - spelare";
+      if (state.activeCupSection === "goalies") return cup.name + " - målvakter";
+      if (state.activeCupSection === "info") return cup.name + " - cupinfo";
+      if (state.activeCupSection === "matches") return cup.name + " - matcher";
       return cup.name;
     }
     if (state.view === "teams" && state.activeTeam) return state.activeTeam;
@@ -328,6 +332,10 @@
       const cup = state.cups.find(function (entry) { return entry.id === state.activeCupId; });
       if (state.activeCupSection === "tables") return renderCupTablesPage(cup);
       if (state.activeCupSection === "bracket") return renderCupBracketPage(cup);
+      if (state.activeCupSection === "players") return renderCupPlayersPage(cup);
+      if (state.activeCupSection === "goalies") return renderCupGoaliesPage(cup);
+      if (state.activeCupSection === "info") return renderCupInfoPage(cup);
+      if (state.activeCupSection === "matches") return renderCupMatchesPage(cup);
       return renderCupDetail(model, cup);
     }
     if (state.view === "teams" && state.activeTeam) {
@@ -439,10 +447,10 @@
         ${panelWithAction("Slutspelsträd", "Fullständigt träd", "#/cups/" + encodeURIComponent(cup.id) + "/bracket", renderBracketPreview(bracket, cup.settings))}
       </section>
       <section class="dashGrid two">
-        ${panel("Cupinfo", renderCupSettings(cup.settings))}
-        ${panel("Matcher", renderMatchRows(rows, 14))}
-        ${panel("Toppspelare", renderLeaderRows(cup.topPlayers.slice(0, 10)))}
-        ${panel("Toppmålvakter", renderGoalieRows(cup.topGoalies.slice(0, 10)))}
+        ${panelWithAction("Cupinfo", "Fullständiga regler", "#/cups/" + encodeURIComponent(cup.id) + "/info", renderCupSettings(cup.settings, { preview: true }))}
+        ${panelWithAction("Matcher", "Alla matcher", "#/cups/" + encodeURIComponent(cup.id) + "/matches", renderMatchRows(rows, 14))}
+        ${panelWithAction("Toppspelare", "All statistik", "#/cups/" + encodeURIComponent(cup.id) + "/players", renderLeaderRows(cup.topPlayers.slice(0, 10)))}
+        ${panelWithAction("Toppmålvakter", "Alla målvakter", "#/cups/" + encodeURIComponent(cup.id) + "/goalies", renderGoalieRows(cup.topGoalies.slice(0, 10)))}
         ${panel("Lag i cupen", renderMiniTags(cup.teams, "teams"))}
       </section>
     `;
@@ -474,6 +482,65 @@
       </section>
       <section class="fullPagePanel">
         ${renderBracket(bracket, cup.settings, { full: true })}
+      </section>
+    `;
+  }
+
+  function renderCupPlayersPage(cup) {
+    if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
+    return `
+      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
+        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
+        <h2>Toppspelare</h2>
+        <p>${escapeHtml(cup.name)} · all spelarstatistik från gruppspel och slutspel.</p>
+      </section>
+      <section class="fullPagePanel">
+        ${renderCupPlayerStatsTable(cup.playerRows)}
+      </section>
+    `;
+  }
+
+  function renderCupGoaliesPage(cup) {
+    if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
+    return `
+      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
+        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
+        <h2>Målvakter</h2>
+        <p>${escapeHtml(cup.name)} · räddningsprocent, GAA, räddningar och nollor.</p>
+      </section>
+      <section class="fullPagePanel">
+        ${renderCupGoalieStatsTable(cup.goalieRows)}
+      </section>
+    `;
+  }
+
+  function renderCupInfoPage(cup) {
+    if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
+    return `
+      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
+        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
+        <h2>Fullständiga regler</h2>
+        <p>${escapeHtml(cup.name)} · cupinfo, behörighet, BO-format och spelargränser.</p>
+      </section>
+      <section class="fullPagePanel">
+        ${renderCupSettings(cup.settings, { full: true })}
+      </section>
+    `;
+  }
+
+  function renderCupMatchesPage(cup) {
+    if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
+    const rows = cup.matches.slice().sort(compareMatches).map(function (match) {
+      return { cup: cup, match: match };
+    });
+    return `
+      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
+        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
+        <h2>Alla matcher</h2>
+        <p>${escapeHtml(cup.name)} · ${rows.length} registrerade matcher.</p>
+      </section>
+      <section class="fullPagePanel">
+        ${renderMatchRows(rows, rows.length)}
       </section>
     `;
   }
@@ -691,6 +758,44 @@
     `;
   }
 
+  function renderCupPlayerStatsTable(rows) {
+    const sorted = rows.slice().sort(function (a, b) {
+      return b.pts - a.pts || b.g - a.g || b.a - a.a || b.gp - a.gp || a.name.localeCompare(b.name, "sv");
+    });
+    if (!sorted.length) return `<div class="empty">Ingen spelarstatistik hittades.</div>`;
+    return `
+      <div class="dataTable fullStatsTable">
+        <table>
+          <thead><tr><th>#</th><th>Spelare</th><th>Lag</th><th>GP</th><th>G</th><th>A</th><th>PTS</th><th>PIM</th></tr></thead>
+          <tbody>
+            ${sorted.map(function (row, index) {
+              return `<tr><td>${index + 1}</td><td><a href="#/players/${encodeURIComponent(row.name)}">${escapeHtml(row.name)}</a></td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.g}</td><td>${row.a}</td><td><strong>${row.pts}</strong></td><td>${row.pim}</td></tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderCupGoalieStatsTable(rows) {
+    const sorted = rows.slice().sort(function (a, b) {
+      return number(b.svp) - number(a.svp) || number(a.gaa) - number(b.gaa) || number(b.sv) - number(a.sv) || b.gp - a.gp || a.name.localeCompare(b.name, "sv");
+    });
+    if (!sorted.length) return `<div class="empty">Ingen målvaktsstatistik hittades.</div>`;
+    return `
+      <div class="dataTable fullStatsTable">
+        <table>
+          <thead><tr><th>#</th><th>Målvakt</th><th>Lag</th><th>GP</th><th>SA</th><th>GA</th><th>SV</th><th>SV%</th><th>GAA</th><th>SO</th></tr></thead>
+          <tbody>
+            ${sorted.map(function (row, index) {
+              return `<tr><td>${index + 1}</td><td><a href="#/goalies/${encodeURIComponent(row.name)}">${escapeHtml(row.name)}</a></td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.sa}</td><td>${row.ga}</td><td>${row.sv}</td><td><strong>${formatPercent(row.svp)}</strong></td><td>${formatDecimal(row.gaa)}</td><td>${row.so}</td></tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
   function renderCupStack(cups) {
     return `
       <div class="cupStack">
@@ -857,8 +962,9 @@
     `;
   }
 
-  function renderCupSettings(settings) {
+  function renderCupSettings(settings, options) {
     const safeSettings = settings || normalizeCupSettings({});
+    const opts = options || {};
     const items = [
       ["Slutspelsstreck 1", formatSettingValue(safeSettings.playoffCut1)],
       ["Slutspelsstreck 2", formatSettingValue(safeSettings.playoffCut2)],
@@ -873,6 +979,8 @@
       || safeSettings.eligibility
       || safeSettings.info;
     if (!hasAny) return `<div class="empty">Ingen extra cupinfo hittades.</div>`;
+    const infoItems = splitSettingsInfo(safeSettings.info);
+    const shownInfo = opts.preview ? infoItems.slice(0, 1) : infoItems;
     return `
       <div class="cupInfoGrid">
         ${items.map(function (item) {
@@ -881,9 +989,10 @@
       </div>
       <div class="cupInfoText">
         ${safeSettings.eligibility ? `<p><span>Behörighet</span>${escapeHtml(stripRuleLabel(safeSettings.eligibility, "Behörighet"))}</p>` : ""}
-        ${safeSettings.info ? splitSettingsInfo(safeSettings.info).map(function (info) {
+        ${shownInfo.map(function (info) {
           return `<p><span>Info</span>${escapeHtml(info)}</p>`;
-        }).join("") : ""}
+        }).join("")}
+        ${opts.preview && infoItems.length > shownInfo.length ? `<div class="previewMore">+${infoItems.length - shownInfo.length} infodelar till</div>` : ""}
       </div>
     `;
   }
@@ -1014,7 +1123,7 @@
   }
 
   function splitSettingsInfo(value) {
-    return text(value).split(/\r?\n|(?:\s*\|\s*)/).map(function (part) {
+    return text(value).replace(/<br\s*\/?>/gi, "\n").split(/\r?\n|(?:\s*\|\s*)/).map(function (part) {
       return part.trim();
     }).filter(Boolean);
   }
