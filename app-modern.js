@@ -10,6 +10,7 @@
     view: "overview",
     query: "",
     activeCupId: "",
+    activeCupSection: "",
     activeTeam: "",
     activePlayer: "",
     activeGoalie: ""
@@ -192,6 +193,7 @@
     const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
     state.view = routes.has(parts[0]) ? parts[0] : "overview";
     state.activeCupId = state.view === "cups" ? decodeURIComponent(parts[1] || "") : "";
+    state.activeCupSection = state.view === "cups" ? decodeURIComponent(parts[2] || "") : "";
     state.activeTeam = state.view === "teams" ? decodeURIComponent(parts[1] || "") : "";
     state.activePlayer = state.view === "players" ? decodeURIComponent(parts[1] || "") : "";
     state.activeGoalie = state.view === "goalies" ? decodeURIComponent(parts[1] || "") : "";
@@ -267,7 +269,10 @@
   function getViewTitle() {
     if (state.view === "cups" && state.activeCupId) {
       const cup = state.cups.find(function (entry) { return entry.id === state.activeCupId; });
-      return cup ? cup.name : "Cup";
+      if (!cup) return "Cup";
+      if (state.activeCupSection === "tables") return cup.name + " - tabeller";
+      if (state.activeCupSection === "bracket") return cup.name + " - slutspel";
+      return cup.name;
     }
     if (state.view === "teams" && state.activeTeam) return state.activeTeam;
     if (state.view === "players" && state.activePlayer) return state.activePlayer;
@@ -320,7 +325,10 @@
 
   function renderView(model) {
     if (state.view === "cups" && state.activeCupId) {
-      return renderCupDetail(model, state.cups.find(function (cup) { return cup.id === state.activeCupId; }));
+      const cup = state.cups.find(function (entry) { return entry.id === state.activeCupId; });
+      if (state.activeCupSection === "tables") return renderCupTablesPage(cup);
+      if (state.activeCupSection === "bracket") return renderCupBracketPage(cup);
+      return renderCupDetail(model, cup);
     }
     if (state.view === "teams" && state.activeTeam) {
       return renderTeamDetail(model, state.teams.find(function (team) { return team.name === state.activeTeam; }));
@@ -427,8 +435,8 @@
         ${metric("Finalist", cup.runnerUp || "Ej klar", "placering")}
       </section>
       <section class="sportGrid">
-        ${panel("Tabeller", renderStandings(standings, cup.settings))}
-        ${panel("Slutspelsträd", renderBracket(bracket, cup.settings))}
+        ${panelWithAction("Tabeller", "Fullständig tabell", "#/cups/" + encodeURIComponent(cup.id) + "/tables", renderStandingsPreview(standings, cup.settings))}
+        ${panelWithAction("Slutspelsträd", "Fullständigt träd", "#/cups/" + encodeURIComponent(cup.id) + "/bracket", renderBracketPreview(bracket, cup.settings))}
       </section>
       <section class="dashGrid two">
         ${panel("Cupinfo", renderCupSettings(cup.settings))}
@@ -436,6 +444,36 @@
         ${panel("Toppspelare", renderLeaderRows(cup.topPlayers.slice(0, 10)))}
         ${panel("Toppmålvakter", renderGoalieRows(cup.topGoalies.slice(0, 10)))}
         ${panel("Lag i cupen", renderMiniTags(cup.teams, "teams"))}
+      </section>
+    `;
+  }
+
+  function renderCupTablesPage(cup) {
+    if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
+    const standings = buildStandings(cup);
+    return `
+      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
+        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
+        <h2>Fullständig tabell</h2>
+        <p>${escapeHtml(cup.name)} · ${escapeHtml(formatCupDateRange(cup))} · streck enligt cupinfo.</p>
+      </section>
+      <section class="fullPagePanel">
+        ${renderStandings(standings, cup.settings, { full: true })}
+      </section>
+    `;
+  }
+
+  function renderCupBracketPage(cup) {
+    if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
+    const bracket = buildBracket(cup);
+    return `
+      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
+        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
+        <h2>Fullständigt slutspelsträd</h2>
+        <p>${escapeHtml(cup.name)} · ${bracket.reduce(function (sum, round) { return sum + ((round.series && round.series.length) || 0); }, 0)} serier.</p>
+      </section>
+      <section class="fullPagePanel">
+        ${renderBracket(bracket, cup.settings, { full: true })}
       </section>
     `;
   }
@@ -590,6 +628,18 @@
     return `<section class="panel"><h3>${escapeHtml(title)}</h3>${body}</section>`;
   }
 
+  function panelWithAction(title, actionLabel, href, body) {
+    return `
+      <section class="panel">
+        <div class="panelHead">
+          <h3>${escapeHtml(title)}</h3>
+          <a href="${href}">${escapeHtml(actionLabel)}</a>
+        </div>
+        ${body}
+      </section>
+    `;
+  }
+
   function renderMatchRows(entries, limit) {
     const rows = entries.slice(0, limit).map(function (entry) {
       return `
@@ -711,20 +761,27 @@
     }
   }
 
-  function renderStandings(groups, settings) {
+  function renderStandingsPreview(groups, settings) {
+    return renderStandings(groups, settings, { preview: true });
+  }
+
+  function renderStandings(groups, settings, options) {
     if (!groups.length) return `<div class="empty">Ingen gruppstatistik hittades.</div>`;
+    const opts = options || {};
     const cut1 = settings?.playoffCut1 || null;
     const cut2 = settings?.playoffCut2 || null;
+    const displayGroups = opts.preview ? groups.slice(0, 2) : groups;
     return `
-      <div class="standingsDeck">
-        ${groups.map(function (group) {
+      <div class="standingsDeck ${opts.full ? "fullStandings" : ""}">
+        ${displayGroups.map(function (group) {
+          const rows = opts.preview ? group.rows.slice(0, 8) : group.rows;
           return `
             <section class="standing">
               <h4>${escapeHtml(group.name)}</h4>
               <table>
                 <thead><tr><th>Lag</th><th>GP</th><th>W</th><th>L</th><th>OTL</th><th>+/-</th><th>PTS</th></tr></thead>
                 <tbody>
-                  ${group.rows.map(function (row, index) {
+                  ${rows.map(function (row, index) {
                     const rank = index + 1;
                     const cutClass = rank === cut1 ? " playoffCutLine cutOne" : rank === cut2 ? " playoffCutLine cutTwo" : "";
                     return `
@@ -737,6 +794,7 @@
                   }).join("")}
                 </tbody>
               </table>
+              ${opts.preview && group.rows.length > rows.length ? `<div class="previewMore">+${group.rows.length - rows.length} lag till</div>` : ""}
             </section>
           `;
         }).join("")}
@@ -764,16 +822,24 @@
     });
   }
 
-  function renderBracket(rounds, settings) {
+  function renderBracketPreview(rounds, settings) {
+    return renderBracket(rounds, settings, { preview: true });
+  }
+
+  function renderBracket(rounds, settings, options) {
     if (!rounds.length) return `<div class="empty">Inget slutspelsträd hittades för cupen.</div>`;
+    const opts = options || {};
+    const displayRounds = opts.preview ? rounds.slice(0, 2) : rounds;
     return `
-      <div class="bracket">
-        ${rounds.map(function (round) {
+      <div class="bracket ${opts.full ? "fullBracket" : ""}">
+        ${displayRounds.map(function (round) {
           const bestOf = getBestOfForRound(round.round, settings);
+          const seriesRows = round.series && round.series.length ? round.series : buildPlayoffSeries(round.matches);
+          const displaySeries = opts.preview ? seriesRows.slice(0, 4) : seriesRows;
           return `
             <section class="bracketRound">
               <h4>${escapeHtml(round.round)}${bestOf ? ` <span class="boBadge">BO${escapeHtml(bestOf)}</span>` : ""}</h4>
-              ${(round.series && round.series.length ? round.series : buildPlayoffSeries(round.matches)).slice(0, 10).map(function (series) {
+              ${displaySeries.map(function (series) {
                 const winner = getSeriesWinner(series);
                 return `
                   <div class="series">
@@ -783,6 +849,7 @@
                   </div>
                 `;
               }).join("")}
+              ${opts.preview && seriesRows.length > displaySeries.length ? `<div class="previewMore">+${seriesRows.length - displaySeries.length} serier till</div>` : ""}
             </section>
           `;
         }).join("")}

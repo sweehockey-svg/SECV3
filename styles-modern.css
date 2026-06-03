@@ -569,12 +569,49 @@ input {
   padding: 16px;
 }
 
-.panel h3 {
+.panel h3,
+.panelHead h3 {
   margin: 0 0 14px;
   color: #fff;
   font-family: "Barlow Condensed", sans-serif;
   font-size: 30px;
   text-transform: uppercase;
+}
+
+.panelHead {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.panelHead h3 {
+  margin: 0;
+}
+
+.panelHead a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--line2);
+  border-radius: 9px;
+  color: var(--gold);
+  background: rgba(233, 197, 110, 0.08);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.fullPagePanel {
+  min-width: 0;
+  padding: clamp(16px, 2vw, 24px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
 }
 
 .standingsDeck,
@@ -660,6 +697,22 @@ input {
 .bracket {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   align-items: start;
+}
+
+.fullBracket {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.fullStandings .standing {
+  padding: 16px;
+}
+
+.previewMore {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .series {
