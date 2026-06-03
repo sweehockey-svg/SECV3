@@ -6,6 +6,7 @@
     players: [],
     goalies: [],
     teamLogoIndex: new Map(),
+    playerImageIndex: new Map(),
     view: "overview",
     query: "",
     activeCupId: "",
@@ -18,6 +19,23 @@
 
   window.SEC_LOGO_FALLBACK = function (image) {
     const parent = image.closest(".teamLogo");
+    let fallbacks = [];
+    try {
+      fallbacks = JSON.parse(image.dataset.fallbackSrcs || "[]");
+    } catch (_error) {
+      fallbacks = [];
+    }
+    if (fallbacks.length) {
+      image.dataset.fallbackSrcs = JSON.stringify(fallbacks.slice(1));
+      image.src = fallbacks[0];
+      return;
+    }
+    if (parent) parent.classList.add("missing");
+    image.remove();
+  };
+
+  window.SEC_PLAYER_IMAGE_FALLBACK = function (image) {
+    const parent = image.closest(".playerPortrait");
     let fallbacks = [];
     try {
       fallbacks = JSON.parse(image.dataset.fallbackSrcs || "[]");
@@ -47,6 +65,12 @@
       loadTeamLogoIndex().then(function (index) {
         if (index.size) {
           state.teamLogoIndex = index;
+          render();
+        }
+      });
+      loadPlayerImageIndex().then(function (index) {
+        if (index.size) {
+          state.playerImageIndex = index;
           render();
         }
       });
@@ -103,6 +127,29 @@
           normalizeLogoKey(base)
         ]);
         keys.forEach(function (key) {
+          if (key && !index.has(key)) index.set(key, filename);
+        });
+      });
+      return index;
+    } catch (_error) {
+      return new Map();
+    }
+  }
+
+  async function loadPlayerImageIndex() {
+    const url = window.SEC_CONFIG?.playerImageManifestUrl || "";
+    if (!url) return new Map();
+    try {
+      const payload = await loadJson(url);
+      const files = (Array.isArray(payload) ? payload : []).map(function (item) {
+        return item?.name || "";
+      }).filter(function (name) {
+        return /\.(png|jpe?g|webp)$/i.test(name);
+      });
+      const index = new Map();
+      files.forEach(function (filename) {
+        const base = filename.replace(/\.[^.]+$/, "");
+        getPlayerAssetKeys(base).forEach(function (key) {
           if (key && !index.has(key)) index.set(key, filename);
         });
       });
@@ -861,6 +908,148 @@
     `;
   }
 
+  function renderPlayerPortrait(player, className) {
+    const safeName = text(player?.name || player?.player || "Spelare");
+    const urls = getPlayerImageCandidates(player);
+    const first = urls[0] || getDefaultPlayerImageUrl();
+    const fallbacks = urls.slice(1).concat(getDefaultPlayerImageUrl());
+    return `
+      <span class="playerPortrait ${className || ""}" data-initials="${escapeHtml(getPlayerInitials(safeName))}">
+        <img src="${escapeHtml(first)}" data-fallback-srcs="${escapeHtml(JSON.stringify(uniqueStrings(fallbacks)))}" onerror="window.SEC_PLAYER_IMAGE_FALLBACK(this)" alt="${escapeHtml(safeName)} spelarfoto" loading="eager" decoding="async">
+      </span>
+    `;
+  }
+
+  function getPlayerImageCandidates(player) {
+    const base = getPlayerImageBaseUrl();
+    const matched = resolvePlayerImageFilename(player);
+    const names = getPlayerAssetNameCandidates(player);
+    const guessed = uniqueStrings(names.flatMap(function (name) {
+      return ["jpg", "jpeg", "png", "webp"].map(function (ext) {
+        return base + "/" + encodeURIComponent(name + "." + ext);
+      });
+    })).slice(0, 28);
+    return uniqueStrings((matched ? [base + "/" + encodeURIComponent(matched)] : []).concat(guessed));
+  }
+
+  function resolvePlayerImageFilename(player) {
+    const keys = getPlayerAssetKeysForPlayer(player);
+    for (let index = 0; index < keys.length; index += 1) {
+      const match = state.playerImageIndex.get(keys[index]);
+      if (match) return match;
+    }
+    return "";
+  }
+
+  function getPlayerAssetNameCandidates(player) {
+    const name = text(player?.name || player?.player);
+    const nameWithoutCountry = name.replace(/,\s*[A-Z]{2,3}$/i, "");
+    const id = text(player?.playerId || player?.id);
+    const baseNames = uniqueStrings([
+      nameWithoutCountry,
+      removeDiacritics(nameWithoutCountry),
+      nameWithoutCountry.replace(/[_-]+/g, " "),
+      nameWithoutCountry.replace(/\s+/g, "_"),
+      nameWithoutCountry.replace(/\s+/g, "-"),
+      nameWithoutCountry.replace(/[._-]+/g, ""),
+      removeDiacritics(nameWithoutCountry).replace(/\s+/g, "_"),
+      removeDiacritics(nameWithoutCountry).replace(/\s+/g, "-"),
+      removeDiacritics(nameWithoutCountry).replace(/[._-]+/g, ""),
+      name,
+      removeDiacritics(name),
+      name.replace(/[_-]+/g, " "),
+      name.replace(/\s+/g, "_"),
+      name.replace(/\s+/g, "-"),
+      name.replace(/[._-]+/g, ""),
+      removeDiacritics(name).replace(/\s+/g, "_"),
+      removeDiacritics(name).replace(/\s+/g, "-"),
+      removeDiacritics(name).replace(/[._-]+/g, ""),
+      id
+    ].map(function (value) { return text(value).trim(); }).filter(Boolean));
+    return uniqueStrings(baseNames.flatMap(function (value) {
+      return [value, value.toLowerCase(), toTitleCase(value)];
+    }));
+  }
+
+  function getPlayerAssetKeysForPlayer(player) {
+    return uniqueStrings(getPlayerAssetNameCandidates(player).flatMap(getPlayerAssetKeys));
+  }
+
+  function getPlayerAssetKeys(value) {
+    const clean = text(value).replace(/\.[^.]+$/, "");
+    return uniqueStrings([
+      fold(clean),
+      normalizeLogoKey(clean),
+      fold(removeDiacritics(clean)),
+      normalizeLogoKey(removeDiacritics(clean))
+    ]);
+  }
+
+  function getPlayerImageBaseUrl() {
+    return String(window.SEC_CONFIG?.playerImageBaseUrl || "https://sweehockey-svg.github.io/players").replace(/\/+$/, "");
+  }
+
+  function getDefaultPlayerImageUrl() {
+    return getPlayerImageBaseUrl() + "/1DEFAULTBILDID.jpg";
+  }
+
+  function getPlayerInitials(playerName) {
+    const parts = text(playerName).split(/[\s._-]+/).filter(Boolean);
+    return (parts[0]?.[0] || "?") + (parts[1]?.[0] || "");
+  }
+
+  function renderPlayerDetail(_model, player) {
+    if (!player) return `<section class="emptyPage">Spelaren hittades inte.</section>`;
+    return `
+      <section class="detailHero playerProfileHero">
+        <div class="profileMedia">
+          ${renderPlayerPortrait(player, "playerPortraitHero")}
+        </div>
+        <div class="profileCopy">
+          <a href="#/players">Tillbaka till spelare</a>
+          <h2>${escapeHtml(player.name)}</h2>
+          <p>${renderTeamIdentity(player.team || "Okant lag", "teamLogoInline")} <span>${player.cups.size} cuper · ${player.gp} GP · ${player.pts} poang.</span></p>
+        </div>
+      </section>
+      <section class="metricGrid compact">
+        ${metric("Poang", player.pts, "totalt")}
+        ${metric("Mal", player.g, "gjorda")}
+        ${metric("Assist", player.a, "passningar")}
+        ${metric("Matcher", player.gp, "GP")}
+      </section>
+      <section class="sportGrid">
+        ${panel("Cuphistorik", renderPlayerCupTable(player))}
+        ${panel("Lagresa", renderMiniTags(Array.from(player.teams), "teams"))}
+      </section>
+    `;
+  }
+
+  function renderGoalieDetail(_model, goalie) {
+    if (!goalie) return `<section class="emptyPage">Malvakten hittades inte.</section>`;
+    return `
+      <section class="detailHero playerProfileHero">
+        <div class="profileMedia">
+          ${renderPlayerPortrait(goalie, "playerPortraitHero")}
+        </div>
+        <div class="profileCopy">
+          <a href="#/goalies">Tillbaka till malvakter</a>
+          <h2>${escapeHtml(goalie.name)}</h2>
+          <p>${renderTeamIdentity(goalie.team || "Okant lag", "teamLogoInline")} <span>${goalie.cups.size} cuper · ${goalie.gp} GP · ${formatPercent(goalie.svp)} SV%.</span></p>
+        </div>
+      </section>
+      <section class="metricGrid compact">
+        ${metric("SV%", formatPercent(goalie.svp), "raddningsprocent")}
+        ${metric("GAA", formatDecimal(goalie.gaa), "mal emot/match")}
+        ${metric("SV", goalie.sv, "raddningar")}
+        ${metric("SO", goalie.so, "hallna nollor")}
+      </section>
+      <section class="sportGrid">
+        ${panel("Cuphistorik", renderGoalieCupTable(goalie))}
+        ${panel("Lagresa", renderMiniTags(Array.from(goalie.teams), "teams"))}
+      </section>
+    `;
+  }
+
   function getTeamLogoCandidates(teamName) {
     if (!teamName || teamName === "Ej klar") return [];
     const base = String(window.SEC_CONFIG?.teamLogoBaseUrl || "https://sweehockey-svg.github.io/teamlogos").replace(/\/+$/, "");
@@ -995,9 +1184,9 @@
     rows.forEach(function (row) {
       const name = text(row.displayName || row.player || "Okänd spelare");
       const key = fold(name);
-      if (!map.has(key)) {
-        map.set(key, { name: name, team: text(row.team), gp: 0, g: 0, a: 0, pts: 0, pim: 0, cups: new Set([text(cup.code)]) });
-      }
+        if (!map.has(key)) {
+          map.set(key, { name: name, team: text(row.team), playerId: text(row.playerId), gp: 0, g: 0, a: 0, pts: 0, pim: 0, cups: new Set([text(cup.code)]) });
+        }
       const target = map.get(key);
       target.gp += number(row.gp);
       target.g += number(row.g);
@@ -1015,9 +1204,9 @@
     rows.forEach(function (row) {
       const name = text(row.displayName || row.player || "Okänd målvakt");
       const key = fold(name);
-      if (!map.has(key)) {
-        map.set(key, { name: name, team: text(row.team), gp: 0, sa: 0, ga: 0, sv: 0, svp: 0, gaa: 0, so: 0, cups: new Set([text(cup.code)]) });
-      }
+        if (!map.has(key)) {
+          map.set(key, { name: name, team: text(row.team), playerId: text(row.playerId), gp: 0, sa: 0, ga: 0, sv: 0, svp: 0, gaa: 0, so: 0, cups: new Set([text(cup.code)]) });
+        }
       const target = map.get(key);
       const sa = number(row.sa);
       const ga = number(row.ga);
@@ -1077,6 +1266,7 @@
           map.set(key, { name: row.name, team: row.team, gp: 0, g: 0, a: 0, pts: 0, pim: 0, cups: new Set(), teams: new Set(), rows: [] });
         }
         const player = map.get(key);
+        player.playerId = player.playerId || row.playerId || "";
         player.team = row.team || player.team;
         player.gp += row.gp;
         player.g += row.g;
@@ -1105,6 +1295,7 @@
           map.set(key, { name: row.name, team: row.team, gp: 0, sa: 0, ga: 0, sv: 0, svp: 0, gaa: 0, so: 0, cups: new Set(), teams: new Set(), rows: [] });
         }
         const goalie = map.get(key);
+        goalie.playerId = goalie.playerId || row.playerId || "";
         goalie.team = row.team || goalie.team;
         goalie.gp += number(row.gp);
         goalie.sa += number(row.sa);
@@ -1261,6 +1452,12 @@
 
   function normalizeLogoKey(value) {
     return removeDiacritics(value).toLowerCase().replace(/[^a-z0-9]/g, "");
+  }
+
+  function toTitleCase(value) {
+    return String(value || "").replace(/[^\s_-]+/g, function (part) {
+      return part.slice(0, 1).toUpperCase() + part.slice(1).toLowerCase();
+    });
   }
 
   function uniqueStrings(values) {

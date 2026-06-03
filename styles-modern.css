@@ -923,6 +923,75 @@ input {
   padding: clamp(22px, 4vw, 44px);
 }
 
+.playerProfileHero {
+  display: grid;
+  grid-template-columns: minmax(210px, 300px) minmax(0, 1fr);
+  gap: clamp(18px, 4vw, 42px);
+  align-items: end;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(105, 225, 212, 0.14), rgba(233, 197, 110, 0.09)),
+    var(--panel);
+}
+
+.profileMedia {
+  display: grid;
+  place-items: end center;
+  align-self: stretch;
+  min-height: 260px;
+}
+
+.profileCopy {
+  min-width: 0;
+}
+
+.profileCopy p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+}
+
+.playerPortrait {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(234, 198, 111, 0.38);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(105, 225, 212, 0.22), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.025));
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.42);
+}
+
+.playerPortrait::before {
+  content: attr(data-initials);
+  position: absolute;
+  color: rgba(238, 247, 246, 0.28);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 96px;
+  font-weight: 800;
+}
+
+.playerPortrait img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.playerPortrait.missing img {
+  display: none;
+}
+
+.playerPortraitHero {
+  width: min(100%, 300px);
+  aspect-ratio: 3 / 4;
+  border-radius: 18px;
+}
+
 .detailHero.summer {
   background:
     linear-gradient(135deg, rgba(233, 197, 110, 0.16), rgba(255, 93, 102, 0.08)),
@@ -1039,6 +1108,20 @@ input {
 
   .hero {
     min-height: 0;
+  }
+
+  .playerProfileHero {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .profileMedia {
+    justify-items: start;
+    min-height: 0;
+  }
+
+  .playerPortraitHero {
+    width: min(210px, 70vw);
   }
 
   .heroCopy {
