@@ -385,10 +385,7 @@
 
   function renderCups(model) {
     return `
-      <section class="matrixHead">
-        <h2>Alla cuper</h2>
-        <p>Välj en cup för en fokuserad vy med vinnare, matcher, lag och toppspelare.</p>
-      </section>
+      <p class="viewIntro">Välj en cup för tabeller, slutspel, matcher, lag och toppspelare.</p>
       <section class="cupMatrix">
         ${state.cups.map(renderCupCard).join("")}
       </section>
@@ -445,10 +442,7 @@
 
   function renderTeams() {
     return `
-      <section class="matrixHead">
-        <h2>Lagkartan</h2>
-        <p>Alla lag samlade som scanbara brickor. Klicka ett lag för snabb historik.</p>
-      </section>
+      <p class="viewIntro">Alla lag samlade som scanbara brickor. Klicka ett lag för snabb historik.</p>
       <section class="teamGrid">
         ${state.teams.slice(0, 240).map(function (team) {
           return `
@@ -494,10 +488,7 @@
 
   function renderPlayers() {
     return `
-      <section class="matrixHead">
-        <h2>Spelarhubben</h2>
-        <p>En kompakt leaderboard över spelare från all cupdata.</p>
-      </section>
+      <p class="viewIntro">En kompakt leaderboard över spelare från all cupdata.</p>
       <section class="playerBoard">
         ${state.players.slice(0, 160).map(function (player, index) {
           return `
@@ -515,10 +506,7 @@
 
   function renderGoalies() {
     return `
-      <section class="matrixHead">
-        <h2>Målvaktshubben</h2>
-        <p>Räddningsprocent, räddningar, GAA och historik för målvakter från båda datakällorna.</p>
-      </section>
+      <p class="viewIntro">Räddningsprocent, räddningar, GAA och historik för målvakter från båda datakällorna.</p>
       <section class="playerBoard">
         ${state.goalies.slice(0, 160).map(function (goalie, index) {
           return `
@@ -578,10 +566,7 @@
 
   function renderMatches(model) {
     return `
-      <section class="matrixHead">
-        <h2>Matchflöde</h2>
-        <p>Senaste registrerade matcher från hela datan, oavsett cup.</p>
-      </section>
+      <p class="viewIntro">Senaste registrerade matcher från hela datan, oavsett cup.</p>
       ${panel("Matcher", renderMatchRows(model.allMatches.slice(0, 90), 90))}
     `;
   }

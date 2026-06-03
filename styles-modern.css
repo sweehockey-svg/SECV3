@@ -250,7 +250,8 @@ input {
   grid-template-columns: minmax(0, 1fr) minmax(280px, 520px);
   gap: 18px;
   align-items: center;
-  padding: 14px 0 18px;
+  min-height: 128px;
+  padding: 22px clamp(18px, 2.2vw, 34px) 26px;
   background: linear-gradient(180deg, rgba(5, 7, 11, 0.95), rgba(5, 7, 11, 0.72), transparent);
   backdrop-filter: blur(10px);
   z-index: 2;
@@ -262,17 +263,21 @@ input {
 }
 
 .top h1 {
-  margin-top: 4px;
-  font-size: clamp(34px, 5vw, 68px);
-  line-height: 0.86;
+  max-width: 980px;
+  margin-top: 8px;
+  font-size: clamp(34px, 4.5vw, 62px);
+  line-height: 0.92;
+  overflow-wrap: anywhere;
 }
 
 .command {
   display: grid;
-  grid-template-columns: 52px 1fr;
-  gap: 12px;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 14px;
   align-items: center;
-  padding: 10px 12px;
+  width: min(520px, 100%);
+  justify-self: end;
+  padding: 12px 18px;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: rgba(8, 13, 19, 0.84);
@@ -287,6 +292,7 @@ input {
 
 .command input {
   width: 100%;
+  min-width: 0;
   border: 0;
   outline: 0;
   color: #fff;
@@ -327,6 +333,15 @@ input {
 .view {
   display: grid;
   gap: 18px;
+}
+
+.viewIntro {
+  max-width: 880px;
+  margin: 0;
+  padding: 0 clamp(18px, 2.2vw, 34px);
+  color: #c9d7d6;
+  font-size: 16px;
+  line-height: 1.55;
 }
 
 .hero {
@@ -1204,6 +1219,13 @@ input {
 
   .top {
     grid-template-columns: 1fr;
+    min-height: 0;
+    padding: 18px 16px 20px;
+  }
+
+  .command {
+    width: 100%;
+    justify-self: stretch;
   }
 
   .searchdrop {
