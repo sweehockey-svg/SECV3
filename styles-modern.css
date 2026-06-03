@@ -647,6 +647,16 @@ input {
   color: var(--gold);
 }
 
+.standing tr.playoffCutLine td {
+  border-bottom: 2px solid var(--gold);
+  box-shadow: inset 0 -1px rgba(233, 197, 110, 0.45);
+}
+
+.standing tr.cutTwo td {
+  border-bottom-color: var(--ice);
+  box-shadow: inset 0 -1px rgba(105, 225, 212, 0.45);
+}
+
 .bracket {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   align-items: start;
@@ -676,6 +686,13 @@ input {
 
 .series b {
   color: var(--gold);
+}
+
+.series em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .matchList,

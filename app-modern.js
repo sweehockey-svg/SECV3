@@ -427,7 +427,7 @@
         ${metric("Finalist", cup.runnerUp || "Ej klar", "placering")}
       </section>
       <section class="sportGrid">
-        ${panel("Tabeller", renderStandings(standings))}
+        ${panel("Tabeller", renderStandings(standings, cup.settings))}
         ${panel("Slutspelsträd", renderBracket(bracket, cup.settings))}
       </section>
       <section class="dashGrid two">
@@ -671,7 +671,7 @@
   function buildStandings(cup) {
     const groups = new Map();
     cup.matches.filter(function (match) {
-      return match.stage !== "playoffs";
+      return !isPlayoffMatch(match);
     }).forEach(function (match) {
       const groupName = match.group || "Gruppspel";
       if (!groups.has(groupName)) groups.set(groupName, new Map());
@@ -711,8 +711,10 @@
     }
   }
 
-  function renderStandings(groups) {
+  function renderStandings(groups, settings) {
     if (!groups.length) return `<div class="empty">Ingen gruppstatistik hittades.</div>`;
+    const cut1 = settings?.playoffCut1 || null;
+    const cut2 = settings?.playoffCut2 || null;
     return `
       <div class="standingsDeck">
         ${groups.map(function (group) {
@@ -722,9 +724,11 @@
               <table>
                 <thead><tr><th>Lag</th><th>GP</th><th>W</th><th>L</th><th>OTL</th><th>+/-</th><th>PTS</th></tr></thead>
                 <tbody>
-                  ${group.rows.map(function (row) {
+                  ${group.rows.map(function (row, index) {
+                    const rank = index + 1;
+                    const cutClass = rank === cut1 ? " playoffCutLine cutOne" : rank === cut2 ? " playoffCutLine cutTwo" : "";
                     return `
-                      <tr>
+                      <tr class="${cutClass}">
                         <td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td>
                         <td>${row.gp}</td><td>${row.w}</td><td>${row.l}</td><td>${row.otl}</td>
                         <td>${row.gf - row.ga}</td><td><strong>${row.pts}</strong></td>
@@ -741,18 +745,22 @@
   }
 
   function buildBracket(cup) {
-    const rounds = new Map();
-    cup.matches.filter(function (match) {
-      return match.stage === "playoffs";
-    }).forEach(function (match) {
-      const round = normalizeRound(match.group || "Slutspel");
-      if (!rounds.has(round)) rounds.set(round, []);
-      rounds.get(round).push(match);
+    const playoffMatches = cup.matches.filter(isPlayoffMatch);
+    const explicitRounds = new Map();
+    playoffMatches.forEach(function (match) {
+      const round = normalizeRound(match.group || match.stage || "Slutspel");
+      if (!explicitRounds.has(round)) explicitRounds.set(round, []);
+      explicitRounds.get(round).push(match);
     });
-    return Array.from(rounds.entries()).sort(function (a, b) {
+
+    if (explicitRounds.size === 1 && explicitRounds.has("Slutspel")) {
+      return inferPlayoffRounds(playoffMatches);
+    }
+
+    return Array.from(explicitRounds.entries()).sort(function (a, b) {
       return roundRank(a[0]) - roundRank(b[0]);
     }).map(function (entry) {
-      return { round: entry[0], matches: entry[1].sort(compareMatches) };
+      return { round: entry[0], series: buildPlayoffSeries(entry[1]), matches: entry[1].sort(compareMatches) };
     });
   }
 
@@ -765,12 +773,13 @@
           return `
             <section class="bracketRound">
               <h4>${escapeHtml(round.round)}${bestOf ? ` <span class="boBadge">BO${escapeHtml(bestOf)}</span>` : ""}</h4>
-              ${round.matches.slice(0, 10).map(function (match) {
-                const winner = number(match.awayScore) > number(match.homeScore) ? match.awayTeam : number(match.homeScore) > number(match.awayScore) ? match.homeTeam : "";
+              ${(round.series && round.series.length ? round.series : buildPlayoffSeries(round.matches)).slice(0, 10).map(function (series) {
+                const winner = getSeriesWinner(series);
                 return `
                   <div class="series">
-                    <span class="${winner === match.awayTeam ? "winner" : ""}">${renderTeamIdentity(match.awayTeam, "teamLogoTiny")} <b>${display(match.awayScore)}</b></span>
-                    <span class="${winner === match.homeTeam ? "winner" : ""}">${renderTeamIdentity(match.homeTeam, "teamLogoTiny")} <b>${display(match.homeScore)}</b></span>
+                    <span class="${winner === series.awayTeam ? "winner" : ""}">${renderTeamIdentity(series.awayTeam, "teamLogoTiny")} <b>${series.awayWins}</b></span>
+                    <span class="${winner === series.homeTeam ? "winner" : ""}">${renderTeamIdentity(series.homeTeam, "teamLogoTiny")} <b>${series.homeWins}</b></span>
+                    <em>${series.matches.length} matcher</em>
                   </div>
                 `;
               }).join("")}
@@ -810,6 +819,86 @@
         }).join("") : ""}
       </div>
     `;
+  }
+
+  function isPlayoffMatch(match) {
+    const marker = fold([match?.stage, match?.group].filter(Boolean).join(" "));
+    return marker.includes("playoff")
+      || marker.includes("slutspel")
+      || marker.includes("final")
+      || marker.includes("semi")
+      || marker.includes("kvart")
+      || marker.includes("atton");
+  }
+
+  function inferPlayoffRounds(matches) {
+    const series = buildPlayoffSeries(matches).sort(function (a, b) {
+      return a.firstTimestamp - b.firstTimestamp;
+    });
+    const rounds = [];
+    let remaining = series.slice();
+    const pattern = [
+      { count: 8, round: "Åttondelsfinal" },
+      { count: 4, round: "Kvartsfinal" },
+      { count: 2, round: "Semifinal" },
+      { count: 1, round: "Final" }
+    ];
+
+    pattern.forEach(function (entry) {
+      if (remaining.length >= entry.count && (remaining.length - entry.count === 0 || remaining.length - entry.count < entry.count)) {
+        rounds.push({ round: entry.round, series: remaining.slice(0, entry.count), matches: remaining.slice(0, entry.count).flatMap(function (item) { return item.matches; }) });
+        remaining = remaining.slice(entry.count);
+      }
+    });
+
+    if (remaining.length) {
+      rounds.push({ round: "Slutspel", series: remaining, matches: remaining.flatMap(function (item) { return item.matches; }) });
+    }
+
+    return rounds.sort(function (a, b) {
+      return roundRank(a.round) - roundRank(b.round);
+    });
+  }
+
+  function buildPlayoffSeries(matches) {
+    const map = new Map();
+    (matches || []).forEach(function (match) {
+      const teams = [match.awayTeam, match.homeTeam].sort(function (a, b) {
+        return a.localeCompare(b, "sv");
+      });
+      const key = teams.join(" | ");
+      if (!map.has(key)) {
+        map.set(key, {
+          awayTeam: teams[0],
+          homeTeam: teams[1],
+          awayWins: 0,
+          homeWins: 0,
+          firstTimestamp: parseDate(match.date, match.time) || 0,
+          matches: []
+        });
+      }
+      const series = map.get(key);
+      series.firstTimestamp = Math.min(series.firstTimestamp || Infinity, parseDate(match.date, match.time) || Infinity);
+      series.matches.push(match);
+      const awayScore = number(match.awayScore);
+      const homeScore = number(match.homeScore);
+      if (awayScore === homeScore) return;
+      const winner = awayScore > homeScore ? match.awayTeam : match.homeTeam;
+      if (winner === series.awayTeam) {
+        series.awayWins += 1;
+      } else if (winner === series.homeTeam) {
+        series.homeWins += 1;
+      }
+    });
+    return Array.from(map.values()).map(function (series) {
+      series.matches.sort(compareMatches);
+      return series;
+    });
+  }
+
+  function getSeriesWinner(series) {
+    if (series.awayWins === series.homeWins) return "";
+    return series.awayWins > series.homeWins ? series.awayTeam : series.homeTeam;
   }
 
   function normalizeCupSettings(cup) {
