@@ -57,7 +57,7 @@
     const model = buildModel();
     app.innerHTML = `
       <div class="shell">
-        ${renderSidebar(model)}
+        ${renderArenaHeader(model)}
         <main class="stage">
           ${renderTopbar(model)}
           <div class="view" data-view="${state.view}">
@@ -69,9 +69,9 @@
     bindInteractions();
   }
 
-  function renderSidebar(model) {
+  function renderArenaHeader(model) {
     return `
-      <aside class="rail">
+      <header class="arena">
         <a class="mark" href="#/overview" aria-label="SEC v3 start">
           <img src="./SECLOGGA.png" alt="">
           <span>SEC</span>
@@ -90,7 +90,7 @@
           <strong>${model.totalMatches}</strong>
           <em>matcher</em>
         </div>
-      </aside>
+      </header>
     `;
   }
 
@@ -254,6 +254,8 @@
     const rows = cup.matches.slice().sort(compareMatches).slice(0, 14).map(function (match) {
       return { cup: cup, match: match };
     });
+    const standings = buildStandings(cup);
+    const bracket = buildBracket(cup);
     return `
       <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
         <a href="#/cups">Tillbaka till cuper</a>
@@ -266,10 +268,14 @@
         ${metric("Mål", cup.goals, "totalt")}
         ${metric("Finalist", cup.runnerUp || "Ej klar", "placering")}
       </section>
+      <section class="sportGrid">
+        ${panel("Tabeller", renderStandings(standings))}
+        ${panel("Slutspelsträd", renderBracket(bracket))}
+      </section>
       <section class="dashGrid two">
         ${panel("Matcher", renderMatchRows(rows, 14))}
+        ${panel("Toppspelare", renderLeaderRows(cup.topPlayers.slice(0, 10)))}
         ${panel("Lag i cupen", renderMiniTags(cup.teams, "teams"))}
-        ${panel("Toppspelare", renderLeaderRows(cup.topPlayers.slice(0, 8)))}
       </section>
     `;
   }
@@ -299,6 +305,8 @@
     const matches = model.allMatches.filter(function (entry) {
       return entry.match.awayTeam === team.name || entry.match.homeTeam === team.name;
     }).slice(0, 16);
+    const roster = buildTeamRoster(team.name);
+    const cupRows = buildTeamCupRows(team.name);
     return `
       <section class="detailHero">
         <a href="#/teams">Tillbaka till lag</a>
@@ -310,6 +318,10 @@
         ${metric("Matcher", team.matches, "totalt")}
         ${metric("Vinster", team.wins, "registrerade")}
         ${metric("Mål", team.goalsFor, "gjorda")}
+      </section>
+      <section class="sportGrid">
+        ${panel("Lagets SEC-säsonger", renderTeamCupTable(cupRows))}
+        ${panel("Profiler i laget", renderLeaderRows(roster.slice(0, 12)))}
       </section>
       ${panel("Senaste matcher", renderMatchRows(matches, 16))}
     `;
@@ -342,7 +354,7 @@
       <section class="detailHero">
         <a href="#/players">Tillbaka till spelare</a>
         <h2>${escapeHtml(player.name)}</h2>
-        <p>${escapeHtml(player.team || "Okänt lag")} · ${player.cups.size} cuper · ${player.gp} GP.</p>
+        <p>${escapeHtml(player.team || "Okänt lag")} · ${player.cups.size} cuper · ${player.gp} GP · ${player.pts} poäng.</p>
       </section>
       <section class="metricGrid compact">
         ${metric("Poäng", player.pts, "totalt")}
@@ -350,7 +362,10 @@
         ${metric("Assist", player.a, "passningar")}
         ${metric("Matcher", player.gp, "GP")}
       </section>
-      ${panel("Cuphistorik", renderMiniTags(Array.from(player.cups), "cups"))}
+      <section class="sportGrid">
+        ${panel("Cuphistorik", renderPlayerCupTable(player))}
+        ${panel("Lagresa", renderMiniTags(Array.from(player.teams), "teams"))}
+      </section>
     `;
   }
 
@@ -440,6 +455,196 @@
     `;
   }
 
+  function buildStandings(cup) {
+    const groups = new Map();
+    cup.matches.filter(function (match) {
+      return match.stage !== "playoffs";
+    }).forEach(function (match) {
+      const groupName = match.group || "Gruppspel";
+      if (!groups.has(groupName)) groups.set(groupName, new Map());
+      ingestStanding(groups.get(groupName), match.awayTeam, match.awayScore, match.homeScore, match.overtime);
+      ingestStanding(groups.get(groupName), match.homeTeam, match.homeScore, match.awayScore, match.overtime);
+    });
+
+    return Array.from(groups.entries()).map(function (entry) {
+      return {
+        name: entry[0],
+        rows: Array.from(entry[1].values()).sort(function (a, b) {
+          return b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga) || b.gf - a.gf || a.team.localeCompare(b.team, "sv");
+        })
+      };
+    });
+  }
+
+  function ingestStanding(map, team, gf, ga, overtime) {
+    if (gf === null || ga === null) return;
+    if (!map.has(team)) {
+      map.set(team, { team: team, gp: 0, w: 0, l: 0, otl: 0, gf: 0, ga: 0, pts: 0 });
+    }
+    const row = map.get(team);
+    const goalsFor = number(gf);
+    const goalsAgainst = number(ga);
+    row.gp += 1;
+    row.gf += goalsFor;
+    row.ga += goalsAgainst;
+    if (goalsFor > goalsAgainst) {
+      row.w += 1;
+      row.pts += 3;
+    } else if (overtime) {
+      row.otl += 1;
+      row.pts += 1;
+    } else {
+      row.l += 1;
+    }
+  }
+
+  function renderStandings(groups) {
+    if (!groups.length) return `<div class="empty">Ingen gruppstatistik hittades.</div>`;
+    return `
+      <div class="standingsDeck">
+        ${groups.map(function (group) {
+          return `
+            <section class="standing">
+              <h4>${escapeHtml(group.name)}</h4>
+              <table>
+                <thead><tr><th>Lag</th><th>GP</th><th>W</th><th>L</th><th>OTL</th><th>+/-</th><th>PTS</th></tr></thead>
+                <tbody>
+                  ${group.rows.map(function (row) {
+                    return `
+                      <tr>
+                        <td><a href="#/teams/${encodeURIComponent(row.team)}">${escapeHtml(row.team)}</a></td>
+                        <td>${row.gp}</td><td>${row.w}</td><td>${row.l}</td><td>${row.otl}</td>
+                        <td>${row.gf - row.ga}</td><td><strong>${row.pts}</strong></td>
+                      </tr>
+                    `;
+                  }).join("")}
+                </tbody>
+              </table>
+            </section>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  function buildBracket(cup) {
+    const rounds = new Map();
+    cup.matches.filter(function (match) {
+      return match.stage === "playoffs";
+    }).forEach(function (match) {
+      const round = normalizeRound(match.group || "Slutspel");
+      if (!rounds.has(round)) rounds.set(round, []);
+      rounds.get(round).push(match);
+    });
+    return Array.from(rounds.entries()).sort(function (a, b) {
+      return roundRank(a[0]) - roundRank(b[0]);
+    }).map(function (entry) {
+      return { round: entry[0], matches: entry[1].sort(compareMatches) };
+    });
+  }
+
+  function renderBracket(rounds) {
+    if (!rounds.length) return `<div class="empty">Inget slutspelsträd hittades för cupen.</div>`;
+    return `
+      <div class="bracket">
+        ${rounds.map(function (round) {
+          return `
+            <section class="bracketRound">
+              <h4>${escapeHtml(round.round)}</h4>
+              ${round.matches.slice(0, 10).map(function (match) {
+                const winner = number(match.awayScore) > number(match.homeScore) ? match.awayTeam : number(match.homeScore) > number(match.awayScore) ? match.homeTeam : "";
+                return `
+                  <div class="series">
+                    <span class="${winner === match.awayTeam ? "winner" : ""}">${escapeHtml(match.awayTeam)} <b>${display(match.awayScore)}</b></span>
+                    <span class="${winner === match.homeTeam ? "winner" : ""}">${escapeHtml(match.homeTeam)} <b>${display(match.homeScore)}</b></span>
+                  </div>
+                `;
+              }).join("")}
+            </section>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  function buildTeamRoster(teamName) {
+    const map = new Map();
+    state.cups.forEach(function (cup) {
+      cup.playerRows.filter(function (row) {
+        return row.team === teamName;
+      }).forEach(function (row) {
+        const key = fold(row.name);
+        if (!map.has(key)) {
+          map.set(key, { name: row.name, team: teamName, gp: 0, g: 0, a: 0, pts: 0, cups: new Set() });
+        }
+        const target = map.get(key);
+        target.gp += row.gp;
+        target.g += row.g;
+        target.a += row.a;
+        target.pts += row.pts;
+        target.cups.add(cup.code);
+      });
+    });
+    return Array.from(map.values()).sort(sortPlayers);
+  }
+
+  function buildTeamCupRows(teamName) {
+    return state.cups.map(function (cup) {
+      const rows = cup.playerRows.filter(function (row) { return row.team === teamName; });
+      const matches = cup.matches.filter(function (match) {
+        return match.awayTeam === teamName || match.homeTeam === teamName;
+      });
+      const goalsFor = matches.reduce(function (sum, match) {
+        return sum + number(match.awayTeam === teamName ? match.awayScore : match.homeScore);
+      }, 0);
+      const wins = matches.filter(function (match) {
+        const gf = number(match.awayTeam === teamName ? match.awayScore : match.homeScore);
+        const ga = number(match.awayTeam === teamName ? match.homeScore : match.awayScore);
+        return gf > ga;
+      }).length;
+      return { cup: cup, players: rows.length, matches: matches.length, wins: wins, goalsFor: goalsFor };
+    }).filter(function (row) {
+      return row.players || row.matches;
+    }).sort(function (a, b) {
+      return b.cup.sortOrder - a.cup.sortOrder;
+    });
+  }
+
+  function renderTeamCupTable(rows) {
+    if (!rows.length) return `<div class="empty">Ingen laghistorik hittades.</div>`;
+    return `
+      <div class="dataTable">
+        <table>
+          <thead><tr><th>Cup</th><th>Matcher</th><th>Vinster</th><th>Mål</th><th>Spelare</th></tr></thead>
+          <tbody>
+            ${rows.map(function (row) {
+              return `<tr><td><a href="#/cups/${encodeURIComponent(row.cup.id)}">${escapeHtml(row.cup.code)}</a></td><td>${row.matches}</td><td>${row.wins}</td><td>${row.goalsFor}</td><td>${row.players}</td></tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderPlayerCupTable(player) {
+    const rows = player.rows.slice().sort(function (a, b) {
+      return b.sortOrder - a.sortOrder;
+    });
+    if (!rows.length) return `<div class="empty">Ingen cuphistorik hittades.</div>`;
+    return `
+      <div class="dataTable">
+        <table>
+          <thead><tr><th>Cup</th><th>Lag</th><th>GP</th><th>G</th><th>A</th><th>PTS</th><th>PIM</th></tr></thead>
+          <tbody>
+            ${rows.map(function (row) {
+              return `<tr><td><a href="#/cups/${encodeURIComponent(row.cupId)}">${escapeHtml(row.cupCode)}</a></td><td><a href="#/teams/${encodeURIComponent(row.team)}">${escapeHtml(row.team)}</a></td><td>${row.gp}</td><td>${row.g}</td><td>${row.a}</td><td><strong>${row.pts}</strong></td><td>${row.pim}</td></tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
   function buildModel() {
     const allMatches = [];
     let totalGoals = 0;
@@ -487,6 +692,13 @@
         return [match.awayTeam, match.homeTeam];
       }).filter(Boolean))).sort(function (a, b) { return a.localeCompare(b, "sv"); });
       const topPlayers = collectCupPlayers(cup).slice(0, 10);
+      const playerRows = collectCupPlayers(cup).map(function (row) {
+        return Object.assign({}, row, {
+          cupId: String(cup.id || index + 1),
+          cupCode: text(cup.code || "SEC " + (index + 1)),
+          sortOrder: typeof cup.sortOrder === "number" ? cup.sortOrder : index
+        });
+      });
       return {
         id: String(cup.id || index + 1),
         sortOrder: typeof cup.sortOrder === "number" ? cup.sortOrder : index,
@@ -498,7 +710,8 @@
         matchCount: matches.length,
         teams: teams,
         goals: matches.reduce(function (sum, match) { return sum + number(match.awayScore) + number(match.homeScore); }, 0),
-        topPlayers: topPlayers
+        topPlayers: topPlayers,
+        playerRows: playerRows
       };
     }).sort(function (a, b) {
       return b.sortOrder - a.sortOrder;
@@ -563,11 +776,11 @@
   function buildPlayers(cups) {
     const map = new Map();
     cups.forEach(function (cup) {
-      const rows = cup.topPlayers && cup.topPlayers.length ? cup.topPlayers : collectCupPlayers(cup);
+      const rows = cup.playerRows && cup.playerRows.length ? cup.playerRows : collectCupPlayers(cup);
       rows.forEach(function (row) {
         const key = fold(row.name);
         if (!map.has(key)) {
-          map.set(key, { name: row.name, team: row.team, gp: 0, g: 0, a: 0, pts: 0, cups: new Set() });
+          map.set(key, { name: row.name, team: row.team, gp: 0, g: 0, a: 0, pts: 0, pim: 0, cups: new Set(), teams: new Set(), rows: [] });
         }
         const player = map.get(key);
         player.team = row.team || player.team;
@@ -575,7 +788,14 @@
         player.g += row.g;
         player.a += row.a;
         player.pts += row.pts;
+        player.pim += row.pim;
         player.cups.add(cup.code);
+        player.teams.add(row.team);
+        player.rows.push(Object.assign({}, row, {
+          cupId: cup.id,
+          cupCode: cup.code,
+          sortOrder: cup.sortOrder
+        }));
       });
     });
     return Array.from(map.values()).sort(sortPlayers);
@@ -626,6 +846,25 @@
 
   function isSummer(cup) {
     return fold(cup.name + " " + cup.code).includes("sommar");
+  }
+
+  function normalizeRound(value) {
+    const folded = fold(value);
+    if (folded.includes("final") && !folded.includes("semi")) return "Final";
+    if (folded.includes("semi")) return "Semifinal";
+    if (folded.includes("kvart")) return "Kvartsfinal";
+    if (folded.includes("atton") || folded.includes("åtton") || folded.includes("16")) return "Åttondelsfinal";
+    if (folded.includes("playoff") || folded.includes("slutspel")) return "Slutspel";
+    return value || "Slutspel";
+  }
+
+  function roundRank(round) {
+    const folded = fold(round);
+    if (folded.includes("atton")) return 1;
+    if (folded.includes("kvart")) return 2;
+    if (folded.includes("semi")) return 3;
+    if (folded.includes("final")) return 4;
+    return 9;
   }
 
   function nullableNumber(value) {

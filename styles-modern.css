@@ -79,20 +79,21 @@ input {
 
 .shell {
   position: relative;
-  display: grid;
-  grid-template-columns: 252px minmax(0, 1fr);
   min-height: 100vh;
 }
 
-.rail {
+.arena {
   position: sticky;
   top: 0;
-  height: 100vh;
-  padding: 18px;
-  border-right: 1px solid var(--line);
-  background: rgba(3, 6, 10, 0.74);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(3, 6, 10, 0.82);
   backdrop-filter: blur(18px);
-  z-index: 3;
+  z-index: 5;
 }
 
 .mark {
@@ -137,9 +138,12 @@ input {
 }
 
 .railnav {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  margin-top: 22px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
 }
 
 .railnav a {
@@ -172,7 +176,8 @@ input {
 }
 
 .railcard {
-  margin-top: 24px;
+  min-width: 126px;
+  margin: 0;
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -198,7 +203,7 @@ input {
 
 .railcard strong {
   display: block;
-  margin-top: 8px;
+  margin-top: 2px;
   color: var(--gold);
   font-family: "Barlow Condensed", sans-serif;
   font-size: 54px;
@@ -215,6 +220,8 @@ input {
   position: relative;
   min-width: 0;
   padding: 22px;
+  width: min(1540px, 100%);
+  margin: 0 auto;
 }
 
 .top {
@@ -485,6 +492,12 @@ input {
   grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
 }
 
+.sportGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+  gap: 14px;
+}
+
 .panel {
   min-width: 0;
   padding: 16px;
@@ -496,6 +509,107 @@ input {
   font-family: "Barlow Condensed", sans-serif;
   font-size: 30px;
   text-transform: uppercase;
+}
+
+.standingsDeck,
+.bracket,
+.dataTable {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.standing,
+.bracketRound {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.standing h4,
+.bracketRound h4 {
+  margin: 0 0 10px;
+  color: var(--gold);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 24px;
+  text-transform: uppercase;
+}
+
+.standing table,
+.dataTable table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 620px;
+}
+
+.standing,
+.dataTable {
+  overflow-x: auto;
+}
+
+.standing th,
+.standing td,
+.dataTable th,
+.dataTable td {
+  padding: 9px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.075);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.standing th:first-child,
+.standing td:first-child,
+.dataTable th:first-child,
+.dataTable td:first-child,
+.dataTable th:nth-child(2),
+.dataTable td:nth-child(2) {
+  text-align: left;
+}
+
+.standing th,
+.dataTable th {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.standing td strong,
+.dataTable td strong {
+  color: var(--gold);
+}
+
+.bracket {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  align-items: start;
+}
+
+.series {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.series span {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+}
+
+.series span.winner {
+  color: #fff;
+  font-weight: 900;
+}
+
+.series b {
+  color: var(--gold);
 }
 
 .matchList,
@@ -752,34 +866,18 @@ input {
 }
 
 @media (max-width: 1180px) {
-  .shell {
-    grid-template-columns: 88px minmax(0, 1fr);
-  }
-
-  .rail {
-    padding: 12px;
+  .arena {
+    grid-template-columns: 1fr;
   }
 
   .mark {
-    grid-template-columns: 1fr;
-    justify-items: center;
-  }
-
-  .mark span,
-  .mark b,
-  .railnav a:not(.active),
-  .railcard {
-    font-size: 0;
-  }
-
-  .railnav a {
-    grid-template-columns: 1fr;
-    justify-items: center;
+    width: fit-content;
   }
 
   .hero,
   .dashGrid,
-  .dashGrid.two {
+  .dashGrid.two,
+  .sportGrid {
     grid-template-columns: 1fr;
   }
 
@@ -794,19 +892,14 @@ input {
 }
 
 @media (max-width: 760px) {
-  .shell {
-    grid-template-columns: 1fr;
-  }
-
-  .rail {
+  .arena {
     position: fixed;
     inset: auto 10px 10px;
-    display: grid;
-    grid-template-columns: 1fr;
-    height: auto;
+    display: block;
     padding: 8px;
     border: 1px solid var(--line);
     border-radius: 16px;
+    border-bottom: 1px solid var(--line);
   }
 
   .mark,
@@ -825,6 +918,8 @@ input {
     min-height: 46px;
     padding: 4px;
     font-size: 0;
+    justify-items: center;
+    grid-template-columns: 1fr;
   }
 
   .stage {
