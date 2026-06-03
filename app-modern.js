@@ -81,7 +81,7 @@
     } catch (error) {
       app.innerHTML = `
         <main class="fail">
-          <h1>Kunde inte ladda SEC v3</h1>
+          <h1>Kunde inte ladda SEC</h1>
           <p>${escapeHtml(error.message || String(error))}</p>
         </main>
       `;
@@ -216,22 +216,22 @@
   function renderArenaHeader(model) {
     return `
       <header class="arena">
-        <a class="mark" href="#/overview" aria-label="SEC v3 start">
+        <a class="mark" href="#/overview" aria-label="SEC start">
           <img src="./SECLOGGA.png" alt="">
           <span>SEC</span>
-          <b>v3</b>
+          <b>Live</b>
         </a>
-        <nav class="railnav" aria-label="SEC v3 meny">
+        <nav class="railnav" aria-label="SEC meny">
           ${navItem("overview", "Översikt", "⌂")}
           ${navItem("cups", "Cuper", "◆")}
           ${navItem("teams", "Lag", "▦")}
           ${navItem("players", "Spelare", "●")}
           ${navItem("matches", "Matcher", "↯")}
           ${navItem("goalies", "Målvakter", "▣")}
-          ${navItem("about", "Info", "i")}
+          ${navItem("about", "Live", "i")}
         </nav>
         <div class="railcard">
-          <span>Arkivet</span>
+          <span>Live</span>
           <strong>${model.totalMatches}</strong>
           <em>matcher</em>
         </div>
@@ -273,14 +273,14 @@
     if (state.view === "players" && state.activePlayer) return state.activePlayer;
     if (state.view === "goalies" && state.activeGoalie) return state.activeGoalie;
     return {
-      overview: "Command Center",
-      cups: "Cup Matrix",
+      overview: "Liveöversikt",
+      cups: "Cuper",
       teams: "Lagkartan",
       players: "Spelarhubben",
       goalies: "Målvaktshubben",
       matches: "Matchflöde",
-      about: "SEC Manifest"
-    }[state.view] || "SEC v3";
+      about: "SEC Live"
+    }[state.view] || "SEC";
   }
 
   function renderSearchResults(model) {
@@ -347,12 +347,16 @@
     return `
       <section class="hero">
         <div class="heroCopy">
-          <span class="tag">Total redesign</span>
-          <h2>Inte en arkivsida. En kontrollpanel för hela SEC.</h2>
-          <p>V3 prioriterar tempo: stora signaler först, snabb sökning över allt, levande matchflöde och kortare väg till cup-, lag- och spelarvyer.</p>
+          <span class="tag liveTag">Live</span>
+          <h2>SEC Live</h2>
+          <p>Följ cuper, tabeller, slutspel, lag, spelare, målvakter och senaste matcherna från hela SEC.</p>
+          <div class="liveStrip">
+            <span>Uppdaterad ${escapeHtml(formatLiveClock())}</span>
+            <span>${model.latestMatches[0] ? escapeHtml(model.latestMatches[0].cup.code + " · " + formatDate(model.latestMatches[0].match.date)) : "Väntar på matchdata"}</span>
+          </div>
           <div class="actions">
-            <a href="#/cups">Öppna cup matrix</a>
-            <a href="#/matches">Se matcher</a>
+            <a href="#/matches">Liveflöde</a>
+            <a href="#/cups">Cuper</a>
           </div>
         </div>
         <div class="rink">
@@ -585,10 +589,10 @@
   function renderAbout(model) {
     return `
       <section class="manifest">
-        <span>SEC v3</span>
-        <h2>Byggd som en arena, inte som en lista.</h2>
-        <p>Den här versionen släpper den gamla sidans struktur och använder istället en command center-layout: fast sidomeny, sök över hela arkivet, stora datapaneler och tydliga drilldowns.</p>
-        <p>Gamla datakällor och assets ligger kvar i mappen, men själva upplevelsen körs från <code>index.html</code>, <code>styles-modern.css</code> och <code>app-modern.js</code>.</p>
+        <span>Live</span>
+        <h2>SEC Live</h2>
+        <p>Sidan samlar aktuell cupdata, historik, matchflöde, tabeller, slutspel, lag, spelare och målvakter på ett ställe.</p>
+        <p>Senaste registrerade match: <strong>${model.latestMatches[0] ? escapeHtml(model.latestMatches[0].cup.code + " · " + model.latestMatches[0].match.awayTeam + " - " + model.latestMatches[0].match.homeTeam + " " + score(model.latestMatches[0].match)) : "Ingen match hittad"}</strong>.</p>
       </section>
     `;
   }
@@ -1572,6 +1576,13 @@
     const parsed = Date.parse(value);
     if (!Number.isFinite(parsed)) return value || "Datum saknas";
     return new Intl.DateTimeFormat("sv-SE", { year: "numeric", month: "short", day: "numeric" }).format(parsed);
+  }
+
+  function formatLiveClock() {
+    return new Intl.DateTimeFormat("sv-SE", {
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(new Date());
   }
 
   function formatCupDateRange(cup) {
