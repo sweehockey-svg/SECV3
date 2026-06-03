@@ -400,6 +400,7 @@
           <b>${cup.matchCount}</b><em>matcher</em>
           <b>${cup.teams.length}</b><em>lag</em>
         </div>
+        <p>${escapeHtml(formatCupDateRange(cup))}</p>
         <p>Vinnare: ${escapeHtml(cup.winner || "Ej klar")}</p>
       </a>
     `;
@@ -416,7 +417,7 @@
       <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
         <a href="#/cups">Tillbaka till cuper</a>
         <h2>${escapeHtml(cup.name)}</h2>
-        <p>${cup.matchCount} matcher, ${cup.teams.length} lag, vinnare ${escapeHtml(cup.winner || "ej klar")}.</p>
+        <p>${escapeHtml(formatCupDateRange(cup))} · ${cup.matchCount} matcher, ${cup.teams.length} lag, vinnare ${escapeHtml(cup.winner || "ej klar")}.</p>
       </section>
       <section class="metricGrid compact">
         ${metric("Matcher", cup.matchCount, "spelade/listade")}
@@ -828,7 +829,7 @@
     }).filter(function (row) {
       return row.players || row.matches;
     }).sort(function (a, b) {
-      return b.cup.sortOrder - a.cup.sortOrder;
+      return compareCupsByDate(a.cup, b.cup);
     });
   }
 
@@ -850,7 +851,7 @@
 
   function renderPlayerCupTable(player) {
     const rows = player.rows.slice().sort(function (a, b) {
-      return b.sortOrder - a.sortOrder;
+      return compareCupRowsByDate(a, b);
     });
     if (!rows.length) return `<div class="empty">Ingen cuphistorik hittades.</div>`;
     return `
@@ -869,7 +870,7 @@
 
   function renderGoalieCupTable(goalie) {
     const rows = goalie.rows.slice().sort(function (a, b) {
-      return b.sortOrder - a.sortOrder;
+      return compareCupRowsByDate(a, b);
     });
     if (!rows.length) return `<div class="empty">Ingen målvaktshistorik hittades.</div>`;
     return `
@@ -879,6 +880,60 @@
           <tbody>
             ${rows.map(function (row) {
               return `<tr><td><a href="#/cups/${encodeURIComponent(row.cupId)}">${escapeHtml(row.cupCode)}</a></td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.sa}</td><td>${row.ga}</td><td>${row.sv}</td><td><strong>${formatPercent(row.svp)}</strong></td><td>${formatDecimal(row.gaa)}</td><td>${row.so}</td></tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderTeamCupTable(rows) {
+    if (!rows.length) return `<div class="empty">Ingen laghistorik hittades.</div>`;
+    return `
+      <div class="dataTable">
+        <table>
+          <thead><tr><th>Cup</th><th>Datum</th><th>Matcher</th><th>Vinster</th><th>Mal</th><th>Spelare</th></tr></thead>
+          <tbody>
+            ${rows.map(function (row) {
+              return `<tr><td><a href="#/cups/${encodeURIComponent(row.cup.id)}">${escapeHtml(row.cup.code)}</a></td><td>${escapeHtml(formatCupDateRange(row.cup))}</td><td>${row.matches}</td><td>${row.wins}</td><td>${row.goalsFor}</td><td>${row.players}</td></tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderPlayerCupTable(player) {
+    const rows = player.rows.slice().sort(function (a, b) {
+      return compareCupRowsByDate(a, b);
+    });
+    if (!rows.length) return `<div class="empty">Ingen cuphistorik hittades.</div>`;
+    return `
+      <div class="dataTable">
+        <table>
+          <thead><tr><th>Cup</th><th>Datum</th><th>Lag</th><th>GP</th><th>G</th><th>A</th><th>PTS</th><th>PIM</th></tr></thead>
+          <tbody>
+            ${rows.map(function (row) {
+              return `<tr><td><a href="#/cups/${encodeURIComponent(row.cupId)}">${escapeHtml(row.cupCode)}</a></td><td>${escapeHtml(formatCupDateRange(row))}</td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.g}</td><td>${row.a}</td><td><strong>${row.pts}</strong></td><td>${row.pim}</td></tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderGoalieCupTable(goalie) {
+    const rows = goalie.rows.slice().sort(function (a, b) {
+      return compareCupRowsByDate(a, b);
+    });
+    if (!rows.length) return `<div class="empty">Ingen malvaktshistorik hittades.</div>`;
+    return `
+      <div class="dataTable">
+        <table>
+          <thead><tr><th>Cup</th><th>Datum</th><th>Lag</th><th>GP</th><th>SA</th><th>GA</th><th>SV</th><th>SV%</th><th>GAA</th><th>SO</th></tr></thead>
+          <tbody>
+            ${rows.map(function (row) {
+              return `<tr><td><a href="#/cups/${encodeURIComponent(row.cupId)}">${escapeHtml(row.cupCode)}</a></td><td>${escapeHtml(formatCupDateRange(row))}</td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.sa}</td><td>${row.ga}</td><td>${row.sv}</td><td><strong>${formatPercent(row.svp)}</strong></td><td>${formatDecimal(row.gaa)}</td><td>${row.so}</td></tr>`;
             }).join("")}
           </tbody>
         </table>
@@ -1137,6 +1192,7 @@
           overtime: Boolean(match.overtime)
         };
       });
+      const cupDateMeta = getCupDateMeta(matches, cup, index);
       const teams = Array.from(new Set(matches.flatMap(function (match) {
         return [match.awayTeam, match.homeTeam];
       }).filter(Boolean))).sort(function (a, b) { return a.localeCompare(b, "sv"); });
@@ -1145,7 +1201,10 @@
         return Object.assign({}, row, {
           cupId: String(cup.id || index + 1),
           cupCode: text(cup.code || "SEC " + (index + 1)),
-          sortOrder: typeof cup.sortOrder === "number" ? cup.sortOrder : index
+          sortOrder: typeof cup.sortOrder === "number" ? cup.sortOrder : index,
+          cupStartTimestamp: cupDateMeta.startTimestamp,
+          cupEndTimestamp: cupDateMeta.endTimestamp,
+          cupSortTimestamp: cupDateMeta.sortTimestamp
         });
       });
       const topGoalies = collectCupGoalies(cup).slice(0, 10);
@@ -1153,12 +1212,18 @@
         return Object.assign({}, row, {
           cupId: String(cup.id || index + 1),
           cupCode: text(cup.code || "SEC " + (index + 1)),
-          sortOrder: typeof cup.sortOrder === "number" ? cup.sortOrder : index
+          sortOrder: typeof cup.sortOrder === "number" ? cup.sortOrder : index,
+          cupStartTimestamp: cupDateMeta.startTimestamp,
+          cupEndTimestamp: cupDateMeta.endTimestamp,
+          cupSortTimestamp: cupDateMeta.sortTimestamp
         });
       });
       return {
         id: String(cup.id || index + 1),
         sortOrder: typeof cup.sortOrder === "number" ? cup.sortOrder : index,
+        cupStartTimestamp: cupDateMeta.startTimestamp,
+        cupEndTimestamp: cupDateMeta.endTimestamp,
+        cupSortTimestamp: cupDateMeta.sortTimestamp,
         code: text(cup.code || "SEC " + (index + 1)),
         name: text(cup.name || cup.code || "SEC"),
         winner: text(cup.placements?.first || cup.winner || ""),
@@ -1172,9 +1237,7 @@
         topGoalies: topGoalies,
         goalieRows: goalieRows
       };
-    }).sort(function (a, b) {
-      return b.sortOrder - a.sortOrder;
-    });
+    }).sort(compareCupsByDate);
   }
 
   function collectCupPlayers(cup) {
@@ -1278,7 +1341,10 @@
         player.rows.push(Object.assign({}, row, {
           cupId: cup.id,
           cupCode: cup.code,
-          sortOrder: cup.sortOrder
+          sortOrder: cup.sortOrder,
+          cupStartTimestamp: cup.cupStartTimestamp,
+          cupEndTimestamp: cup.cupEndTimestamp,
+          cupSortTimestamp: cup.cupSortTimestamp
         }));
       });
     });
@@ -1307,7 +1373,10 @@
         goalie.rows.push(Object.assign({}, row, {
           cupId: cup.id,
           cupCode: cup.code,
-          sortOrder: cup.sortOrder
+          sortOrder: cup.sortOrder,
+          cupStartTimestamp: cup.cupStartTimestamp,
+          cupEndTimestamp: cup.cupEndTimestamp,
+          cupSortTimestamp: cup.cupSortTimestamp
         }));
       });
     });
@@ -1378,10 +1447,57 @@
     return Number.isFinite(value) ? value : 0;
   }
 
+  function getCupDateMeta(matches, cup, index) {
+    const timestamps = (matches || []).map(function (match) {
+      return parseDate(match.date, match.time);
+    }).filter(function (value) {
+      return value > 0;
+    });
+    const fallback = typeof cup.sortOrder === "number" ? cup.sortOrder : index;
+    if (!timestamps.length) {
+      return {
+        startTimestamp: 0,
+        endTimestamp: 0,
+        sortTimestamp: 0,
+        fallbackSort: fallback
+      };
+    }
+    return {
+      startTimestamp: Math.min.apply(Math, timestamps),
+      endTimestamp: Math.max.apply(Math, timestamps),
+      sortTimestamp: Math.max.apply(Math, timestamps),
+      fallbackSort: fallback
+    };
+  }
+
+  function compareCupsByDate(a, b) {
+    const dateDiff = number(b.cupSortTimestamp) - number(a.cupSortTimestamp);
+    if (dateDiff) return dateDiff;
+    return number(b.sortOrder) - number(a.sortOrder);
+  }
+
+  function compareCupRowsByDate(a, b) {
+    const dateDiff = number(b.cupSortTimestamp) - number(a.cupSortTimestamp);
+    if (dateDiff) return dateDiff;
+    return number(b.sortOrder) - number(a.sortOrder);
+  }
+
   function formatDate(value) {
     const parsed = Date.parse(value);
     if (!Number.isFinite(parsed)) return value || "Datum saknas";
     return new Intl.DateTimeFormat("sv-SE", { year: "numeric", month: "short", day: "numeric" }).format(parsed);
+  }
+
+  function formatCupDateRange(cup) {
+    const start = number(cup.cupStartTimestamp);
+    const end = number(cup.cupEndTimestamp);
+    if (!start && !end) return "Datum saknas";
+    if (!start || start === end) return formatTimestampDate(end || start);
+    return formatTimestampDate(start) + " - " + formatTimestampDate(end);
+  }
+
+  function formatTimestampDate(timestamp) {
+    return new Intl.DateTimeFormat("sv-SE", { year: "numeric", month: "short", day: "numeric" }).format(new Date(timestamp));
   }
 
   function score(match) {
