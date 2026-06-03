@@ -274,6 +274,7 @@
       if (state.activeCupSection === "bracket") return cup.name + " - slutspel";
       if (state.activeCupSection === "players") return cup.name + " - spelare";
       if (state.activeCupSection === "goalies") return cup.name + " - målvakter";
+      if (state.activeCupSection === "stats") return cup.name + " - statistik";
       if (state.activeCupSection === "info") return cup.name + " - cupinfo";
       if (state.activeCupSection === "matches") return cup.name + " - matcher";
       return cup.name;
@@ -334,6 +335,7 @@
       if (state.activeCupSection === "bracket") return renderCupBracketPage(cup);
       if (state.activeCupSection === "players") return renderCupPlayersPage(cup);
       if (state.activeCupSection === "goalies") return renderCupGoaliesPage(cup);
+      if (state.activeCupSection === "stats") return renderCupStatsPage(cup);
       if (state.activeCupSection === "info") return renderCupInfoPage(cup);
       if (state.activeCupSection === "matches") return renderCupMatchesPage(cup);
       return renderCupDetail(model, cup);
@@ -442,6 +444,7 @@
         ${metric("Mål", cup.goals, "totalt")}
         ${metric("Finalist", cup.runnerUp || "Ej klar", "placering")}
       </section>
+      ${renderCupSectionNav(cup)}
       <section class="sportGrid">
         ${panelWithAction("Tabeller", "Fullständig tabell", "#/cups/" + encodeURIComponent(cup.id) + "/tables", renderStandingsPreview(standings, cup.settings))}
         ${panelWithAction("Slutspelsträd", "Fullständigt träd", "#/cups/" + encodeURIComponent(cup.id) + "/bracket", renderBracketPreview(bracket, cup.settings))}
@@ -449,8 +452,8 @@
       <section class="dashGrid two">
         ${panelWithAction("Cupinfo", "Fullständiga regler", "#/cups/" + encodeURIComponent(cup.id) + "/info", renderCupSettings(cup.settings, { preview: true }))}
         ${panelWithAction("Matcher", "Alla matcher", "#/cups/" + encodeURIComponent(cup.id) + "/matches", renderMatchRows(rows, 14))}
-        ${panelWithAction("Toppspelare", "All statistik", "#/cups/" + encodeURIComponent(cup.id) + "/players", renderLeaderRows(cup.topPlayers.slice(0, 10)))}
-        ${panelWithAction("Toppmålvakter", "Alla målvakter", "#/cups/" + encodeURIComponent(cup.id) + "/goalies", renderGoalieRows(cup.topGoalies.slice(0, 10)))}
+        ${panelWithAction("Toppspelare", "All statistik", "#/cups/" + encodeURIComponent(cup.id) + "/stats", renderLeaderRows(cup.topPlayers.slice(0, 10)))}
+        ${panelWithAction("Toppmålvakter", "All statistik", "#/cups/" + encodeURIComponent(cup.id) + "/stats", renderGoalieRows(cup.topGoalies.slice(0, 10)))}
         ${panel("Lag i cupen", renderMiniTags(cup.teams, "teams"))}
       </section>
     `;
@@ -465,6 +468,7 @@
         <h2>Fullständig tabell</h2>
         <p>${escapeHtml(cup.name)} · ${escapeHtml(formatCupDateRange(cup))} · streck enligt cupinfo.</p>
       </section>
+      ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
         ${renderStandings(standings, cup.settings, { full: true })}
       </section>
@@ -480,9 +484,29 @@
         <h2>Fullständigt slutspelsträd</h2>
         <p>${escapeHtml(cup.name)} · ${bracket.reduce(function (sum, round) { return sum + ((round.series && round.series.length) || 0); }, 0)} serier.</p>
       </section>
+      ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
         ${renderBracket(bracket, cup.settings, { full: true })}
       </section>
+    `;
+  }
+
+  function renderCupSectionNav(cup) {
+    const base = "#/cups/" + encodeURIComponent(cup.id);
+    const current = state.activeCupSection || "";
+    const items = [
+      ["tables", "Tabell"],
+      ["bracket", "Slutspel"],
+      ["matches", "Matcher"],
+      ["stats", "Statistik"],
+      ["info", "Regler"]
+    ];
+    return `
+      <nav class="cupSectionNav" aria-label="Cupmeny">
+        ${items.map(function (item) {
+          return `<a class="${current === item[0] ? "active" : ""}" href="${base}/${item[0]}">${escapeHtml(item[1])}</a>`;
+        }).join("")}
+      </nav>
     `;
   }
 
@@ -494,6 +518,7 @@
         <h2>Toppspelare</h2>
         <p>${escapeHtml(cup.name)} · all spelarstatistik från gruppspel och slutspel.</p>
       </section>
+      ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
         ${renderCupPlayerStatsTable(cup.playerRows)}
       </section>
@@ -508,8 +533,27 @@
         <h2>Målvakter</h2>
         <p>${escapeHtml(cup.name)} · räddningsprocent, GAA, räddningar och nollor.</p>
       </section>
+      ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
         ${renderCupGoalieStatsTable(cup.goalieRows)}
+      </section>
+    `;
+  }
+
+  function renderCupStatsPage(cup) {
+    if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
+    return `
+      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
+        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
+        <h2>Statistik</h2>
+        <p>${escapeHtml(cup.name)} · spelare och målvakter uppdelat på gruppspel och slutspel.</p>
+      </section>
+      ${renderCupSectionNav(cup)}
+      <section class="statPageGrid">
+        ${panel("Spelare - gruppspel", renderCupPlayerStatsTable(cup.playerStageRows.group))}
+        ${panel("Spelare - slutspel", renderCupPlayerStatsTable(cup.playerStageRows.playoffs))}
+        ${panel("Målvakter - gruppspel", renderCupGoalieStatsTable(cup.goalieStageRows.group))}
+        ${panel("Målvakter - slutspel", renderCupGoalieStatsTable(cup.goalieStageRows.playoffs))}
       </section>
     `;
   }
@@ -522,6 +566,7 @@
         <h2>Fullständiga regler</h2>
         <p>${escapeHtml(cup.name)} · cupinfo, behörighet, BO-format och spelargränser.</p>
       </section>
+      ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
         ${renderCupSettings(cup.settings, { full: true })}
       </section>
@@ -1536,6 +1581,10 @@
       }).filter(Boolean))).sort(function (a, b) { return a.localeCompare(b, "sv"); });
       const settings = normalizeCupSettings(cup);
       const topPlayers = collectCupPlayers(cup).slice(0, 10);
+      const playerStageRows = {
+        group: collectCupPlayersForStage(cup, "group"),
+        playoffs: collectCupPlayersForStage(cup, "playoffs")
+      };
       const playerRows = collectCupPlayers(cup).map(function (row) {
         return Object.assign({}, row, {
           cupId: String(cup.id || index + 1),
@@ -1547,6 +1596,10 @@
         });
       });
       const topGoalies = collectCupGoalies(cup).slice(0, 10);
+      const goalieStageRows = {
+        group: collectCupGoaliesForStage(cup, "group"),
+        playoffs: collectCupGoaliesForStage(cup, "playoffs")
+      };
       const goalieRows = collectCupGoalies(cup).map(function (row) {
         return Object.assign({}, row, {
           cupId: String(cup.id || index + 1),
@@ -1574,8 +1627,10 @@
         goals: matches.reduce(function (sum, match) { return sum + number(match.awayScore) + number(match.homeScore); }, 0),
         topPlayers: topPlayers,
         playerRows: playerRows,
+        playerStageRows: playerStageRows,
         topGoalies: topGoalies,
-        goalieRows: goalieRows
+        goalieRows: goalieRows,
+        goalieStageRows: goalieStageRows
       };
     }).sort(compareCupsByDate);
   }
@@ -1583,6 +1638,14 @@
   function collectCupPlayers(cup) {
     const rows = getStatRows(cup.playerStats, "group")
       .concat(getStatRows(cup.playerStats, "playoffs"));
+    return aggregateCupPlayerRows(rows, cup);
+  }
+
+  function collectCupPlayersForStage(cup, stage) {
+    return aggregateCupPlayerRows(getStatRows(cup.playerStats, stage), cup);
+  }
+
+  function aggregateCupPlayerRows(rows, cup) {
     const map = new Map();
     rows.forEach(function (row) {
       const name = text(row.displayName || row.player || "Okänd spelare");
@@ -1603,6 +1666,14 @@
   function collectCupGoalies(cup) {
     const rows = getStatRows(cup.goalieStats, "group")
       .concat(getStatRows(cup.goalieStats, "playoffs"));
+    return aggregateCupGoalieRows(rows, cup);
+  }
+
+  function collectCupGoaliesForStage(cup, stage) {
+    return aggregateCupGoalieRows(getStatRows(cup.goalieStats, stage), cup);
+  }
+
+  function aggregateCupGoalieRows(rows, cup) {
     const map = new Map();
     rows.forEach(function (row) {
       const name = text(row.displayName || row.player || "Okänd målvakt");

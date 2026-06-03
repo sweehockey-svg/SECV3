@@ -548,6 +548,35 @@ input {
   font-style: normal;
 }
 
+.cupSectionNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 0 clamp(18px, 2.2vw, 34px);
+}
+
+.cupSectionNav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.cupSectionNav a:hover,
+.cupSectionNav a.active {
+  border-color: var(--line2);
+  color: var(--gold);
+  background: rgba(233, 197, 110, 0.08);
+}
+
 .dashGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.8fr) minmax(320px, 0.8fr);
@@ -612,6 +641,13 @@ input {
   border-radius: 16px;
   background: var(--panel);
   box-shadow: var(--shadow);
+}
+
+.statPageGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  min-width: 0;
 }
 
 .standingsDeck,
@@ -1338,6 +1374,10 @@ input {
   .metricGrid,
   .metricGrid.compact {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .statPageGrid {
+    grid-template-columns: 1fr;
   }
 
   .matchRow,
