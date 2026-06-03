@@ -1,11 +1,16 @@
-﻿const DATA_SOURCES = {
+const DATA_SOURCES = {
   sheet: window.SEC_CONFIG?.sheetUrl || "",
-  rules: window.SEC_CONFIG?.rulesUrl || "https://script.google.com/macros/s/AKfycbwUvylvIbUTy4_zihW5_OKIsQME2vxcPHWLldObZI28dggqJytvF2UmdsAD4Ib5Zre1/exec?sheet=regler",
-  placements: window.SEC_CONFIG?.placementsUrl || "https://script.google.com/macros/s/AKfycbwUvylvIbUTy4_zihW5_OKIsQME2vxcPHWLldObZI28dggqJytvF2UmdsAD4Ib5Zre1/exec?sheet=vinnare",
+  rules: Object.prototype.hasOwnProperty.call(window.SEC_CONFIG || {}, "rulesUrl")
+    ? window.SEC_CONFIG.rulesUrl
+    : "https://script.google.com/macros/s/AKfycbwUvylvIbUTy4_zihW5_OKIsQME2vxcPHWLldObZI28dggqJytvF2UmdsAD4Ib5Zre1/exec?sheet=regler",
+  placements: Object.prototype.hasOwnProperty.call(window.SEC_CONFIG || {}, "placementsUrl")
+    ? window.SEC_CONFIG.placementsUrl
+    : "https://script.google.com/macros/s/AKfycbwUvylvIbUTy4_zihW5_OKIsQME2vxcPHWLldObZI28dggqJytvF2UmdsAD4Ib5Zre1/exec?sheet=vinnare",
   database: window.SEC_CONFIG?.databaseUrl || "",
   rawApiBase: window.SEC_CONFIG?.rawDataApiBaseUrl ?? "https://script.google.com/macros/s/AKfycbwUvylvIbUTy4_zihW5_OKIsQME2vxcPHWLldObZI28dggqJytvF2UmdsAD4Ib5Zre1/exec",
   teamLogoManifest: window.SEC_CONFIG?.teamLogoManifestUrl || "https://api.github.com/repos/sweehockey-svg/sweehockey-svg.github.io/contents/teamlogos",
-  playerImageManifest: window.SEC_CONFIG?.playerImageManifestUrl || "https://api.github.com/repos/sweehockey-svg/sweehockey-svg.github.io/contents/players"
+  playerImageManifest: window.SEC_CONFIG?.playerImageManifestUrl || "https://api.github.com/repos/sweehockey-svg/sweehockey-svg.github.io/contents/players",
+  signupApi: window.SEC_CONFIG?.signupApiUrl || ""
 };
 
 const DNF_TEAMS_BY_CUP = window.SEC_CONFIG?.dnfTeamsByCup || {
@@ -118,6 +123,8 @@ const state = {
   cups: [],
   teams: [],
   players: [],
+  playersReady: false,
+  playersBuildPromise: null,
   ready: false,
   assetIndexes: {
     teamLogos: createAssetFileIndex([]),
@@ -187,24 +194,92 @@ async function init() {
 
     state.cups = normalizedCups;
     state.teams = buildTeams(normalizedCups);
-    state.players = buildPlayers(normalizedCups);
+    state.players = [];
+    state.playersReady = false;
+    state.playersBuildPromise = null;
     state.ready = true;
 
     renderCurrentRoute();
-    hydrateAssetIndexes();
+    schedulePlayerIndexBuild();
+    scheduleAssetIndexHydration();
     hydrateCupMeta(cups);
   } catch (error) {
     console.error(error);
     state.cups = normalizeCups(FALLBACK_DATA.cups, new Map(), new Map());
     state.teams = buildTeams(state.cups);
-    state.players = buildPlayers(state.cups);
+    state.players = [];
+    state.playersReady = false;
+    state.playersBuildPromise = null;
     state.ready = true;
     renderCurrentRoute();
-    hydrateAssetIndexes();
+    schedulePlayerIndexBuild();
+    scheduleAssetIndexHydration();
   }
 }
 
+function schedulePlayerIndexBuild() {
+  if (state.playersReady || state.playersBuildPromise) {
+    return state.playersBuildPromise || Promise.resolve(state.players);
+  }
+
+  const build = function() {
+    return ensurePlayersReady().then(function() {
+      const route = parseRoute();
+      if (route.type === "home" || route.type === "players" || route.type === "player") {
+        renderCurrentRoute();
+      }
+      return state.players;
+    });
+  };
+
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(function() { build(); }, { timeout: 3200 });
+    return null;
+  }
+
+  window.setTimeout(build, 1200);
+  return null;
+}
+
+function ensurePlayersReady() {
+  if (state.playersReady) {
+    return Promise.resolve(state.players);
+  }
+
+  if (state.playersBuildPromise) {
+    return state.playersBuildPromise;
+  }
+
+  state.playersBuildPromise = Promise.resolve().then(function() {
+    state.players = buildPlayers(state.cups);
+    state.playersReady = true;
+    state.playersBuildPromise = null;
+    return state.players;
+  });
+
+  return state.playersBuildPromise;
+}
+
+function scheduleAssetIndexHydration() {
+  const hydrate = function() {
+    hydrateAssetIndexes().catch(function(error) {
+      console.warn("Kunde inte ladda bildindex.", error);
+    });
+  };
+
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(hydrate, { timeout: 2500 });
+    return;
+  }
+
+  window.setTimeout(hydrate, 900);
+}
+
 async function hydrateCupMeta(cups) {
+  if (!DATA_SOURCES.rules && !DATA_SOURCES.placements) {
+    return;
+  }
+
   const results = await Promise.allSettled([
     loadCupSettings(),
     loadCupPlacements()
@@ -219,7 +294,10 @@ async function hydrateCupMeta(cups) {
   const normalizedCups = normalizeCups(cups, settingsByCup, placementsByCup);
   state.cups = normalizedCups;
   state.teams = buildTeams(normalizedCups);
-  state.players = buildPlayers(normalizedCups);
+  state.players = [];
+  state.playersReady = false;
+  state.playersBuildPromise = null;
+  schedulePlayerIndexBuild();
   renderCurrentRoute();
 }
 
@@ -245,7 +323,14 @@ async function hydrateAssetIndexes() {
   state.assetIndexReady = true;
   state.assetMatchCache.teamLogos.clear();
   state.assetMatchCache.playerImages.clear();
-  renderCurrentRoute();
+
+  if (!state.assetHydrationRenderQueued) {
+    state.assetHydrationRenderQueued = true;
+    window.setTimeout(function() {
+      state.assetHydrationRenderQueued = false;
+      renderCurrentRoute();
+    }, 250);
+  }
 }
 
 async function loadCups() {
@@ -256,11 +341,17 @@ async function loadCups() {
 
   const merged = [];
 
-  results.forEach(function(result) {
-    if (result.status === "fulfilled" && Array.isArray(result.value)) {
-      merged.push.apply(merged, result.value);
-    }
-  });
+  if (results[0].status === "fulfilled" && Array.isArray(results[0].value)) {
+    merged.push.apply(merged, results[0].value.map(function(cup) {
+      return markCupSource(cup, "extra");
+    }));
+  }
+
+  if (results[1].status === "fulfilled" && Array.isArray(results[1].value)) {
+    merged.push.apply(merged, results[1].value.map(function(cup) {
+      return markCupSource(cup, "database");
+    }));
+  }
 
   try {
     const supplementalCups = await loadSupplementalCups(merged);
@@ -273,7 +364,13 @@ async function loadCups() {
 
   merged.forEach(function(cup) {
     const key = createCupDedupKey(cup);
-    deduped.set(key, cup);
+    const existing = deduped.get(key);
+    if (!existing) {
+      deduped.set(key, cup);
+      return;
+    }
+
+    deduped.set(key, resolveCupSourceConflict(existing, cup));
   });
 
   if (!deduped.size) {
@@ -283,6 +380,163 @@ async function loadCups() {
   return Array.from(deduped.values());
 }
 
+function markCupSource(cup, source) {
+  return {
+    ...(cup || {}),
+    __source: source
+  };
+}
+
+function resolveCupSourceConflict(existing, incoming) {
+  const existingPriority = getCupSourcePriority(existing);
+  const incomingPriority = getCupSourcePriority(incoming);
+
+  if (incomingPriority > existingPriority) {
+    return mergeCupMetadata(incoming, existing);
+  }
+
+  if (existingPriority > incomingPriority) {
+    return mergeCupMetadata(existing, incoming);
+  }
+
+  return mergeCupData(existing, incoming);
+}
+
+function mergeCupMetadata(primary, secondary) {
+  const base = primary || {};
+  const meta = secondary || {};
+
+  return {
+    ...base,
+    settings: mergeDataRow(meta.settings, base.settings),
+    placements: mergeDataRow(meta.placements, base.placements)
+  };
+}
+
+function getCupSourcePriority(cup) {
+  const source = cup?.__source || "";
+  return source === "database" ? 2 : 1;
+}
+
+function mergeCupData(existing, incoming) {
+  const base = existing || {};
+  const next = incoming || {};
+
+  return {
+    ...base,
+    ...next,
+    settings: mergeDataRow(base.settings, next.settings),
+    placements: mergeDataRow(base.placements, next.placements),
+    matches: mergeCupRows(base.matches, next.matches, createMatchMergeKey),
+    playerStats: {
+      group: mergeCupRows(base.playerStats?.group, next.playerStats?.group, createPlayerStatMergeKey),
+      playoffs: mergeCupRows(base.playerStats?.playoffs, next.playerStats?.playoffs, createPlayerStatMergeKey)
+    },
+    goalieStats: {
+      group: mergeCupRows(base.goalieStats?.group, next.goalieStats?.group, createGoalieStatMergeKey),
+      playoffs: mergeCupRows(base.goalieStats?.playoffs, next.goalieStats?.playoffs, createGoalieStatMergeKey)
+    }
+  };
+}
+
+function mergeCupRows(existingRows, incomingRows, getKey) {
+  const rows = [];
+  const seen = new Map();
+
+  (existingRows || []).concat(incomingRows || []).forEach(function(row) {
+    const key = getKey(row);
+    if (key && seen.has(key)) {
+      const existingIndex = seen.get(key);
+      rows[existingIndex] = mergeDataRow(rows[existingIndex], row);
+      return;
+    }
+    if (key) {
+      seen.set(key, rows.length);
+    }
+    rows.push(row);
+  });
+
+  return rows;
+}
+
+function mergeDataRow(existing, incoming) {
+  const base = existing || {};
+  const next = incoming || {};
+  const merged = { ...base };
+
+  Object.keys(next).forEach(function(key) {
+    if (isMeaningfulValue(next[key]) || !isMeaningfulValue(merged[key])) {
+      merged[key] = mergeNestedDataValue(merged[key], next[key]);
+    }
+  });
+
+  return merged;
+}
+
+function mergeNestedDataValue(existing, incoming) {
+  if (isPlainObject(existing) && isPlainObject(incoming)) {
+    return mergeDataRow(existing, incoming);
+  }
+  return isMeaningfulValue(incoming) || !isMeaningfulValue(existing) ? incoming : existing;
+}
+
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isMeaningfulValue(value) {
+  if (value === null || typeof value === "undefined") {
+    return false;
+  }
+  if (typeof value === "string") {
+    return value.trim() !== "";
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+  if (isPlainObject(value)) {
+    return Object.keys(value).some(function(key) {
+      return isMeaningfulValue(value[key]);
+    });
+  }
+  return true;
+}
+
+function createMatchMergeKey(match) {
+  return [
+    normalizeLookupKey(match?.date),
+    normalizeLookupKey(match?.time),
+    normalizeLookupKey(match?.awayTeam || match?.away_team),
+    normalizeLookupKey(match?.homeTeam || match?.home_team),
+    String(match?.awayScore ?? match?.away_score ?? ""),
+    String(match?.homeScore ?? match?.home_score ?? "")
+  ].join("|");
+}
+
+function createPlayerStatMergeKey(row) {
+  return [
+    normalizeLookupKey(row?.player || row?.players),
+    normalizeLookupKey(row?.team),
+    String(row?.gp ?? ""),
+    String(row?.g ?? ""),
+    String(row?.a ?? ""),
+    String(row?.pts ?? ""),
+    String(row?.pim ?? "")
+  ].join("|");
+}
+
+function createGoalieStatMergeKey(row) {
+  return [
+    normalizeLookupKey(row?.player || row?.goalies),
+    normalizeLookupKey(row?.team),
+    String(row?.gp ?? ""),
+    String(row?.sa ?? ""),
+    String(row?.ga ?? ""),
+    String(row?.sv ?? ""),
+    String(row?.svp ?? "")
+  ].join("|");
+}
+
 async function loadSupplementalCups(existingCups) {
   if (!DATA_SOURCES.rawApiBase) {
     return [];
@@ -290,12 +544,10 @@ async function loadSupplementalCups(existingCups) {
 
   const matchRows = await loadRowsSource(createRawApiUrl("matcherSEC"));
   const rowsByCup = groupRowsByCupName(matchRows);
+  const cupNames = Array.from(rowsByCup.keys());
   const existingKeys = createExistingCupKeySet(existingCups || []);
-  const missingCupNames = Array.from(rowsByCup.keys()).filter(function(cupName) {
-    return !existingKeys.has(normalizeLookupKey(cupName));
-  });
 
-  if (!missingCupNames.length) {
+  if (!cupNames.length) {
     return [];
   }
 
@@ -304,8 +556,14 @@ async function loadSupplementalCups(existingCups) {
     loadRowsSource(createRawApiUrl("målvaktsstatsall")).catch(function() { return []; })
   ]);
 
-  return missingCupNames.map(function(cupName) {
-    return createSupplementalCup(cupName, rowsByCup.get(cupName), skaterRows, goalieRows);
+  return cupNames.map(function(cupName) {
+    return createSupplementalCup(
+      cupName,
+      rowsByCup.get(cupName),
+      skaterRows,
+      goalieRows,
+      !existingKeys.has(normalizeLookupKey(cupName))
+    );
   });
 }
 
@@ -352,7 +610,7 @@ function createExistingCupKeySet(cups) {
   return keys;
 }
 
-function createSupplementalCup(cupName, matchRows, skaterRows, goalieRows) {
+function createSupplementalCup(cupName, matchRows, skaterRows, goalieRows, includeSeasonStats) {
   return {
     id: createSupplementalCupId(cupName),
     code: cupName,
@@ -361,12 +619,12 @@ function createSupplementalCup(cupName, matchRows, skaterRows, goalieRows) {
     sortOrder: inferSortOrder(cupName),
     matches: (matchRows || []).map(createSupplementalMatch),
     playerStats: {
-      group: createSupplementalSkaterStats(skaterRows, cupName + " G"),
-      playoffs: createSupplementalSkaterStats(skaterRows, cupName + " S")
+      group: includeSeasonStats ? createSupplementalSkaterStats(skaterRows, cupName + " G") : [],
+      playoffs: includeSeasonStats ? createSupplementalSkaterStats(skaterRows, cupName + " S") : []
     },
     goalieStats: {
-      group: createSupplementalGoalieStats(goalieRows, cupName + " G"),
-      playoffs: createSupplementalGoalieStats(goalieRows, cupName + " S")
+      group: includeSeasonStats ? createSupplementalGoalieStats(goalieRows, cupName + " G") : [],
+      playoffs: includeSeasonStats ? createSupplementalGoalieStats(goalieRows, cupName + " S") : []
     }
   };
 }
@@ -382,7 +640,8 @@ function createSupplementalMatch(row) {
     homeTeam: normalizeText(getRowField(row, ["Home team", "Home Team", "home_team"], ["home", "hemma"])),
     stage: normalizeText(getRowField(row, ["Stage", "stage"], ["stage", "fas"])),
     group: normalizeText(getRowField(row, ["Grupp", "Group", "grupp"], ["grupp", "group"])),
-    goalsSummary: normalizeText(getRowField(row, ["goalsSummary", "Goals Summary", "goals_summary"], ["goalssummary", "goals"]))
+    goalsSummary: normalizeText(getRowField(row, ["goalsSummary", "Goals Summary", "goals_summary"], ["goalssummary", "goals"])),
+    statsSummary: normalizeText(getRowField(row, ["Stats", "stats", "matchStats", "Match Stats"], ["stats", "matchstats"]))
   };
 }
 
@@ -494,7 +753,7 @@ async function loadSource(url) {
     return [];
   }
 
-  const response = await fetch(url, { cache: "no-store" });
+  const response = await fetch(url, { cache: "no-cache" });
   if (!response.ok) {
     throw new Error("Request failed for " + url);
   }
@@ -709,6 +968,11 @@ function normalizeCups(cups, settingsByCup, placementsByCup) {
       const playoffGoalies = normalizeGoalieRows(cup.goalieStats?.playoffs || [], "playoffs");
 
       const normalizedMatches = (cup.matches || []).map(function(match, matchIndex) {
+        const statsSummary = match.statsSummary || match.Stats || match.stats || "";
+        const parsedStats = parseMatchStatsSummary(statsSummary, match);
+        const normalizedPlayerStats = normalizeMatchStatSides(match.playerStats, normalizePlayerRows, "match");
+        const normalizedGoalieStats = normalizeMatchStatSides(match.goalieStats, normalizeGoalieRows, "match");
+
         return {
           id: createMatchId(cup.id || index + 1, matchIndex),
           date: match.date || "",
@@ -723,8 +987,9 @@ function normalizeCups(cups, settingsByCup, placementsByCup) {
           stage: normalizeStage(match.stage, match.group),
           group: match.group || "",
           goalsSummary: match.goalsSummary || "",
-          playerStats: normalizeMatchStatSides(match.playerStats, normalizePlayerRows, "match"),
-          goalieStats: normalizeMatchStatSides(match.goalieStats, normalizeGoalieRows, "match")
+          statsSummary: statsSummary,
+          playerStats: hasMatchSideRows(normalizedPlayerStats) ? normalizedPlayerStats : parsedStats.playerStats,
+          goalieStats: hasMatchSideRows(normalizedGoalieStats) ? normalizedGoalieStats : parsedStats.goalieStats
         };
       });
       const normalizedPlayoffPlayers = playoffPlayers.length
@@ -801,17 +1066,26 @@ function normalizePlayerRows(rows, stage) {
 function normalizeGoalieRows(rows, stage) {
   return rows.map(function(row) {
     const playerMeta = parsePlayerName(row.player);
+    const ga = stage === "match" ? toNullableNumber(row.ga) : toNumber(row.ga);
+    const sv = stage === "match" ? toNullableNumber(row.sv) : toNumber(row.sv);
+    const rawSa = stage === "match" ? toNullableNumber(row.sa) : toNumber(row.sa);
+    const sa = rawSa !== null && rawSa > 0 ? rawSa : (ga !== null && sv !== null ? ga + sv : rawSa);
+    const rawSvp = row.svp === null || typeof row.svp === "undefined" ? null : Number(row.svp);
+    const svp = sa > 0 && sv !== null
+      ? sv / sa
+      : (rawSvp !== null && Number.isFinite(rawSvp) ? (rawSvp > 1 ? rawSvp / 100 : rawSvp) : null);
+
     return {
       player: String(row.player || "Okand malvakt"),
       displayName: playerMeta.name,
       countryCode: playerMeta.countryCode,
       team: String(row.team || "Okant lag"),
       gp: toNumber(row.gp),
-      sa: stage === "match" ? toNullableNumber(row.sa) : toNumber(row.sa),
-      ga: stage === "match" ? toNullableNumber(row.ga) : toNumber(row.ga),
-      sv: stage === "match" ? toNullableNumber(row.sv) : toNumber(row.sv),
+      sa: sa,
+      ga: ga,
+      sv: sv,
       gaa: stage === "match" ? toNullableNumber(row.gaa) : toNumber(row.gaa),
-      svp: row.svp === null || typeof row.svp === "undefined" ? null : Number(row.svp),
+      svp: svp,
       so: stage === "match" ? toNullableNumber(row.so) : toNumber(row.so),
       playerId: row.playerId ? String(row.playerId) : "",
       stage: stage
@@ -1138,6 +1412,7 @@ function renderCurrentRoute() {
   const activeCupTab = state.activeCupTab || document.querySelector("[data-cup-tab].is-active")?.getAttribute("data-cup-tab") || "";
   const route = parseRoute();
   let html = "";
+  let isSommarRoute = false;
 
   if (route.type === "home") {
     html = renderHomePage();
@@ -1145,26 +1420,44 @@ function renderCurrentRoute() {
     html = renderCupsIndex();
   } else if (route.type === "cup") {
     const cup = state.cups.find(function(entry) { return entry.id === route.id; });
+    isSommarRoute = !!cup && getCupCategory(cup) === "sommar";
     html = cup ? renderCupPage(cup) : renderNotFound("Cupen kunde inte hittas.");
   } else if (route.type === "match") {
     const cup = state.cups.find(function(entry) { return entry.id === route.cupId; });
     const match = cup?.matches.find(function(entry) { return entry.id === route.matchId; });
+    isSommarRoute = !!cup && getCupCategory(cup) === "sommar";
     html = cup && match ? renderMatchPage(cup, match) : renderNotFound("Matchen kunde inte hittas.");
   } else if (route.type === "teams") {
     html = renderTeamsIndex();
   } else if (route.type === "team") {
     const team = state.teams.find(function(entry) { return entry.key === route.id; });
     const cup = route.cupId ? state.cups.find(function(entry) { return entry.id === route.cupId; }) : null;
+    isSommarRoute = !!cup && getCupCategory(cup) === "sommar";
     html = team ? renderTeamPage(team, cup) : renderNotFound("Laget kunde inte hittas.");
   } else if (route.type === "players") {
-    html = renderPlayersIndex();
+    if (!state.playersReady) {
+      ensurePlayersReady().then(renderCurrentRoute);
+      html = renderLoadingState("Bygger spelarregister...");
+    } else {
+      html = renderPlayersIndex();
+    }
   } else if (route.type === "player") {
-    const player = state.players.find(function(entry) { return entry.key === route.id; });
-    html = player ? renderPlayerPage(player) : renderNotFound("Spelaren kunde inte hittas.");
+    if (!state.playersReady) {
+      ensurePlayersReady().then(renderCurrentRoute);
+      html = renderLoadingState("Bygger spelarprofil...");
+    } else {
+      const player = state.players.find(function(entry) { return entry.key === route.id; });
+      html = player ? renderPlayerPage(player) : renderNotFound("Spelaren kunde inte hittas.");
+    }
+  } else if (route.type === "signupTeam") {
+    html = renderTeamSignupPage();
+  } else if (route.type === "signupSummerDraft") {
+    html = renderSummerDraftSignupPage();
   } else {
     html = renderNotFound("Sidan kunde inte hittas.");
   }
 
+  document.body.classList.toggle("theme-sommar", isSommarRoute);
   setView(html);
   if (route.type === "cup" && activeCupTab) {
     activateCupTab(activeCupTab);
@@ -1177,9 +1470,33 @@ function renderCurrentRoute() {
 function renderHomePage() {
   const categories = splitCupsByCategory(state.cups);
   const totalMatches = sumBy(state.cups, "matchCount");
+  const dashboard = buildHomeDashboardModel();
 
   return `
     <section class="sec-index-shell">
+      <section class="secv3-hero">
+        <div class="secv3-hero__content">
+          <div class="secv3-kicker">
+            <span>SEC v3</span>
+            <strong>Arkiv, statistik och anmalan</strong>
+          </div>
+          <h1>Svenska eHockey Cupen</h1>
+          <p>
+            En snabbare och tydligare samlingsplats for cuper, lag, spelare, matcher och historik.
+            Allt bygger pa samma SEC-data, men startsidan lyfter fram det viktigaste direkt.
+          </p>
+          <div class="secv3-hero__actions">
+            <a class="button button-primary" href="#/cups">Utforska cuper</a>
+            <a class="button" href="#/players">Spelarindex</a>
+            <a class="button" href="#/anmalan/lag">Anmal lag</a>
+          </div>
+        </div>
+        <div class="secv3-hero__mark" aria-hidden="true">
+          <img src="./SECLOGGA.png" alt="">
+          <span>${dashboard.latestCup ? escapeHtml(dashboard.latestCup.code) : "SEC"}</span>
+        </div>
+      </section>
+
       <a href="#/" class="sec-header-link" aria-label="Svenska eHockey Cupen">
         <div class="sfc-header">
           <img class="sfc-logo" src="./SECLOGGA.png" alt="SEC Logo">
@@ -1189,6 +1506,9 @@ function renderHomePage() {
       </a>
 
       ${renderGlobalSearchModule()}
+
+      ${renderHomeDashboard(dashboard, totalMatches)}
+      ${renderHomeQuickLinks(dashboard)}
 
       <section class="tab-panel info-panel welcome-panel">
         <div class="welcome-title-row">
@@ -1213,8 +1533,15 @@ function renderHomePage() {
         </p>
         <p class="welcome-archive-line">
           Just nu finns <strong>${state.cups.length}</strong> cuper, <strong>${totalMatches}</strong> matcher,
-          <strong>${state.teams.length}</strong> lag och <strong>${state.players.length}</strong> spelare i arkivet.
+          <strong>${state.teams.length}</strong> lag och <strong>${state.playersReady ? state.players.length : "..."}</strong> spelare i arkivet.
         </p>
+      </section>
+
+      ${renderHomeSignupCallout()}
+
+      <section class="secv3-home-grid">
+        ${renderHomeLatestMatches(dashboard.latestMatches)}
+        ${renderHomeLeaderboards(dashboard.leaders)}
       </section>
 
       <section class="tab-panel cups-panel">
@@ -1249,6 +1576,163 @@ function renderHomePage() {
         </div>
       </footer>
     </section>
+  `;
+}
+
+function renderHomeSignupCallout() {
+  return `
+    <section class="tab-panel signup-public-panel">
+      <div class="signup-public-copy">
+        <p class="eyebrow">Anmälan öppen</p>
+        <h2>SEC 21 laganmälan</h2>
+        <p>Anmäl ditt lag till Svenska eHockey Cupen 21. Anmälan kräver kod från cupadmin.</p>
+      </div>
+      <a class="button button-primary signup-public-link" href="#/anmalan/lag">Anmäl lag</a>
+    </section>
+  `;
+}
+
+function buildHomeDashboardModel() {
+  const latestCup = state.cups[0] || null;
+  const allMatches = [];
+  let completedMatches = 0;
+  let totalGoals = 0;
+
+  state.cups.forEach(function(cup) {
+    cup.matches.forEach(function(match) {
+      allMatches.push({ cup: cup, match: match });
+      if (match.awayScore !== null && match.homeScore !== null) {
+        completedMatches += 1;
+        totalGoals += toNumber(match.awayScore) + toNumber(match.homeScore);
+      }
+    });
+  });
+
+  return {
+    latestCup: latestCup,
+    completedMatches: completedMatches,
+    totalGoals: totalGoals,
+    latestMatches: allMatches.sort(function(left, right) {
+      return compareMatchesDesc(left.match, right.match);
+    }).slice(0, 6),
+    leaders: buildGlobalLeaderRows(5)
+  };
+}
+
+function buildGlobalLeaderRows(limit) {
+  const byPlayer = new Map();
+
+  state.cups.forEach(function(cup) {
+    ["group", "playoffs"].forEach(function(stage) {
+      (cup.playerStats[stage] || []).forEach(function(row) {
+        const key = normalizeLookupKey(row.displayName || row.player) + "|" + normalizeLookupKey(row.team);
+        if (!byPlayer.has(key)) {
+          byPlayer.set(key, {
+            player: row.displayName || row.player,
+            team: row.team,
+            gp: 0,
+            g: 0,
+            a: 0,
+            pts: 0,
+            cups: new Set()
+          });
+        }
+
+        const target = byPlayer.get(key);
+        target.gp += toNumber(row.gp);
+        target.g += toNumber(row.g);
+        target.a += toNumber(row.a);
+        target.pts += toNumber(row.pts);
+        target.cups.add(cup.code);
+      });
+    });
+  });
+
+  return Array.from(byPlayer.values()).sort(function(left, right) {
+    return (right.pts - left.pts) || (right.g - left.g) || left.player.localeCompare(right.player, "sv");
+  }).slice(0, limit);
+}
+
+function renderHomeDashboard(model, totalMatches) {
+  const latestCupLabel = model.latestCup ? model.latestCup.code : "Ingen cup";
+  const avgGoals = model.completedMatches ? (model.totalGoals / model.completedMatches).toFixed(1) : "0.0";
+
+  return `
+    <section class="secv3-dashboard" aria-label="SEC oversikt">
+      ${renderHomeMetric("Cuper", state.cups.length, "Ordinarie och sommar")}
+      ${renderHomeMetric("Matcher", totalMatches, model.completedMatches + " med resultat")}
+      ${renderHomeMetric("Lag", state.teams.length, "Unika lag i arkivet")}
+      ${renderHomeMetric("Mal/match", avgGoals, "Snitt pa spelade matcher")}
+      ${renderHomeMetric("Senaste", latestCupLabel, "Nyaste cup i datan")}
+    </section>
+  `;
+}
+
+function renderHomeMetric(label, value, meta) {
+  return `
+    <article class="secv3-metric">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+      <em>${escapeHtml(meta)}</em>
+    </article>
+  `;
+}
+
+function renderHomeQuickLinks(model) {
+  const latestCupUrl = model.latestCup ? "#/cup/" + encodeURIComponent(model.latestCup.id) : "#/cups";
+
+  return `
+    <section class="secv3-quickbar" aria-label="Snabbvagar">
+      <a href="${latestCupUrl}"><span>Senaste cup</span><strong>${model.latestCup ? escapeHtml(model.latestCup.name) : "Alla cuper"}</strong></a>
+      <a href="#/teams"><span>Lagarkiv</span><strong>Loggor, matcher och roster</strong></a>
+      <a href="#/players"><span>Spelarindex</span><strong>Sok, filtrera och sortera</strong></a>
+      <a href="#/anmalan/sommar-draft"><span>Sommar Draft</span><strong>Anmal spelare</strong></a>
+    </section>
+  `;
+}
+
+function renderHomeLatestMatches(entries) {
+  return `
+    <article class="tab-panel secv3-board">
+      <div class="section-heading compact">
+        <p class="eyebrow">Senaste</p>
+        <h2>Matcher</h2>
+      </div>
+      <div class="secv3-match-feed">
+        ${entries.length ? entries.map(function(entry) {
+          return `
+            <a class="secv3-feed-row" href="${getMatchUrl(entry.cup, entry.match)}">
+              <span>${escapeHtml(entry.cup.code)}</span>
+              <strong>${escapeHtml(entry.match.awayTeam)} ${displayScore(entry.match.awayScore)}-${displayScore(entry.match.homeScore)} ${escapeHtml(entry.match.homeTeam)}</strong>
+              <em>${escapeHtml(formatMatchDate(entry.match.date, entry.match.time))}</em>
+            </a>
+          `;
+        }).join("") : `<div class="empty-state">Inga matcher hittades.</div>`}
+      </div>
+    </article>
+  `;
+}
+
+function renderHomeLeaderboards(rows) {
+  return `
+    <article class="tab-panel secv3-board">
+      <div class="section-heading compact">
+        <p class="eyebrow">Arkivet</p>
+        <h2>Poangtoppen</h2>
+      </div>
+      <div class="secv3-leader-list">
+        ${rows.length ? rows.map(function(row, index) {
+          return `
+            <div class="secv3-leader-row">
+              <span>${index + 1}</span>
+              <strong>${escapeHtml(row.player)}</strong>
+              <em>${escapeHtml(row.team)} - ${row.cups.size} cup${row.cups.size === 1 ? "" : "er"}</em>
+              <b>${row.pts}p</b>
+            </div>
+          `;
+        }).join("") : `<div class="empty-state">Ingen spelarstatistik hittades.</div>`}
+      </div>
+    </article>
   `;
 }
 
@@ -1292,7 +1776,7 @@ function renderCupPage(cup) {
   const goalieKing = topGoalies[0] || null;
 
   return `
-    <section class="cup-hero">
+    <section class="cup-hero ${getCupCategory(cup) === "sommar" ? "is-sommar" : ""}">
       <div class="cup-hero-main">
         <div class="breadcrumbs">
           <a href="#/">Start</a>
@@ -1306,10 +1790,10 @@ function renderCupPage(cup) {
         <p class="page-intro">
           Cupsidan visar oversikt, tabeller, lag, topplistor och matcher for den valda turneringen.
         </p>
-        <div class="summary-ribbon">
-          <span>${overview.teams.length} lag</span>
-          <span>${overview.groupMatches.length} gruppmatcher</span>
-          <span>${overview.playoffMatches.length} slutspelsmatcher</span>
+        <div class="summary-ribbon" aria-label="Cupsummering">
+          <span><strong>${overview.teams.length}</strong><em>Lag</em></span>
+          <span><strong>${overview.groupMatches.length}</strong><em>Gruppmatcher</em></span>
+          <span><strong>${overview.playoffMatches.length}</strong><em>Slutspelsmatcher</em></span>
         </div>
       </div>
 
@@ -1376,7 +1860,7 @@ function renderCupPage(cup) {
           <div class="two-column-section">
             <article class="detail-card">
               <div class="section-heading compact">
-                <p class="eyebrow">Poang</p>
+                <p class="eyebrow">Krav</p>
                 <h2>Topp 5 poäng</h2>
               </div>
               ${renderOverviewPlayerCards(topPlayers, {
@@ -1408,7 +1892,9 @@ function renderCupPage(cup) {
               <h2>Deltagande lag</h2>
             </div>
             <div class="entity-grid">
-              ${overview.teams.length ? overview.teams.map(function(team) {
+              ${overview.teams.length ? overview.teams.slice().sort(function(a, b) {
+                return a.name.localeCompare(b.name, "sv", { sensitivity: "base" });
+              }).map(function(team) {
                 return renderTeamCard(team, cup.id);
               }).join("") : `<div class="empty-state">Inga lag finns registrerade for den har cupen.</div>`}
             </div>
@@ -1638,10 +2124,10 @@ function getCupStatSearchText(row) {
 function renderMatchPage(cup, match) {
   const analysis = analyzeMatchEvents(match);
   const playerGroups = getMatchPlayerGroupsForRender(cup, match, analysis.playerStats);
-  const goalieGroups = getMatchGoalieGroupsForRender(match);
+  const goalieGroups = getMatchGoalieGroupsForRender(cup, match);
 
   return `
-    <section class="cup-hero match-detail-hero">
+    <section class="cup-hero match-detail-hero ${getCupCategory(cup) === "sommar" ? "is-sommar" : ""}">
       <div class="cup-hero-main">
         <div class="breadcrumbs">
           <a href="#/">Start</a>
@@ -1782,6 +2268,122 @@ function sumNullableRows(rows, key) {
   }, 0);
 
   return hasValue ? total : null;
+}
+
+function parseMatchStatsSummary(summary, match) {
+  const result = {
+    playerStats: { away: [], home: [] },
+    goalieStats: { away: [], home: [] }
+  };
+  const text = String(summary || "").trim();
+
+  if (!text) {
+    return result;
+  }
+
+  let currentTeam = "";
+  text.split("|").map(normalizeText).filter(Boolean).forEach(function(part) {
+    const teamHeader = part.match(/^([^:]+):\s*(.*)$/);
+
+    if (teamHeader && !/^målvakt$/i.test(normalizeText(teamHeader[1]))) {
+      currentTeam = normalizeText(teamHeader[1]);
+      const firstStat = normalizeText(teamHeader[2]);
+      if (firstStat) {
+        addParsedMatchStatLine(result, firstStat, currentTeam, match);
+      }
+      return;
+    }
+
+    addParsedMatchStatLine(result, part, currentTeam, match);
+  });
+
+  return result;
+}
+
+function addParsedMatchStatLine(result, line, teamName, match) {
+  if (!teamName) {
+    return;
+  }
+
+  const goalie = parseMatchGoalieStatLine(line, teamName);
+  if (goalie) {
+    const side = getMatchStatSide(teamName, match);
+    if (side) {
+      result.goalieStats[side].push(goalie);
+    }
+    return;
+  }
+
+  const player = parseMatchPlayerStatLine(line, teamName);
+  if (player) {
+    const side = getMatchStatSide(teamName, match);
+    if (side) {
+      result.playerStats[side].push(player);
+    }
+  }
+}
+
+function parseMatchPlayerStatLine(line, teamName) {
+  const match = normalizeText(line).match(/^(.*?)\s+(-?\d+)G\s+(-?\d+)A\s+(-?\d+)PTS\s+(-?\d+)PIM$/i);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    player: normalizeText(match[1]),
+    team: teamName,
+    gp: 1,
+    g: toNumber(match[2]),
+    a: toNumber(match[3]),
+    pts: toNumber(match[4]),
+    pim: toNumber(match[5])
+  };
+}
+
+function parseMatchGoalieStatLine(line, teamName) {
+  const match = normalizeText(line).match(/^Målvakt:\s*(.*?)\s+(-|\d+)SA\s+(\d+)GA\s+(\d+)SV\s+(-|[.\d,]+)SV%$/i);
+  if (!match) {
+    return null;
+  }
+
+  const rawSa = match[2] === "-" ? 0 : toNumber(match[2]);
+  const ga = toNumber(match[3]);
+  const sv = toNumber(match[4]);
+  const sa = rawSa > 0 ? rawSa : ga + sv;
+  const parsedSvp = match[5] === "-" ? 0 : toNumber(String(match[5]).replace(",", "."));
+  const svp = sa > 0 ? sv / sa : (parsedSvp > 1 ? parsedSvp / 100 : parsedSvp);
+
+  return {
+    player: normalizeText(match[1]),
+    team: teamName,
+    gp: 1,
+    sa: sa,
+    ga: ga,
+    sv: sv,
+    gaa: ga,
+    svp: svp,
+    so: ga === 0 ? 1 : 0
+  };
+}
+
+function getMatchStatSide(teamName, match) {
+  const teamKey = createTeamKey(teamName);
+  if (teamKey === createTeamKey(match.awayTeam)) {
+    return "away";
+  }
+  if (teamKey === createTeamKey(match.homeTeam)) {
+    return "home";
+  }
+
+  const looseTeamKey = normalizeLooseAssetKey(teamName);
+  if (looseTeamKey && looseTeamKey === normalizeLooseAssetKey(match.awayTeam)) {
+    return "away";
+  }
+  if (looseTeamKey && looseTeamKey === normalizeLooseAssetKey(match.homeTeam)) {
+    return "home";
+  }
+
+  return "";
 }
 
 function renderMatchTimeline(events) {
@@ -2061,8 +2663,12 @@ function getMatchPlayerGroupsForRender(cup, match, playerStats) {
   return getMatchTeamPlayerGroups(cup, match, playerStats);
 }
 
-function getMatchGoalieGroupsForRender(match) {
-  return getStoredMatchStatGroups(match, match.goalieStats, compareMatchGoalieRows);
+function getMatchGoalieGroupsForRender(cup, match) {
+  if (hasMatchSideRows(match.goalieStats)) {
+    return getStoredMatchStatGroups(match, match.goalieStats, compareMatchGoalieRows);
+  }
+
+  return getFallbackMatchGoalieGroups(cup, match);
 }
 
 function hasMatchSideRows(stats) {
@@ -2081,6 +2687,70 @@ function getStoredMatchStatGroups(match, stats, sorter) {
       rows: side.rows.slice().sort(sorter)
     };
   });
+}
+
+function getFallbackMatchGoalieGroups(cup, match) {
+  const shots = getMatchShots(match);
+  const sides = [
+    {
+      team: match.awayTeam,
+      sa: shots ? shots.home : null,
+      ga: toNullableNumber(match.homeScore)
+    },
+    {
+      team: match.homeTeam,
+      sa: shots ? shots.away : null,
+      ga: toNullableNumber(match.awayScore)
+    }
+  ];
+
+  return sides.map(function(side) {
+    const goalie = findLikelyCupGoalieForTeam(cup, side.team, match.stage);
+    const sa = toNullableNumber(side.sa);
+    const ga = toNullableNumber(side.ga);
+    const sv = sa === null || ga === null ? null : Math.max(0, sa - ga);
+
+    return {
+      team: side.team,
+      rows: goalie ? [{
+        player: goalie.player,
+        displayName: goalie.displayName,
+        countryCode: goalie.countryCode,
+        playerId: goalie.playerId,
+        team: side.team,
+        sa: sa,
+        ga: ga,
+        sv: sv,
+        svp: sa && sv !== null ? sv / sa : null
+      }] : []
+    };
+  });
+}
+
+function findLikelyCupGoalieForTeam(cup, teamName, stage) {
+  const teamKey = createTeamKey(teamName);
+  const preferredStage = stage === "playoffs" ? "playoffs" : "group";
+  const rows = cup.goalieStats[preferredStage]
+    .concat(cup.goalieStats.group)
+    .concat(cup.goalieStats.playoffs)
+    .filter(function(row) {
+      return createTeamKey(row.team) === teamKey;
+    });
+
+  const seen = new Set();
+  return rows.filter(function(row) {
+    const key = row.playerId || normalizeLookupKey(row.player);
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  }).sort(function(a, b) {
+    return safeNumber(b.gp) - safeNumber(a.gp) ||
+      safeNumber(b.sv) - safeNumber(a.sv) ||
+      safeNumber(b.svp) - safeNumber(a.svp) ||
+      a.player.localeCompare(b.player, "sv");
+  })[0] || null;
 }
 
 function getMatchTeamPlayerGroups(cup, match, playerStats) {
@@ -2302,7 +2972,7 @@ function renderTeamPage(team, cup) {
     });
 
   return `
-    <section class="section-header-block">
+    <section class="section-header-block ${cup && getCupCategory(cup) === "sommar" ? "is-sommar" : ""}">
       <div class="breadcrumbs">
         <a href="#/">Start</a>
         <span>/</span>
@@ -2343,7 +3013,7 @@ function renderTeamPage(team, cup) {
           ${renderTeamMatchesPanel(matches, cup)}
         </section>
         <section class="team-tab-panel" data-team-panel="stats" role="tabpanel" hidden>
-          ${renderTeamStatsPanel(topScorers, sortedGoalies, cup)}
+          ${renderTeamStatsPanel(cup ? rawPlayerRows : topScorers, cup ? rawGoalieRows : sortedGoalies, cup)}
         </section>
         <section class="team-tab-panel" data-team-panel="history" role="tabpanel" hidden>
           ${renderTeamHistoryPanel(team)}
@@ -2507,6 +3177,69 @@ function renderTeamMatchesPanel(matches, cup) {
 }
 
 function renderTeamStatsPanel(playerRows, goalieRows, cup) {
+  if (cup) {
+    const stages = [
+      { key: "all", label: "Totalt", title: "Totalt i cupen", playerRows: playerRows, goalieRows: goalieRows },
+      {
+        key: "group",
+        label: "Gruppspel",
+        title: "Gruppspel",
+        playerRows: playerRows.filter(function(row) { return row.stage !== "playoffs"; }),
+        goalieRows: goalieRows.filter(function(row) { return row.stage !== "playoffs"; })
+      },
+      {
+        key: "playoffs",
+        label: "Slutspel",
+        title: "Slutspel",
+        playerRows: playerRows.filter(function(row) { return row.stage === "playoffs"; }),
+        goalieRows: goalieRows.filter(function(row) { return row.stage === "playoffs"; })
+      }
+    ];
+
+    return `
+      <div class="team-stat-shell" data-team-stat-shell>
+        <div class="team-stat-controls" role="tablist" aria-label="Välj statistikfas">
+          ${stages.map(function(stage, index) {
+            return `
+              <button
+                class="stat-filter-button ${index === 0 ? "is-active" : ""}"
+                type="button"
+                role="tab"
+                aria-selected="${index === 0 ? "true" : "false"}"
+                data-team-stat-stage="${stage.key}"
+              >${stage.label}</button>
+            `;
+          }).join("")}
+        </div>
+        ${stages.map(function(stage, index) {
+          const sortedPlayers = aggregateTeamPlayerRows(stage.playerRows).sort(compareTeamPlayerStatsRows);
+          const sortedGoalies = aggregateTeamGoalieRows(stage.goalieRows).sort(compareTeamGoalieStatsRows);
+
+          return `
+            <div class="team-stats-stage-panel ${index === 0 ? "is-active" : ""}" data-team-stat-panel="${stage.key}" ${index === 0 ? "" : "hidden"}>
+              <div class="team-stats-grid">
+                <article class="detail-card">
+                  <div class="section-heading compact">
+                    <p class="eyebrow">Spelare</p>
+                    <h2>${escapeHtml(stage.title)}</h2>
+                  </div>
+                  ${sortedPlayers.length ? renderTeamPlayerStatsTable(sortedPlayers, true) : `<div class="empty-state">Ingen spelarstatistik finns.</div>`}
+                </article>
+                <article class="detail-card">
+                  <div class="section-heading compact">
+                    <p class="eyebrow">Målvakter</p>
+                    <h2>${escapeHtml(stage.title)}</h2>
+                  </div>
+                  ${sortedGoalies.length ? renderTeamGoalieStatsTable(sortedGoalies, true) : `<div class="empty-state">Ingen målvaktsstatistik finns.</div>`}
+                </article>
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
   return `
     <div class="team-stats-grid">
       <article class="detail-card">
@@ -2527,6 +3260,20 @@ function renderTeamStatsPanel(playerRows, goalieRows, cup) {
   `;
 }
 
+function compareTeamPlayerStatsRows(a, b) {
+  return safeNumber(b.pts) - safeNumber(a.pts) ||
+    safeNumber(b.g) - safeNumber(a.g) ||
+    safeNumber(b.a) - safeNumber(a.a) ||
+    a.player.localeCompare(b.player, "sv");
+}
+
+function compareTeamGoalieStatsRows(a, b) {
+  return safeNumber(b.svp) - safeNumber(a.svp) ||
+    safeNumber(a.gaa) - safeNumber(b.gaa) ||
+    safeNumber(b.sv) - safeNumber(a.sv) ||
+    a.player.localeCompare(b.player, "sv");
+}
+
 function renderTeamHistoryPanel(team) {
   const historicalPlayers = aggregateTeamPlayerRows(team.playerRows).sort(function(a, b) {
     return b.pts - a.pts || b.g - a.g || a.player.localeCompare(b.player, "sv");
@@ -2545,21 +3292,69 @@ function renderTeamHistoryPanel(team) {
       </div>
       ${allRoster.length ? `<div class="team-roster-grid is-compact">${allRoster.map(renderTeamRosterCard).join("")}</div>` : `<div class="empty-state">Ingen historik hittades.</div>`}
     </article>
-    <div class="team-stats-grid">
-      <article class="detail-card">
-        <div class="section-heading compact">
-          <p class="eyebrow">All-time</p>
-          <h2>Utespelare</h2>
-        </div>
-        ${renderTeamPlayerStatsTable(historicalPlayers, true)}
-      </article>
-      <article class="detail-card">
-        <div class="section-heading compact">
-          <p class="eyebrow">All-time</p>
-          <h2>Målvakter</h2>
-        </div>
-        ${renderTeamGoalieStatsTable(historicalGoalies, true)}
-      </article>
+    ${renderTeamHistoryStatsByStage(team)}
+  `;
+}
+
+function renderTeamHistoryStatsByStage(team) {
+  const stages = [
+    { key: "all", label: "Totalt", title: "All-time", playerRows: team.playerRows, goalieRows: team.goalieRows },
+    {
+      key: "group",
+      label: "Gruppspel",
+      title: "Gruppspel all-time",
+      playerRows: team.playerRows.filter(function(row) { return row.stage !== "playoffs"; }),
+      goalieRows: team.goalieRows.filter(function(row) { return row.stage !== "playoffs"; })
+    },
+    {
+      key: "playoffs",
+      label: "Slutspel",
+      title: "Slutspel all-time",
+      playerRows: team.playerRows.filter(function(row) { return row.stage === "playoffs"; }),
+      goalieRows: team.goalieRows.filter(function(row) { return row.stage === "playoffs"; })
+    }
+  ];
+
+  return `
+    <div class="team-stat-shell" data-team-history-stat-shell>
+      <div class="team-stat-controls" role="tablist" aria-label="Välj historikfas">
+        ${stages.map(function(stage, index) {
+          return `
+            <button
+              class="stat-filter-button ${index === 0 ? "is-active" : ""}"
+              type="button"
+              role="tab"
+              aria-selected="${index === 0 ? "true" : "false"}"
+              data-team-history-stat-stage="${stage.key}"
+            >${stage.label}</button>
+          `;
+        }).join("")}
+      </div>
+      ${stages.map(function(stage, index) {
+        const players = aggregateTeamPlayerRows(stage.playerRows).sort(compareTeamPlayerStatsRows);
+        const goalies = aggregateTeamGoalieRows(stage.goalieRows).sort(compareTeamGoalieStatsRows);
+
+        return `
+          <div class="team-stats-stage-panel ${index === 0 ? "is-active" : ""}" data-team-history-stat-panel="${stage.key}" ${index === 0 ? "" : "hidden"}>
+            <div class="team-stats-grid">
+              <article class="detail-card">
+                <div class="section-heading compact">
+                  <p class="eyebrow">${escapeHtml(stage.title)}</p>
+                  <h2>Utespelare</h2>
+                </div>
+                ${players.length ? renderTeamPlayerStatsTable(players, true) : `<div class="empty-state">Ingen spelarstatistik finns.</div>`}
+              </article>
+              <article class="detail-card">
+                <div class="section-heading compact">
+                  <p class="eyebrow">${escapeHtml(stage.title)}</p>
+                  <h2>Målvakter</h2>
+                </div>
+                ${goalies.length ? renderTeamGoalieStatsTable(goalies, true) : `<div class="empty-state">Ingen målvaktsstatistik finns.</div>`}
+              </article>
+            </div>
+          </div>
+        `;
+      }).join("")}
     </div>
   `;
 }
@@ -2857,6 +3652,11 @@ function renderPlayersIndex() {
     .sort(function(a, b) {
       return b.totals.pts - a.totals.pts || a.name.localeCompare(b.name, "sv");
     });
+  const countries = uniqueStrings(topPlayers.map(function(player) {
+    return String(player.countryCode || "").trim().toUpperCase();
+  }).filter(Boolean)).sort(function(a, b) {
+    return a.localeCompare(b, "sv");
+  });
 
   return `
     <section class="section-header-block">
@@ -2864,7 +3664,33 @@ function renderPlayersIndex() {
       <h1 class="page-title">Alla spelare</h1>
       <p class="page-intro">Klicka pa en spelare for att se total statistik och laghistorik.</p>
     </section>
-    <section class="detail-card">
+    <section class="detail-card player-index-card">
+      <div class="player-index-controls" data-player-index-controls>
+        <label>
+          <span>Sok spelare eller lag</span>
+          <input type="search" data-player-search placeholder="Sok spelare, lag eller land" autocomplete="off">
+        </label>
+        <label>
+          <span>Land</span>
+          <select data-player-country>
+            <option value="">Alla länder</option>
+            ${countries.map(function(countryCode) {
+              return `<option value="${escapeHtml(countryCode)}">${countryCodeToEmoji(countryCode)} ${escapeHtml(countryCode)}</option>`;
+            }).join("")}
+          </select>
+        </label>
+        <label>
+          <span>Visa</span>
+          <select data-player-limit>
+            <option value="10" selected>10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="all">Alla</option>
+          </select>
+        </label>
+        <div class="player-index-count" data-player-count></div>
+      </div>
       ${renderStatsTable(
         [
           { key: "player", label: "Spelare" },
@@ -2874,9 +3700,13 @@ function renderPlayersIndex() {
           { key: "pts", label: "PTS", type: "number" }
         ],
         topPlayers.map(function(player) {
+          const teams = Array.from(player.teamNames || []);
           return {
-            player: createPlayerCell(player, player.key),
-            lag: createCellValue(escapeHtml(player.teamNames.join(", ")), player.teamNames.join(", ")),
+            _playerIndex: true,
+            _country: String(player.countryCode || "").trim().toUpperCase(),
+            _search: [player.name, player.rawName, teams.join(" "), player.countryCode, getPlayerRoleLabel(player)].join(" "),
+            player: createPlayerIndexCell(player),
+            lag: createPlayerTeamsCell(player),
             cuper: player.cups.length,
             gp: player.totals.gp || sumBy(player.goalieRows, "gp"),
             pts: player.totals.pts || 0
@@ -2885,6 +3715,372 @@ function renderPlayersIndex() {
       )}
     </section>
   `;
+}
+
+function renderTeamSignupPage() {
+  return `
+    <section class="signup-page-shell" data-signup-form="team">
+      ${renderSignupHero("Laganmälan", "SEC 21", "Anmäl ditt lag till Svenska eHockey Cupen 21. Anmälan kräver kod från cupadmin.")}
+      <section class="signup-tabs-shell">
+        <div class="cup-tabs signup-tabs" role="tablist" aria-label="SEC 21 laganmälan">
+          <button class="cup-tab is-active" type="button" role="tab" aria-selected="true" data-signup-tab="info">Info</button>
+          <button class="cup-tab" type="button" role="tab" aria-selected="false" data-signup-tab="anmalan">Anmalan</button>
+          <button class="cup-tab" type="button" role="tab" aria-selected="false" data-signup-tab="lag">Anmälda Lag</button>
+          <button class="cup-tab" type="button" role="tab" aria-selected="false" data-signup-tab="regler">Regler</button>
+        </div>
+
+        <div class="signup-tab-panels">
+          <section class="signup-tab-panel is-active" data-signup-panel="info" role="tabpanel">
+            <article class="detail-card signup-info-card signup-info-overview">
+              <div class="welcome-title-row signup-info-title-row">
+                <span class="welcome-icon" aria-hidden="true">i</span>
+                <h2>Info</h2>
+              </div>
+              <p class="signup-info-lead">
+                Här hittar du all information om <strong>SEC 21</strong>, deltagarkrav, regler och hur anmälan fungerar.
+              </p>
+
+              <div class="signup-info-grid">
+                <div class="signup-info-box">
+                  <h3>Format</h3>
+                  <ul>
+                    <li>Alla lag kan delta oavsett ECL-division.</li>
+                    <li>Om möjligt delar vi upp cupen i <strong>två divisioner</strong>.</li>
+                    <li>Vill ni spela en eventuell division 2, skriv det i anmälan.</li>
+                  </ul>
+                </div>
+
+                <div class="signup-info-box">
+                  <h3>Deltagarkrav</h3>
+                  <ul>
+                    <li>Laget ska vara skandinaviskt.</li>
+                    <li>Laget ska ha <strong>3 skandinaviska kaptener</strong>.</li>
+                    <li>Minst <strong>50%</strong> av laget ska vara skandinaver.</li>
+                    <li>Minst <strong>50%</strong> av spelarna på isen ska vara skandinaver.</li>
+                  </ul>
+                </div>
+
+                <div class="signup-info-box">
+                  <h3>Förbjudna spelarförmågor</h3>
+                  <ul>
+                    <li>Alla spelarförmågor och builds är förbjudna enligt ECL 26 Spring.</li>
+                    <li>Forward-builds får inte användas som back och back-builds får inte användas som forward.</li>
+                    <li>Specialtecken och specialtecken-klasser är förbjudna, även för målvakter.</li>
+                    <li>Forwards får inte använda defensiva back-klasser.</li>
+                    <li>Backar får inte använda forward-klasser.</li>
+                  </ul>
+                </div>
+
+                <div class="signup-info-box">
+                  <h3>Kontakt & anmälningskod</h3>
+                  <ul>
+                    <li>Anmälan kräver anmälningskod.</li>
+                    <li>E-post: <a class="sec-link" href="mailto:svenskehockey@gmail.com">svenskehockey@gmail.com</a></li>
+                    <li>Discord: <a class="sec-link" href="https://discord.gg/B9TYMEjpj6" target="_blank" rel="noopener noreferrer">Gå med i Discord</a></li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="signup-info-note">
+                <strong>Viktigt:</strong> Du kan inte skicka in en anmälan utan anmälningskod. Kontakta Svensk eHockey via e-post eller Discord.
+              </div>
+            </article>
+          </section>
+
+          <section class="signup-tab-panel" data-signup-panel="anmalan" role="tabpanel" hidden>
+            <section class="signup-grid">
+              <article class="detail-card signup-info-card">
+                <div class="section-heading compact">
+                  <p class="eyebrow">Innan du anmäler</p>
+                  <h2>Krav</h2>
+                </div>
+                <div class="simple-list">
+                  <div class="simple-list-item">Använd endast den kod du fått av cupadmin. Varje kod kan användas en gång.</div>
+                  <div class="simple-list-item">Minst 8 spelare måste anges. Spelare 9-12 är valfria.</div>
+                  <div class="simple-list-item">Kaptener och assisterande kaptener ska gå att kontakta inför cupstart.</div>
+                </div>
+              </article>
+
+              <article class="detail-card signup-form-card">
+                <div class="section-heading compact">
+                  <p class="eyebrow">Formulär</p>
+                  <h2>Laguppgifter</h2>
+                </div>
+                <form class="signup-form" data-signup-kind="team">
+                  <div class="signup-form-grid">
+                    ${renderSignupField("email", "E-postadress", "email", "din@mail.com", "email", true)}
+                    ${renderSignupField("teamName", "Lagnamn", "text", "Ex: SCRUBS", "off", true, "data-signup-suggest=\"team\"")}
+                    ${renderSignupField("abbr", "Förkortning", "text", "Ex: SCR", "off", true, "maxlength=\"3\"")}
+                    ${renderSignupField("captain", "Kapten", "text", "Gamertag", "off", true, "data-signup-suggest=\"player\"")}
+                    ${renderSignupField("assistant1", "Assisterande kapten 1", "text", "Gamertag", "off", true, "data-signup-suggest=\"player\"")}
+                    ${renderSignupField("assistant2", "Assisterande kapten 2", "text", "Gamertag", "off", true, "data-signup-suggest=\"player\"")}
+                    ${renderSignupField("website", "Website", "text", "", "off", false, "tabindex=\"-1\"", "signup-honeypot")}
+                  </div>
+
+                  <div class="signup-section">
+                    <h3>Spelare</h3>
+                    <p class="signup-help">Minst 8 spelare, max 12. Spelare 9-12 är valfria.</p>
+                    <div class="signup-player-grid">
+                      ${Array.from({ length: 12 }, function(_, index) {
+                        const number = index + 1;
+                        return renderSignupField("player" + number, "Spelare " + number + (number <= 8 ? " *" : ""), "text", "Gamertag", "off", number <= 8, "data-signup-suggest=\"player\"");
+                      }).join("")}
+                    </div>
+                  </div>
+
+                  <div class="signup-section">
+                    <h3>Laglogga och kod</h3>
+                    <div class="signup-form-grid">
+                      <label class="signup-field">
+                        <span>Laglogga (valfritt)</span>
+                        <input data-signup-logo type="file" accept="image/png,image/jpeg">
+                        <small>PNG/JPG, max 2 MB.</small>
+                      </label>
+                      ${renderSignupField("signupCode", "Anmälningskod", "text", "Skriv in koden", "off", true)}
+                    </div>
+                  </div>
+
+                  <div class="signup-section">
+                    <h3>Extra info</h3>
+                    <label class="signup-field signup-field-full">
+                      <span>Extra info</span>
+                      <textarea name="notes" placeholder="Tillgänglighet, önskemål, eventuell division 2 eller annan info."></textarea>
+                    </label>
+                  </div>
+
+                  <div class="signup-actions">
+                    <div class="signup-status" data-signup-status></div>
+                    <button class="button button-primary signup-submit" type="submit">Skicka anmälan</button>
+                  </div>
+                </form>
+
+
+              </article>
+            </section>
+          </section>
+
+          <section class="signup-tab-panel" data-signup-panel="lag" role="tabpanel" hidden>
+            <article class="detail-card signup-form-card">
+              <div class="section-heading compact">
+                <p class="eyebrow">Laglista</p>
+                <h2>Anmälda Lag</h2>
+              </div>
+              <div data-registered-teams class="signup-player-list">
+                <div class="empty-state">Laddar anmälda lag...</div>
+              </div>
+            </article>
+          </section>
+
+          <section class="signup-tab-panel" data-signup-panel="regler" role="tabpanel" hidden>
+            <article class="detail-card signup-info-card">
+              <div class="section-heading compact">
+                <p class="eyebrow">Regler</p>
+                <h2>SEC 21</h2>
+              </div>
+              <div class="simple-list">
+                <div class="simple-list-item">Laget ska följa cupens truppregler och använda spelare som finns i anmälan.</div>
+                <div class="simple-list-item">Cupadmin kan begära komplettering om anmälan saknar information.</div>
+                <div class="simple-list-item">Format, datum och spelregler kan uppdateras inför cupstart.</div>
+              </div>
+            </article>
+            ${renderSharedSecRules()}
+          </section>
+        </div>
+      </section>
+    </section>
+  `;
+}
+
+function renderSummerDraftSignupPage() {
+  return `
+    <section class="signup-page-shell" data-signup-form="summer-draft">
+      ${renderSignupHero("Spelaranmälan", "SEC Sommar Draft Cup", "Anmäl dig som spelare till Sommar Draft Cupen. Sidan är dold från menyn och används via direktlänk.")}
+      <section class="signup-tabs-shell">
+        <div class="cup-tabs signup-tabs" role="tablist" aria-label="Sommar Draft Cup">
+          <button class="cup-tab is-active" type="button" role="tab" aria-selected="true" data-signup-tab="info">Info</button>
+          <button class="cup-tab" type="button" role="tab" aria-selected="false" data-signup-tab="anmalan">Anmalan</button>
+          <button class="cup-tab" type="button" role="tab" aria-selected="false" data-signup-tab="spelare">Anmälda Spelare</button>
+          <button class="cup-tab" type="button" role="tab" aria-selected="false" data-signup-tab="regler">Regler</button>
+        </div>
+
+        <div class="signup-tab-panels">
+          <section class="signup-tab-panel is-active" data-signup-panel="info" role="tabpanel">
+            <article class="detail-card signup-info-card">
+              <div class="section-heading compact">
+                <p class="eyebrow">Sommarcupen</p>
+                <h2>Info</h2>
+              </div>
+              <div class="simple-list">
+                <div class="simple-list-item">Sommar Draft Cupen är en spelaranmälan där spelare anmäler sig individuellt.</div>
+                <div class="simple-list-item">Cupadmin använder anmälningarna för att skapa jämna lag och följa cupens spelarregler.</div>
+                <div class="simple-list-item">Fyll i gamertag, nationalitet och vilka positioner du kan spela.</div>
+              </div>
+            </article>
+          </section>
+
+          <section class="signup-tab-panel" data-signup-panel="anmalan" role="tabpanel" hidden>
+            <section class="signup-grid">
+              <article class="detail-card signup-info-card">
+                <div class="section-heading compact">
+                  <p class="eyebrow">Draftanmälan</p>
+                  <h2>Att tänka på</h2>
+                </div>
+                <div class="simple-list">
+                  <div class="simple-list-item">Fyll i kontaktuppgifter och vilka positioner du kan spela.</div>
+                  <div class="simple-list-item">Nationalitet används för att kunna följa cupens spelarregler.</div>
+                  <div class="simple-list-item">Extra info kan användas för tider, önskemål eller annan tillgänglighet.</div>
+                </div>
+              </article>
+
+              <article class="detail-card signup-form-card">
+                <div class="section-heading compact">
+                  <p class="eyebrow">Formulär</p>
+                  <h2>Spelaruppgifter</h2>
+                </div>
+                <form class="signup-form" data-signup-kind="summer-draft">
+                  <div class="signup-form-grid">
+                    ${renderSignupField("email", "E-postadress", "email", "din@mail.com", "email", true)}
+                    ${renderSignupField("gamertag", "Gamertag", "text", "Ditt gamertag", "off", true, "data-signup-suggest=\"player\"")}
+                    ${renderSignupField("discord", "Discord", "text", "Discord-namn", "off", false)}
+                    ${renderSignupField("nationality", "Nationalitet", "text", "Sverige / Norge / Danmark / ...", "off", true)}
+                    ${renderSignupField("primaryPosition", "Primär position", "text", "LW/C/RW/LD/RD/G", "off", true)}
+                    ${renderSignupField("secondaryPosition", "Sekundär position", "text", "Valfritt", "off", false)}
+                    ${renderSignupField("website", "Website", "text", "", "off", false, "tabindex=\"-1\"", "signup-honeypot")}
+                  </div>
+
+                  <label class="signup-field signup-field-full">
+                    <span>Extra info</span>
+                    <textarea name="notes" placeholder="Tillgänglighet, önskemål eller annat cupadmin bör veta."></textarea>
+                  </label>
+
+                  <div class="signup-actions">
+                    <div class="signup-status" data-signup-status></div>
+                    <button class="button button-primary signup-submit" type="submit">Skicka anmälan</button>
+                  </div>
+                </form>
+
+              </article>
+            </section>
+          </section>
+
+          <section class="signup-tab-panel" data-signup-panel="spelare" role="tabpanel" hidden>
+            <article class="detail-card signup-form-card">
+              <div class="section-heading compact">
+                <p class="eyebrow">Spelarlista</p>
+                <h2>Anmälda Spelare</h2>
+              </div>
+              <div data-summer-draft-players class="signup-player-list">
+                <div class="empty-state">Laddar anmälda spelare...</div>
+              </div>
+            </article>
+          </section>
+
+          <section class="signup-tab-panel" data-signup-panel="regler" role="tabpanel" hidden>
+            <article class="detail-card signup-info-card">
+              <div class="section-heading compact">
+                <p class="eyebrow">Regler</p>
+                <h2>Sommar Draft Cup</h2>
+              </div>
+              <div class="simple-list">
+                <div class="simple-list-item">Cupadmin delar in lag efter anmälningar, positioner och tillgänglighet.</div>
+                <div class="simple-list-item">Spelare ska använda korrekt gamertag och kunna kontaktas via angiven kontaktväg.</div>
+                <div class="simple-list-item">Regler, schema och format kan uppdateras inför cupstart.</div>
+              </div>
+            </article>
+          </section>
+        </div>
+      </section>
+    </section>
+  `;
+}
+
+function renderSignupHero(eyebrow, title, intro) {
+  return `
+    <section class="section-header-block signup-hero signup-hero-with-logo">
+      <div class="signup-hero-content">
+        <div class="breadcrumbs">
+          <a href="#/">Start</a>
+          <span>/</span>
+          <strong>${escapeHtml(eyebrow)}</strong>
+        </div>
+        <p class="eyebrow">${escapeHtml(eyebrow)}</p>
+        <h1 class="page-title">${escapeHtml(title)}</h1>
+        <p class="page-intro">${escapeHtml(intro)}</p>
+      </div>
+      <div class="signup-hero-logo" aria-hidden="true">
+        <img src="./SECLOGGA.png" alt="">
+      </div>
+    </section>
+  `;
+}
+
+function renderSignupField(name, label, type, placeholder, autocomplete, required, extraAttrs, extraClass) {
+  return `
+    <label class="signup-field ${extraClass || ""}">
+      <span>${escapeHtml(label)}</span>
+      <input
+        name="${escapeHtml(name)}"
+        type="${escapeHtml(type)}"
+        placeholder="${escapeHtml(placeholder)}"
+        autocomplete="${escapeHtml(autocomplete || "off")}"
+        ${required ? "required" : ""}
+        ${extraAttrs || ""}
+      >
+    </label>
+  `;
+}
+
+function createPlayerIndexCell(player) {
+  const href = "#/player/" + encodeURIComponent(player.key || createPlayerKey(player));
+  return createCellValue(`
+    <a class="player-index-cell" href="${href}">
+      ${renderPlayerPortrait(player, "player-portrait-table")}
+      <span class="player-index-meta">
+        <span class="player-index-name">
+          ${renderFlag(player.countryCode)}
+          <strong>${escapeHtml(getDisplayPlayerName(player))}</strong>
+        </span>
+        <span class="player-index-sub">${escapeHtml(getPlayerRoleLabel(player))}</span>
+      </span>
+    </a>
+  `, getDisplayPlayerName(player));
+}
+
+function createPlayerTeamsCell(player) {
+  const teams = Array.from(player.teamNames || []);
+  const latestTeam = getLatestPlayerTeam(player);
+  const visibleTeams = latestTeam
+    ? [latestTeam].concat(teams.filter(function(team) { return normalizeLookupKey(team) !== normalizeLookupKey(latestTeam); }))
+    : teams;
+  const shownTeams = visibleTeams.slice(0, 4);
+  const hiddenCount = Math.max(0, visibleTeams.length - shownTeams.length);
+
+  const html = `
+    <div class="player-team-history" title="${escapeHtml(teams.join(", "))}">
+      ${latestTeam ? `<div class="player-team-latest">Senaste lag: <strong>${escapeHtml(latestTeam)}</strong></div>` : ""}
+      <div class="player-team-chips">
+        ${shownTeams.map(function(team) {
+          return `<span class="team-chip">${escapeHtml(team)}</span>`;
+        }).join("")}
+        ${hiddenCount ? `<span class="team-chip is-muted">+${hiddenCount} fler</span>` : ""}
+      </div>
+    </div>
+  `;
+
+  return createCellValue(html, teams.join(", "));
+}
+
+function getPlayerRoleLabel(player) {
+  const hasSkater = (player.skaterRows || []).length > 0;
+  const hasGoalie = (player.goalieRows || []).length > 0;
+
+  if (hasSkater && hasGoalie) {
+    return "Utespelare / målvakt";
+  }
+  if (hasGoalie) {
+    return "Målvakt";
+  }
+  return "Utespelare";
 }
 
 function renderPlayerPage(player) {
@@ -2909,7 +4105,7 @@ function renderPlayerPage(player) {
       <div class="player-page-heading">
         <div class="player-heading-main">
           ${renderPlayerPortrait(player, "player-portrait-lg")}
-          <div>
+          <div class="player-heading-text">
             <p class="eyebrow">${isGoalieOnly ? "Malvaktsprofil" : "Spelarprofil"}</p>
             <h1 class="page-title">${escapeHtml(player.name)}</h1>
             <p class="page-intro">Total statistik over spelarens SEC-historik.</p>
@@ -2976,7 +4172,7 @@ function renderPlayerSkaterTable(rows) {
     rows.map(function(row) {
       return {
         cup: createCellValue(renderCupLink(row.cupId, getStageCupLabel(row)), getStageCupLabel(row)),
-        lag: createTeamCell(row.team),
+        lag: createTeamCell(row.team, row.cupId),
         gp: row.gp,
         g: row.g,
         a: row.a,
@@ -3002,7 +4198,7 @@ function renderPlayerGoalieTable(rows) {
     rows.map(function(row) {
       return {
         cup: createCellValue(renderCupLink(row.cupId, getStageCupLabel(row)), getStageCupLabel(row)),
-        lag: createTeamCell(row.team),
+        lag: createTeamCell(row.team, row.cupId),
         gp: row.gp,
         svp: createCellValue(formatPercentage(row.svp), normalizePercentageForSort(row.svp)),
         gaa: createCellValue(formatDecimal(row.gaa), safeNumber(row.gaa)),
@@ -3313,18 +4509,14 @@ function renderCupCard(cup) {
 
 function renderTeamCard(team, cupId) {
   const href = getTeamUrl(team.name, cupId);
-  const matches = cupId ? team.matches.filter(function(match) { return match.cupId === cupId; }).length : team.matches.length;
 
   return `
-    <article class="entity-card">
-      <p class="entity-label">Lag</p>
-      <div class="entity-brand">
-        ${renderTeamLogo(team.name, "team-logo-md")}
+    <a class="entity-card entity-card-link" href="${href}">
+      <div class="entity-brand team-card-brand">
+        ${renderTeamLogo(team.name, "team-logo-card")}
         <h3>${escapeHtml(team.name)}</h3>
       </div>
-      <p>${cupId ? "Denna cup" : team.cups.length + " cuper"}, ${matches} matcher</p>
-      <a class="inline-link" href="${href}">Oppna lag</a>
-    </article>
+    </a>
   `;
 }
 
@@ -3360,7 +4552,7 @@ function getStandingsRowClass(index, settings) {
 
 function renderBestOfPill(roundName, settings) {
   const bestOf = getBestOfForRound(roundName, settings);
-  return bestOf ? `<div class="playoff-bestof">Bast av ${bestOf}</div>` : "";
+  return bestOf ? `<div class="playoff-bestof">Bäst av ${bestOf}</div>` : "";
 }
 
 function getBestOfForRound(roundName, settings) {
@@ -3432,7 +4624,7 @@ function renderCupSettingsSummary(settings) {
   if (!items.length) {
     items.push({
       label: "",
-      text: "Ingen extra cupinfo finns angiven i regler-sheetet."
+      text: "Ingen extra cupinfo finns angiven i cupdatan."
     });
   }
 
@@ -3836,10 +5028,149 @@ function renderSeriesTeam(teamName, cupId) {
   `;
 }
 
+const SEC_SHARED_RULE_SECTIONS = [
+  {
+    title: "Medlemsregistrering",
+    items: [
+      { heading: "Allmänt", text: "Alla spelare som deltar i SEC måste ha ett registrerat konto på SportsGamer.gg med sitt PSN-ID (PlayStation) eller Gamertag (Xbox) tillagt i sin profil." },
+      { heading: "Kontodetaljer", text: "SportsGamer-kontonamn, PSN-ID / Gamertag och spelarnamn får inte vara av stötande, förolämpande, rå eller vulgär natur. SportsGamers personal förbehåller sig rätten att begära att spelarna ändrar dessa uppgifter om de anses olämpliga." },
+      { heading: "Acceptera regler", text: "Genom att gå med i ett lag som är registrerat för en cup accepterar spelaren dessa regler." },
+      { heading: "Antal konton", text: "Ingen spelare får ha mer än ett konto på SportsGamer.gg. Detta konto kan användas för att spela på olika konsoler och i olika ligor/turneringar samtidigt så länge som spelaren har sitt PSN-ID / Gamertag inställt på sin SportsGamer-profil." },
+      { heading: "Konto i samma hushåll", text: "Om flera spelare använder sina konton från samma IP-adress, till exempel syskon som bor i samma hem, är dessa spelare skyldiga att omedelbart informera en administratör om dessa villkor." },
+      { heading: "Playercard", text: "Det namn och nummer som en spelare har angett på sitt Playercard på SportsGamer måste stämma överens med det namn och nummer som spelaren har i spelet. Dessutom måste alla spelare i ett lag ha unika nummer jämfört med sina lagkamrater. Alla som deltar i SEC måste ha korrekt nationalitet och stad på sitt playercard synligt. Ålder är frivilligt." }
+    ]
+  },
+  {
+    title: "Lagregistrering",
+    items: [
+      { heading: "Allmänt", text: "Alla registrerade svenska, norska och danska medlemmar har rätt att registrera ett lag för SEC. Lagets registrant kommer att vara inställd som kapten som standard. Lagregistrering är endast möjlig under registreringsperioden." },
+      { heading: "Registrering", text: "Registreringar är slutgiltiga när anmälningstiden har passerat och lagen måste delta i den liga/turnering som de har anmält sig till. SportsGamers personal har sista ordet när det gäller att placera lag i divisioner eller grupper, och besluten ska accepteras." },
+      { heading: "Dra tillbaka en registrering", text: "För att dra tillbaka en registrering måste kaptenen ta bort lagets anmälan och meddela att de inte längre har för avsikt att anmäla sig. Om laget redan har flyttats till en division måste de dessutom kontakta supporten för att se till att detta inte går obemärkt förbi. Detta är endast möjligt innan anmälningstiden har gått ut." },
+      { heading: "Logotyper", text: "Genom att anmäla dig till en liga/turnering som anordnas av SportsGamer samtycker du till att SportsGamer, SportsGamers dotterbolag samt dina motståndare får använda ditt lags logotyp(er) för sändnings- och reklamändamål." },
+      { heading: "Sändningsbilder", text: "Genom att anmäla dig till en liga/turnering som anordnas av SportsGamer samtycker du till att SportsGamer och SportsGamers dotterbolag får använda dina egna inskickade bilder för sändnings- och reklamändamål." },
+      { heading: "Sponsring", text: "Lag kan skaffa sponsorer om de så önskar. Eventuella sponsorer får dock inte stå i konflikt med SportsGamers värderingar, turneringens huvudsponsor eller cupens arrangör. Dessutom får lagen inte sponsras av företag som är inriktade på alkohol, tobak, spel eller vuxenunderhållning. Cuparrangören förbehåller sig rätten att när som helst utöka dessa begränsningar." }
+    ]
+  },
+  {
+    title: "Uppförandekod",
+    items: [
+      { heading: "Allmänt", text: "Registrerade medlemmar förväntas behandla varandra med respekt genom att inte övergå till alltför kränkande språkbruk. Detta gäller alla cupens konversationer som förs på SportsGamer.gg, eller direkt kommunikation mellan spelare på externa källor om bevis kan tillhandahållas som också inkluderar kontexten för konversationen." },
+      { heading: "Försök att kringgå regler", text: "Medlemmar får inte kringgå reglerna, inklusive eventuella försök att göra det, eller lura SportsGamers personal och dess Cup Administration vid någon tidpunkt." }
+    ]
+  },
+  {
+    title: "Lagledningens ansvar",
+    items: [
+      {
+        heading: "Allmänt",
+        text: "Alla lagledare (C och A) är representanter för hela laget, och som sådana är de ansvariga för:",
+        bullets: [
+          "Schemalägga matcher.",
+          "Se till att deras lag alltid följer Cupens/turneringens regler.",
+          "All kommunikation med andra managers och Cupens administration i deras lags namn.",
+          "Se till att laget slutför alla sina matcher."
+        ]
+      }
+    ]
+  },
+  {
+    title: "Cupens administration (CA)",
+    items: [
+      { heading: "Ansvar", text: "Cupens administration är ansvarig för att anordna cupen, upprätthålla reglerna, undersöka eventuella överträdelser och lösa tvister mellan spelare och lag." },
+      { heading: "Regeländring(ar)", text: "Cupens administration kan lägga till ytterligare förtydliganden till befintliga regler om det anses nödvändigt. Om Cupens Administration måste behandla ett fall som inte täcks av någon av de befintliga reglerna, kan den lägga till nya regler under en cup för att täcka dessa scenarier. När ett beslut har fattats av CA måste de förse båda parter som är inblandade i ärendet med en förklaring som visar hur de kom fram till sitt beslut, samt vilka regler som åberopades. Cupens administration förbehåller sig rätten att granska och ändra alla regler mitt under säsongen om det behövs." },
+      { heading: "Definition av bestraffning", text: "Cupens administration kommer att definiera alla spelar- eller lagbestraffningar enligt deras allvarlighetsgrad, samtidigt som tidigare beslut beaktas för att säkerställa ett välbalanserat beslutsfattande. Tidigare fall som är relaterade till det aktuella beslutet kan citeras och fungera som prejudikat." },
+      { heading: "Majoritetsbeslut", text: "Cupens administration måste besluta om sina åtgärder med en majoritetsomröstning. Efter att ett beslut har fattats kommer cupadministrationen alltid att se till att den agerar som en enda enhet och inte avslöjar några enskilda röster för allmänheten. Alla ärenden hanteras så snabbt som möjligt, men det är högst osannolikt att CA kan hantera en tvist på under en timme. Om du känner att en tvist kan uppstå, flagga upp det till CA via supportverktyget så att de kan få en förvarning." },
+      { heading: "Kontakt", text: "För att kontakta cupadministrationen måste spelarna använda supportfunktionen och välja SEC Support som avdelning. Dessa meddelanden är endast synliga för cupens Administration-medlemmar och den person som skickade meddelandet. Använd inte privata meddelanden för att skicka meddelanden till enskilda medlemmar i Cup Administration om CA-frågor." }
+    ]
+  },
+  {
+    title: "Lagregler",
+    items: [
+      { heading: "Spelare", text: "Lag får endast använda spelare som är listade i deras officiella laguppställning på SportsGamer.gg huvudsida." },
+      { heading: "WO matcher", text: "Lag får lämna WO, men varje enskilt fall avgörs av CA. Genom att ge upp matchen får motståndarlaget en walkover-vinst." },
+      { heading: "Annullera matcher", text: "Om en match spelas där en eller flera av de inblandade spelarna inte anses vara lagliga, förbehåller sig CA rätten att eventuellt annullera alla matcher som spelats med nämnda spelare och tilldela WO-segrar till det lag som inte begått överträdelsen." }
+    ]
+  },
+  {
+    title: "Fair Play",
+    items: [
+      {
+        heading: "Allmänt",
+        text: "Fair Play är den mest grundläggande regeln i alla spel som genomförs inom en liga/turnering på SportsGamer.gg. Det innebär att behandla din motståndare på det sätt du själv vill bli behandlad. Detta inkluderar kommunikation och alla handlingar som är direkt eller indirekt relaterade till spelet.",
+        bullets: [
+          "Utnyttja inte spelmekanismer eller buggar för att försätta din motståndare i underläge, till exempel statistikexploits, de-sync glitches, frysningar eller liknande.",
+          "Distrahera inte din motståndare från spelet, till exempel genom att spamma meddelanden, ringa motståndaren under match eller liknande."
+        ]
+      }
+    ]
+  },
+  {
+    title: "Buggar",
+    items: [
+      { heading: "Skridskoåkare/målvakter fastnar i frysningar", text: "Det finns en bugg som leder till att spelare, inklusive skridskoåkare och målvakter, fastnar i buggiga och oavsiktliga animationer. Om detta fel uppstår måste lagen rensa pucken så snart de märker det. Vanliga animationer som är avsedda av spelutvecklarna påverkas inte av regeln. Vid oenighet får lagen skicka in videobevis till Cupens Administration för granskning. Avsiktlig, felaktig användning anses vara att utnyttja spelet." },
+      { heading: "Initiera slagsmål i en faceoff-situation", text: "Spelare är strängt förbjudna att initiera slagsmål innan pucken släpps i alla divisioner. Detta är för att eliminera den för närvarande obevisade, men spekulerade, fartökningen från att göra en sådan handling." },
+      { heading: "Målvakter som lämnar målgården", text: "Med hänvisning till regeln om att inte utnyttja spelmekanik eller buggar för att försätta motståndaren i underläge får målvakter inte lämna målgården i ett försök att störa en skridskoåkare från motståndarlaget. Exempelvideo: https://www.youtube.com/watch?v=ZELueWlZVr4" },
+      { heading: "Lagligt hindra en spelare", text: "Skridskoåkare får inte stöta, slå eller aktivt åka i vägen för spelare som inte har pucken. Om du är osäker på om en händelse bör tillåtas, fråga dig själv om du skulle vara nöjd med att vara på mottagarsidan av det du gör. Om inte, gör det inte." },
+      { heading: "Fånga en spelare i målet", text: "Målvakten får inte försöka störa en skridskoåkare från motståndarlaget som befinner sig bakom dem i nätet eller sarghörnet genom att vara i vägen så att spelaren inte kan åka skridskor bort." }
+    ]
+  },
+  {
+    title: "Schemaläggning",
+    items: [
+      { heading: "Schemaläggning", text: "Varje match som schemaläggs för ditt lag har en officiell speldag. Lagen är fria att flytta matcher förutsatt att de inte sänds eller är utvalda matcher. Lagen måste kommunicera med sina motståndare före speldagen för att hitta bästa speltid. Lagen rekommenderas att göra detta via webbplatsens PM-system, men om det misslyckas kan ni försöka nå ut via andra plattformar, till exempel Discord. Alla överenskomna schemaändringar ska skickas och accepteras via verktyget för rescheduling." }
+    ]
+  },
+  {
+    title: "Diskvalificering och förbjudna spelare",
+    items: [
+      { heading: "Diskvalificering av lag", text: "Om ett lag diskvalificeras stängs dess lagkaptener, inklusive assistenter, av från cupen. Övriga spelare i laguppställningen är fria att byta till ett annat lag, såvida de inte bevisligen var inblandade i diskvalificeringen av sitt lag. I så fall är de också avstängda. Övergångarna är fortfarande bundna av gällande tidsfrister." },
+      { heading: "Förvärv av förbjudna spelare", text: "Lag som plockar upp spelare som för närvarande är förbjudna att spela på SportsGamer kommer att få allvarliga påföljder. Lagkaptenerna kommer att vara avstängda under hela säsongen på SportsGamer och laget kommer att diskvalificeras. För lag som består av tidigare lagkamrater till den avstängda spelaren krävs inga bevis för huruvida de var medvetna eller inte. Antagandet är att tidigare lagkamrater kan identifiera den avstängda spelaren i röstchattpartier eller WhatsApp-grupper." }
+    ]
+  }
+];
+
+function renderSharedSecRules() {
+  return `
+    <article class="detail-card sec-rulebook-card">
+      <div class="section-heading compact">
+        <p class="eyebrow">Regelverk</p>
+        <h2>Gemensamma SEC-regler</h2>
+      </div>
+      <div class="sec-rulebook-list">
+        ${SEC_SHARED_RULE_SECTIONS.map(renderSharedSecRuleSection).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function renderSharedSecRuleSection(section, index) {
+  return `
+    <details class="sec-rulebook-section" ${index === 0 ? "open" : ""}>
+      <summary>${escapeHtml(section.title)}</summary>
+      <div class="sec-rulebook-content">
+        ${section.items.map(renderSharedSecRuleItem).join("")}
+      </div>
+    </details>
+  `;
+}
+
+function renderSharedSecRuleItem(item) {
+  return `
+    <div class="sec-rulebook-item">
+      <h3>${escapeHtml(item.heading)}</h3>
+      <p>${renderRuleInlineText(item.text)}</p>
+      ${Array.isArray(item.bullets) && item.bullets.length ? `
+        <ul>
+          ${item.bullets.map(function(bullet) { return `<li>${renderRuleInlineText(bullet)}</li>`; }).join("")}
+        </ul>
+      ` : ""}
+    </div>
+  `;
+}
 function renderCupRules(cup) {
   const settings = cup.settings || createDefaultCupSettings();
   const bestOfItems = [
-    ["Attondelsfinal", settings.bestOf.roundOf16],
+    ["Åttondelsfinal", settings.bestOf.roundOf16],
     ["Kvartsfinal", settings.bestOf.quarter],
     ["Semifinal", settings.bestOf.semi],
     ["Final", settings.bestOf.final]
@@ -3861,18 +5192,17 @@ function renderCupRules(cup) {
             <h2>Turnering</h2>
           </div>
           <div class="simple-list">
-            <div class="simple-list-item">${settings.playoffCut1 ? `Slutspelsstreck: topp ${escapeHtml(settings.playoffCut1)}${settings.playoffCut2 ? " / " + escapeHtml(settings.playoffCut2) : ""}.` : "Slutspelsstreck saknas i cupens sheetdata."}</div>
+            <div class="simple-list-item">${settings.playoffCut1 ? `Slutspelsstreck: topp ${escapeHtml(settings.playoffCut1)}${settings.playoffCut2 ? " / " + escapeHtml(settings.playoffCut2) : ""}.` : "Slutspelsstreck saknas i cupdatan."}</div>
             ${bestOfItems.length ? bestOfItems.map(function(item) {
-              return `<div class="simple-list-item">${escapeHtml(item[0])}: Bast av ${escapeHtml(item[1])}</div>`;
-            }).join("") : `<div class="simple-list-item">Best of saknas i cupens sheetdata.</div>`}
-            <div class="simple-list-item">Resultat, tabeller och statistik uppdateras direkt pa cupsidan.</div>
+              return `<div class="simple-list-item">${escapeHtml(item[0])}: Bäst av ${escapeHtml(item[1])}</div>`;
+            }).join("") : `<div class="simple-list-item">Best of saknas i cupdatan.</div>`}
           </div>
         </article>
 
         <article class="detail-card">
           <div class="section-heading compact">
-            <p class="eyebrow">Poang</p>
-            <h2>Gruppspel</h2>
+            <p class="eyebrow">Krav</p>
+            <h2>Spelare</h2>
           </div>
           <div class="simple-list">
             <div class="simple-list-item">Minst antal spelare: ${settings.minPlayers ? escapeHtml(settings.minPlayers) : "Ej angivet"}</div>
@@ -3890,23 +5220,23 @@ function renderCupRules(cup) {
             <h2>Tabellordning</h2>
           </div>
           <div class="simple-list">
-            <div class="simple-list-item">Tabellen sorteras pa poang, malskillnad och gjorda mal.</div>
-            <div class="simple-list-item">Slutspelsstreck hamtas fran regler-sheetet for aktuell cup.</div>
+            <div class="simple-list-item">Tabellen sorteras på poäng, målskillnad och gjorda mål.</div>
           </div>
         </article>
 
         <article class="detail-card">
           <div class="section-heading compact">
-            <p class="eyebrow">Cupdata</p>
-            <h2>Visning</h2>
+            <p class="eyebrow">Cupinfo</p>
+            <h2>Extra info</h2>
           </div>
           <div class="simple-list">
             ${infoItems.length ? infoItems.map(function(item) {
               return renderRuleListItem({ label: "", text: item });
-            }).join("") : `<div class="simple-list-item">Ingen extra info finns angiven for cupen.</div>`}
+            }).join("") : `<div class="simple-list-item">Ingen extra info finns angiven för cupen.</div>`}
           </div>
         </article>
       </div>
+      ${renderSharedSecRules()}
     </section>
   `;
 }
@@ -4008,7 +5338,7 @@ function renderStatsTable(columns, rows) {
         <tbody>
           ${rows.map(function(row) {
             return `
-              <tr${row._rowClass ? ` class="${escapeHtml(row._rowClass)}"` : ""}${row._search ? ` data-stat-search="${escapeHtml(row._search)}"` : ""}>
+              <tr${row._rowClass ? ` class="${escapeHtml(row._rowClass)}"` : ""}${row._search ? ` data-stat-search="${escapeHtml(row._search)}"` : ""}${row._playerIndex ? ` data-player-index-row="true"` : ""}${row._country ? ` data-player-country="${escapeHtml(row._country)}"` : ""}>
                 ${columns.map(function(column) {
                   const key = typeof column === "string" ? column : column.key;
                   const cell = toTableCell(row[key]);
@@ -4035,11 +5365,11 @@ function renderGlobalSearchModule() {
   `;
 }
 
-function renderLoadingState() {
+function renderLoadingState(message) {
   return `
     <section class="tab-panel">
       <h2>Laddar</h2>
-      <div class="cup-status">Hamtar SEC-data...</div>
+      <div class="cup-status">${escapeHtml(message || "Hamtar SEC-data...")}</div>
     </section>
   `;
 }
@@ -4073,9 +5403,31 @@ function bindViewInteractions() {
   bindGlobalSearch();
   bindCupTabs();
   bindTeamTabs();
+  bindSignupTabs();
+  bindTeamStatControls();
+  bindTeamHistoryStatControls();
+  bindSignupForms();
+  bindSignupAutocomplete();
+  loadSummerDraftPlayers();
+  loadRegisteredTeams();
   bindCupStatControls();
   bindCupMatchFilters();
   bindSortableTables();
+  bindPlayerIndexControls();
+  bindRegisteredTeamModalClose();
+}
+
+function bindRegisteredTeamModalClose() {
+  if (document.body.dataset.registeredTeamModalBound === "true") {
+    return;
+  }
+
+  document.body.dataset.registeredTeamModalBound = "true";
+  document.addEventListener("keydown", function(event) {
+    if (event.key === "Escape") {
+      closeRegisteredTeamModal();
+    }
+  });
 }
 
 function bindSortableTables() {
@@ -4114,6 +5466,11 @@ function bindSortableTables() {
         tbody.appendChild(row);
       });
 
+      const playerIndexControls = table.closest(".player-index-card")?.querySelector("[data-player-index-controls]");
+      if (playerIndexControls) {
+        applyPlayerIndexFilters(playerIndexControls);
+      }
+
       buttons.forEach(function(entry) {
         entry.dataset.sortDirection = "";
         entry.setAttribute("aria-sort", "none");
@@ -4127,6 +5484,67 @@ function bindSortableTables() {
   });
 }
 
+function bindPlayerIndexControls() {
+  const controls = document.querySelector("[data-player-index-controls]");
+  if (!controls || controls.dataset.bound === "true") {
+    return;
+  }
+
+  controls.dataset.bound = "true";
+  const searchInput = controls.querySelector("[data-player-search]");
+  const countrySelect = controls.querySelector("[data-player-country]");
+  const limitSelect = controls.querySelector("[data-player-limit]");
+
+  [searchInput, countrySelect, limitSelect].forEach(function(control) {
+    control?.addEventListener("input", function() { applyPlayerIndexFilters(controls); });
+    control?.addEventListener("change", function() { applyPlayerIndexFilters(controls); });
+  });
+
+  applyPlayerIndexFilters(controls);
+}
+
+function applyPlayerIndexFilters(controls) {
+  if (!controls) {
+    return;
+  }
+
+  const card = controls.closest(".player-index-card") || document;
+  const rows = Array.from(card.querySelectorAll("[data-player-index-row]"));
+  const searchInput = controls.querySelector("[data-player-search]");
+  const countrySelect = controls.querySelector("[data-player-country]");
+  const limitSelect = controls.querySelector("[data-player-limit]");
+  const countEl = controls.querySelector("[data-player-count]");
+  const query = slugify(searchInput?.value || "");
+  const country = String(countrySelect?.value || "").trim().toUpperCase();
+  const limitValue = String(limitSelect?.value || "10");
+  const limit = limitValue === "all" ? Infinity : Number(limitValue) || 10;
+  let matched = 0;
+  let shown = 0;
+
+  rows.forEach(function(row) {
+    const rowSearch = slugify(row.getAttribute("data-stat-search") || "");
+    const rowCountry = String(row.getAttribute("data-player-country") || "").trim().toUpperCase();
+    const isMatch = (!query || rowSearch.indexOf(query) !== -1) && (!country || rowCountry === country);
+
+    if (!isMatch) {
+      row.hidden = true;
+      return;
+    }
+
+    matched += 1;
+    const shouldShow = shown < limit;
+    row.hidden = !shouldShow;
+    if (shouldShow) {
+      shown += 1;
+    }
+  });
+
+  if (countEl) {
+    countEl.textContent = matched
+      ? "Visar " + shown + " av " + matched + " spelare"
+      : "Inga spelare matchar filtret";
+  }
+}
 function bindCupCardLinks() {
   Array.from(document.querySelectorAll("[data-cup-link]")).forEach(function(card) {
     if (card.dataset.bound === "true") {
@@ -4170,14 +5588,18 @@ function bindGlobalSearch() {
       meta: formatTeamSearchCups(team)
     };
   });
-  const playerItems = state.players.map(function(player) {
-    return {
-      type: "player",
-      label: player.name,
-      href: "#/player/" + encodeURIComponent(player.key),
-      meta: getLatestPlayerTeam(player) || "Spelare"
-    };
-  });
+  let playerItems = state.playersReady ? createSearchPlayerItems() : [];
+
+  function createSearchPlayerItems() {
+    return state.players.map(function(player) {
+      return {
+        type: "player",
+        label: player.name,
+        href: "#/player/" + encodeURIComponent(player.key),
+        meta: getLatestPlayerTeam(player) || "Spelare"
+      };
+    });
+  }
 
   function closeResults() {
     results.style.display = "none";
@@ -4195,12 +5617,25 @@ function bindGlobalSearch() {
     const matchedTeams = teamItems.filter(function(item) {
       return slugify(item.label).indexOf(query) !== -1;
     });
+
+    if (!matchedTeams.length && !state.playersReady) {
+      ensurePlayersReady().then(function() {
+        playerItems = createSearchPlayerItems();
+        input.dispatchEvent(new Event("input"));
+      });
+    }
+
     const matchedPlayers = playerItems.filter(function(item) {
       return slugify(item.label).indexOf(query) !== -1;
     });
     const matched = (matchedTeams.length ? matchedTeams : matchedPlayers).slice(0, 20);
 
     if (!matched.length) {
+      if (!state.playersReady) {
+        results.innerHTML = `<div class="search-item is-muted"><div>Bygger spelarregister...</div><div class="search-pill">Spelare</div></div>`;
+        results.style.display = "block";
+        return;
+      }
       closeResults();
       return;
     }
@@ -4320,6 +5755,803 @@ function bindTeamTabs() {
       });
     });
   });
+}
+
+function bindSignupTabs() {
+  const tabs = Array.from(document.querySelectorAll("[data-signup-tab]"));
+  const panels = Array.from(document.querySelectorAll("[data-signup-panel]"));
+
+  if (!tabs.length || !panels.length) {
+    return;
+  }
+
+  tabs.forEach(function(tab) {
+    if (tab.dataset.bound === "true") {
+      return;
+    }
+
+    tab.dataset.bound = "true";
+
+    tab.addEventListener("click", function() {
+      const target = tab.getAttribute("data-signup-tab");
+
+      tabs.forEach(function(button) {
+        const active = button.getAttribute("data-signup-tab") === target;
+        button.classList.toggle("is-active", active);
+        button.setAttribute("aria-selected", active ? "true" : "false");
+      });
+
+      panels.forEach(function(panel) {
+        const active = panel.getAttribute("data-signup-panel") === target;
+        panel.classList.toggle("is-active", active);
+        panel.hidden = !active;
+      });
+
+      if (target === "spelare") {
+        loadSummerDraftPlayers(true);
+      } else if (target === "lag") {
+        loadRegisteredTeams(true);
+      }
+    });
+  });
+}
+
+function bindTeamStatControls() {
+  const shell = document.querySelector("[data-team-stat-shell]");
+
+  if (!shell || shell.dataset.bound === "true") {
+    return;
+  }
+
+  shell.dataset.bound = "true";
+
+  const buttons = Array.from(shell.querySelectorAll("[data-team-stat-stage]"));
+  const panels = Array.from(shell.querySelectorAll("[data-team-stat-panel]"));
+
+  buttons.forEach(function(button) {
+    button.addEventListener("click", function() {
+      const target = button.getAttribute("data-team-stat-stage");
+
+      buttons.forEach(function(entry) {
+        const active = entry.getAttribute("data-team-stat-stage") === target;
+        entry.classList.toggle("is-active", active);
+        entry.setAttribute("aria-selected", active ? "true" : "false");
+      });
+
+      panels.forEach(function(panel) {
+        const active = panel.getAttribute("data-team-stat-panel") === target;
+        panel.classList.toggle("is-active", active);
+        panel.hidden = !active;
+      });
+
+      bindSortableTables();
+    });
+  });
+}
+
+function bindTeamHistoryStatControls() {
+  const shell = document.querySelector("[data-team-history-stat-shell]");
+
+  if (!shell || shell.dataset.bound === "true") {
+    return;
+  }
+
+  shell.dataset.bound = "true";
+
+  const buttons = Array.from(shell.querySelectorAll("[data-team-history-stat-stage]"));
+  const panels = Array.from(shell.querySelectorAll("[data-team-history-stat-panel]"));
+
+  buttons.forEach(function(button) {
+    button.addEventListener("click", function() {
+      const target = button.getAttribute("data-team-history-stat-stage");
+
+      buttons.forEach(function(entry) {
+        const active = entry.getAttribute("data-team-history-stat-stage") === target;
+        entry.classList.toggle("is-active", active);
+        entry.setAttribute("aria-selected", active ? "true" : "false");
+      });
+
+      panels.forEach(function(panel) {
+        const active = panel.getAttribute("data-team-history-stat-panel") === target;
+        panel.classList.toggle("is-active", active);
+        panel.hidden = !active;
+      });
+
+      bindSortableTables();
+    });
+  });
+}
+
+function bindSignupAutocomplete() {
+  const inputs = Array.from(document.querySelectorAll("[data-signup-suggest]"));
+  if (!inputs.length) {
+    return;
+  }
+
+  const teamItems = state.teams.map(function(team) {
+    return {
+      type: "team",
+      label: team.name,
+      meta: formatTeamSearchCups(team) || "Lag"
+    };
+  }).sort(function(a, b) { return a.label.localeCompare(b.label, "sv"); });
+
+  let playerItems = state.playersReady ? createSignupPlayerSuggestionItems(state.players) : [];
+  let playerLoading = false;
+
+  function ensurePlayerItems(callback) {
+    if (state.playersReady) {
+      playerItems = createSignupPlayerSuggestionItems(state.players);
+      callback();
+      return;
+    }
+
+    if (playerLoading) {
+      return;
+    }
+
+    playerLoading = true;
+    ensurePlayersReady().then(function(players) {
+      playerItems = createSignupPlayerSuggestionItems(players);
+      callback();
+    }).catch(function(error) {
+      console.warn("Kunde inte bygga spelarforlag.", error);
+    }).finally(function() {
+      playerLoading = false;
+    });
+  }
+
+  inputs.forEach(function(input) {
+    if (input.dataset.suggestBound === "true") {
+      return;
+    }
+
+    input.dataset.suggestBound = "true";
+    input.setAttribute("autocomplete", "off");
+
+    const field = input.closest(".signup-field") || input.parentElement;
+    const menu = document.createElement("div");
+    menu.className = "signup-suggest-menu";
+    menu.setAttribute("role", "listbox");
+    field.appendChild(menu);
+
+    let activeIndex = -1;
+
+    function close() {
+      menu.classList.remove("is-open");
+      menu.innerHTML = "";
+      activeIndex = -1;
+    }
+
+    function setActive(index) {
+      const options = Array.from(menu.querySelectorAll(".signup-suggest-item"));
+      options.forEach(function(option) { option.classList.remove("is-active"); });
+      activeIndex = index;
+      if (activeIndex >= 0 && activeIndex < options.length) {
+        options[activeIndex].classList.add("is-active");
+        options[activeIndex].scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function selectItem(item) {
+      input.value = item.label;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      close();
+    }
+
+    function render(items, loading) {
+      if (loading) {
+        menu.innerHTML = `<div class="signup-suggest-item is-muted"><div><strong>Bygger spelarregister...</strong></div><span>Spelare</span></div>`;
+        menu.classList.add("is-open");
+        return;
+      }
+
+      if (!items.length) {
+        close();
+        return;
+      }
+
+      menu.innerHTML = items.map(function(item, index) {
+        return `
+          <button class="signup-suggest-item" type="button" data-suggest-index="${index}">
+            <div>
+              <strong>${escapeHtml(item.label)}</strong>
+              <small>${escapeHtml(item.meta || "")}</small>
+            </div>
+            <span>${item.type === "team" ? "Lag" : "Spelare"}</span>
+          </button>
+        `;
+      }).join("");
+
+      menu.classList.add("is-open");
+      setActive(-1);
+
+      Array.from(menu.querySelectorAll("[data-suggest-index]")).forEach(function(option) {
+        option.addEventListener("mousedown", function(event) {
+          event.preventDefault();
+          selectItem(items[Number(option.getAttribute("data-suggest-index"))]);
+        });
+      });
+    }
+
+    function update() {
+      const type = input.getAttribute("data-signup-suggest");
+      const query = slugify(input.value);
+      const source = type === "team" ? teamItems : playerItems;
+
+      if (query.length < 2) {
+        close();
+        return;
+      }
+
+      if (type === "player" && !state.playersReady && !playerItems.length) {
+        render([], true);
+        ensurePlayerItems(update);
+        return;
+      }
+
+      const matched = source.filter(function(item) {
+        return slugify(item.label).indexOf(query) !== -1 || slugify(item.meta || "").indexOf(query) !== -1;
+      }).slice(0, 28);
+
+      render(matched, false);
+    }
+
+    input.addEventListener("input", update);
+    input.addEventListener("focus", function() {
+      if (slugify(input.value).length >= 2) {
+        update();
+      }
+    });
+    input.addEventListener("keydown", function(event) {
+      const options = Array.from(menu.querySelectorAll(".signup-suggest-item:not(.is-muted)"));
+      if (!menu.classList.contains("is-open")) {
+        return;
+      }
+
+      if (event.key === "Escape") {
+        close();
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setActive(Math.min(activeIndex + 1, options.length - 1));
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setActive(Math.max(activeIndex - 1, 0));
+      } else if (event.key === "Enter" && activeIndex >= 0 && activeIndex < options.length) {
+        event.preventDefault();
+        options[activeIndex].dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      }
+    });
+  });
+
+  if (document.body.dataset.signupSuggestClickBound !== "true") {
+    document.body.dataset.signupSuggestClickBound = "true";
+    document.addEventListener("click", function(event) {
+      if (!event.target.closest(".signup-field")) {
+        Array.from(document.querySelectorAll(".signup-suggest-menu")).forEach(function(menu) {
+          menu.classList.remove("is-open");
+          menu.innerHTML = "";
+        });
+      }
+    });
+  }
+}
+
+function createSignupPlayerSuggestionItems(players) {
+  const seen = new Set();
+  return players.map(function(player) {
+    return {
+      type: "player",
+      label: player.name,
+      meta: getLatestPlayerTeam(player) || "Spelare"
+    };
+  }).filter(function(item) {
+    const key = slugify(item.label);
+    if (!key || seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  }).sort(function(a, b) {
+    return a.label.localeCompare(b.label, "sv");
+  });
+}
+function bindSignupForms() {
+  Array.from(document.querySelectorAll("[data-signup-kind]")).forEach(function(form) {
+    if (form.dataset.bound === "true") {
+      return;
+    }
+
+    form.dataset.bound = "true";
+    form.addEventListener("submit", handleSignupSubmit);
+  });
+}
+
+async function loadSummerDraftPlayers(force) {
+  const target = document.querySelector("[data-summer-draft-players]");
+  if (!target || (!force && target.dataset.loaded === "true")) {
+    return;
+  }
+
+  if (!DATA_SOURCES.signupApi) {
+    target.innerHTML = `<div class="empty-state">Ingen anmälnings-URL är inställd i config.js.</div>`;
+    target.dataset.loaded = "true";
+    return;
+  }
+
+  target.innerHTML = `<div class="empty-state">Laddar anmälda spelare...</div>`;
+
+  try {
+    const url = DATA_SOURCES.signupApi + "?view=summer-draft&_t=" + Date.now();
+    const result = await fetchJsonWithJsonpFallback(url);
+
+    if (!result || result.ok === false) {
+      throw new Error(result?.error || "Kunde inte läsa spelarlistan.");
+    }
+
+    const players = Array.isArray(result.players) ? result.players : [];
+    target.dataset.loaded = "true";
+
+    if (!players.length) {
+      target.innerHTML = `<div class="empty-state">Inga spelare är anmälda än.</div>`;
+      return;
+    }
+
+    target.innerHTML = `
+      <div class="table-wrap signup-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Spelare</th>
+              <th>Nationalitet</th>
+              <th>Position</th>
+              <th>Discord</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${players.map(function(player) {
+              const primary = player.primaryPosition || player["Primar position"] || "";
+              const secondary = player.secondaryPosition || player["Sekundar position"] || "";
+              const position = secondary ? primary + " / " + secondary : primary;
+              return `
+                <tr>
+                  <td>${escapeHtml(player.gamertag || player.Gamertag || "")}</td>
+                  <td>${escapeHtml(player.nationality || player.Nationalitet || "")}</td>
+                  <td>${escapeHtml(position)}</td>
+                  <td>${escapeHtml(player.discord || player.Discord || "")}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (error) {
+    target.dataset.loaded = "true";
+    target.innerHTML = `<div class="empty-state">Kunde inte ladda anmälda spelare: ${escapeHtml(error.message || String(error))}</div>`;
+  }
+}
+
+async function loadRegisteredTeams(force) {
+  const target = document.querySelector("[data-registered-teams]");
+  if (!target || (!force && target.dataset.loaded === "true")) {
+    return;
+  }
+
+  if (!DATA_SOURCES.signupApi) {
+    target.innerHTML = `<div class="empty-state">Ingen anmälnings-URL är inställd i config.js.</div>`;
+    target.dataset.loaded = "true";
+    return;
+  }
+
+  target.innerHTML = `<div class="empty-state">Laddar anmälda lag...</div>`;
+
+  try {
+    const url = DATA_SOURCES.signupApi + "?view=teams&_t=" + Date.now();
+    const result = await fetchJsonWithJsonpFallback(url);
+
+    if (!result || result.ok === false) {
+      throw new Error(result?.error || "Kunde inte läsa laglistan.");
+    }
+
+    const teams = Array.isArray(result.teams) ? result.teams : [];
+    target.dataset.loaded = "true";
+
+    if (!teams.length) {
+      target.innerHTML = `<div class="empty-state">Inga lag är anmälda än.</div>`;
+      return;
+    }
+
+    target.innerHTML = `
+      <div class="registered-team-grid">
+        ${teams.map(function(team, index) {
+          const players = Array.isArray(team.players) ? team.players.length : 0;
+          const logo = renderRegisteredTeamLogo(team);
+
+          return `
+            <article class="registered-team-card" data-registered-team-index="${index}" role="button" tabindex="0" aria-label="Visa ${escapeHtml(team.teamName || "lag")}">
+              ${logo}
+              <div>
+                <h3>${escapeHtml(team.teamName || "Lag")}</h3>
+                <p>${escapeHtml(team.abbr || "")}</p>
+                <p>${players} spelare</p>
+              </div>
+            </article>
+          `;
+        }).join("")}
+      </div>
+    `;
+
+    Array.from(target.querySelectorAll("[data-registered-team-index]")).forEach(function(card) {
+      const open = function() {
+        const index = Number(card.getAttribute("data-registered-team-index"));
+        openRegisteredTeamModal(teams[index]);
+      };
+      card.addEventListener("click", open);
+      card.addEventListener("keydown", function(event) {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          open();
+        }
+      });
+    });
+  } catch (error) {
+    target.dataset.loaded = "true";
+    target.innerHTML = `<div class="empty-state">Kunde inte ladda anmälda lag: ${escapeHtml(error.message || String(error))}</div>`;
+  }
+}
+
+function renderRegisteredTeamLogo(team) {
+  const teamName = team?.teamName || "Lag";
+  const uploadedLogo = normalizeSignupLogoUrl(team?.logo);
+
+  if (uploadedLogo) {
+    const attrs = renderImageFallbackAttributes([uploadedLogo].concat(getTeamLogoUrlCandidates(teamName)));
+    return `
+      <div class="registered-team-logo">
+        <img ${attrs} alt="${escapeHtml(teamName)} logga" loading="lazy">
+      </div>
+    `;
+  }
+
+  return `<div class="registered-team-logo registered-team-logo-existing">${renderTeamLogo(teamName, "team-logo-md")}</div>`;
+}
+
+function openRegisteredTeamModal(team) {
+  if (!team) {
+    return;
+  }
+
+  closeRegisteredTeamModal();
+
+  const modal = document.createElement("div");
+  modal.className = "registered-team-modal";
+  modal.setAttribute("role", "dialog");
+  modal.setAttribute("aria-modal", "true");
+
+  const teamName = team.teamName || "Lag";
+  const captains = [team.captain, team.assistant1, team.assistant2].filter(Boolean);
+  const players = Array.isArray(team.players) ? team.players.filter(Boolean) : [];
+  const logo = renderRegisteredTeamLogo(team);
+
+  modal.innerHTML = `
+    <div class="registered-team-modal-backdrop" data-close-registered-team-modal></div>
+    <section class="registered-team-modal-card">
+      <header class="registered-team-modal-header">
+        <h2>${escapeHtml(teamName)}</h2>
+        <button type="button" class="registered-team-modal-close" data-close-registered-team-modal aria-label="Stäng">x</button>
+      </header>
+      <div class="registered-team-modal-body">
+        <aside class="registered-team-modal-logo-panel">
+          ${logo}
+          ${team.abbr ? `<p>${escapeHtml(team.abbr)}</p>` : ""}
+        </aside>
+        <div class="registered-team-modal-content">
+          <section class="registered-team-modal-section">
+            <div class="registered-team-modal-section-head">
+              <h3>Kaptener</h3>
+              <span>${captains.length} st</span>
+            </div>
+            ${captains.length ? `
+              <div class="registered-team-modal-chip-grid">
+                ${captains.map(function(captain) { return `<div class="registered-team-modal-chip">${escapeHtml(captain)}</div>`; }).join("")}
+              </div>
+            ` : `<p class="registered-team-modal-empty">Inga kaptener angivna.</p>`}
+          </section>
+          <section class="registered-team-modal-section">
+            <div class="registered-team-modal-section-head">
+              <h3>Spelare</h3>
+              <span>${players.length} st</span>
+            </div>
+            ${players.length ? `
+              <div class="registered-team-modal-chip-grid">
+                ${players.map(function(player) { return `<div class="registered-team-modal-chip">${escapeHtml(player)}</div>`; }).join("")}
+              </div>
+            ` : `<p class="registered-team-modal-empty">Inga spelare angivna.</p>`}
+          </section>
+        </div>
+      </div>
+    </section>
+  `;
+
+  document.body.appendChild(modal);
+  document.body.classList.add("modal-open");
+  modal.querySelector(".registered-team-modal-close")?.focus();
+
+  modal.querySelectorAll("[data-close-registered-team-modal]").forEach(function(control) {
+    control.addEventListener("click", closeRegisteredTeamModal);
+  });
+}
+
+function closeRegisteredTeamModal() {
+  const modal = document.querySelector(".registered-team-modal");
+  if (modal) {
+    modal.remove();
+  }
+  document.body.classList.remove("modal-open");
+}
+
+function normalizeSignupLogoUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw || !/^https?:\/\//i.test(raw)) {
+    return "";
+  }
+
+  const idMatch =
+    raw.match(/[?&]id=([^&]+)/i) ||
+    raw.match(/\/file\/d\/([^/]+)/i) ||
+    raw.match(/\/open\?id=([^&]+)/i);
+
+  if (idMatch && idMatch[1]) {
+    return "https://drive.google.com/thumbnail?id=" + encodeURIComponent(idMatch[1]) + "&sz=w300";
+  }
+
+  return raw;
+}
+
+async function fetchJsonWithJsonpFallback(url) {
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    const text = await response.text();
+    const result = safeJsonParse(text);
+
+    if (!response.ok || !result) {
+      throw new Error(result?.error || "Failed to fetch");
+    }
+
+    return result;
+  } catch (error) {
+    return fetchJsonp(url);
+  }
+}
+
+function fetchJsonp(url) {
+  return new Promise(function(resolve, reject) {
+    const callbackName = "__secSignupCallback" + Date.now() + Math.random().toString(36).slice(2);
+    const script = document.createElement("script");
+    const separator = url.includes("?") ? "&" : "?";
+    const timeout = window.setTimeout(function() {
+      cleanup();
+      reject(new Error("Kunde inte läsa från Apps Script."));
+    }, 12000);
+
+    function cleanup() {
+      window.clearTimeout(timeout);
+      delete window[callbackName];
+      script.remove();
+    }
+
+    window[callbackName] = function(data) {
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror = function() {
+      cleanup();
+      reject(new Error("Apps Script kunde inte laddas."));
+    };
+
+    script.src = url + separator + "callback=" + encodeURIComponent(callbackName);
+    document.head.appendChild(script);
+  });
+}
+
+async function handleSignupSubmit(event) {
+  event.preventDefault();
+
+  const form = event.currentTarget;
+  const kind = form.getAttribute("data-signup-kind") || "";
+  const status = form.querySelector("[data-signup-status]");
+  const submit = form.querySelector(".signup-submit");
+
+  setSignupStatus(status, "", "");
+
+  if (!DATA_SOURCES.signupApi) {
+    setSignupStatus(status, "err", "Ingen anmälnings-URL är inställd i config.js.");
+    return;
+  }
+
+  const payload = collectSignupPayload(form, kind);
+  const validationError = validateSignupPayload(payload, kind);
+
+  if (validationError) {
+    setSignupStatus(status, "err", validationError);
+    return;
+  }
+
+  if (submit) {
+    submit.disabled = true;
+    submit.textContent = "Skickar...";
+  }
+
+  try {
+    const logoPayload = kind === "team" ? await getSignupLogoPayload(form) : {};
+    const response = await fetch(DATA_SOURCES.signupApi, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        ...payload,
+        ...logoPayload
+      })
+    });
+    const text = await response.text();
+    const result = safeJsonParse(text);
+
+    if (!response.ok || result?.ok === false) {
+      throw new Error(result?.error || "Kunde inte skicka anmälan.");
+    }
+
+    form.reset();
+    if (kind === "summer-draft") {
+      const list = document.querySelector("[data-summer-draft-players]");
+      if (list) {
+        list.dataset.loaded = "false";
+      }
+      loadSummerDraftPlayers(true);
+    } else if (kind === "team") {
+      const list = document.querySelector("[data-registered-teams]");
+      if (list) {
+        list.dataset.loaded = "false";
+      }
+      loadRegisteredTeams(true);
+    }
+    setSignupStatus(status, "ok", "Anmälan skickad. Tack!");
+  } catch (error) {
+    let message = error.message || String(error);
+    if (kind === "summer-draft" && /lagnamn|anmalningskod|anm.lningskod|kapten/i.test(message)) {
+      message = "Apps Scriptet är fortfarande inställt på laganmälan. Uppdatera Apps Scriptet så det hanterar signupType=summer-draft.";
+    }
+    setSignupStatus(status, "err", "Kunde inte skicka anmälan: " + message);
+  } finally {
+    if (submit) {
+      submit.disabled = false;
+      submit.textContent = "Skicka anmälan";
+    }
+  }
+}
+
+function collectSignupPayload(form, kind) {
+  const data = new FormData(form);
+  const payload = {
+    signupType: kind,
+    submittedAt: new Date().toISOString()
+  };
+
+  data.forEach(function(value, key) {
+    if (value instanceof File) {
+      return;
+    }
+    payload[key] = normalizeText(value);
+  });
+
+  if (kind === "team") {
+    payload.cup = "SEC 21";
+    payload.tournament = "SEC 21";
+    payload.abbr = String(payload.abbr || "").toUpperCase();
+    payload.players = Array.from({ length: 12 }, function(_, index) {
+      return normalizeText(payload["player" + (index + 1)]);
+    }).filter(Boolean);
+  }
+
+  return payload;
+}
+
+function validateSignupPayload(payload, kind) {
+  if (payload.website) {
+    return "Något gick fel. Försök igen.";
+  }
+
+  if (!payload.email) {
+    return "E-postadress saknas.";
+  }
+
+  if (kind === "team") {
+    if (!payload.signupCode) {
+      return "Anmälningskod saknas.";
+    }
+    if (!payload.teamName) {
+      return "Lagnamn saknas.";
+    }
+    if (!payload.abbr || payload.abbr.length < 2 || payload.abbr.length > 3) {
+      return "Förkortning måste vara 2-3 tecken.";
+    }
+    if (!payload.captain || !payload.assistant1 || !payload.assistant2) {
+      return "Kapten och två assisterande kaptener måste fyllas i.";
+    }
+    if (!payload.players || payload.players.length < 8) {
+      return "Minst 8 spelare krävs.";
+    }
+    if (payload.players.length > 12) {
+      return "Max 12 spelare är tillåtet.";
+    }
+  }
+
+  if (kind === "summer-draft") {
+    if (!payload.gamertag) {
+      return "Gamertag saknas.";
+    }
+    if (!payload.nationality) {
+      return "Nationalitet saknas.";
+    }
+    if (!payload.primaryPosition) {
+      return "Primär position saknas.";
+    }
+  }
+
+  return "";
+}
+
+async function getSignupLogoPayload(form) {
+  const fileInput = form.querySelector("[data-signup-logo]");
+  const file = fileInput?.files?.[0];
+
+  if (!file) {
+    return {};
+  }
+
+  if (!["image/png", "image/jpeg"].includes(file.type)) {
+    throw new Error("Laglogga måste vara PNG eller JPG.");
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    throw new Error("Laglogga får vara max 2 MB.");
+  }
+
+  const dataUrl = await readFileAsDataUrl(file);
+  return {
+    logoData: dataUrl.split(",")[1] || "",
+    logoMime: file.type,
+    logoName: file.name
+  };
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise(function(resolve, reject) {
+    const reader = new FileReader();
+    reader.onerror = function() {
+      reject(new Error("Kunde inte läsa filen."));
+    };
+    reader.onload = function() {
+      resolve(String(reader.result || ""));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function setSignupStatus(element, type, message) {
+  if (!element) {
+    return;
+  }
+
+  element.className = "signup-status" + (type ? " " + type : "");
+  element.textContent = message || "";
+}
+
+function safeJsonParse(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 function bindCupStatControls() {
@@ -4870,7 +7102,7 @@ function getInferredRoundName(roundIndex, maxRound, cup) {
     if (hasPlayInFormat(cup)) {
       return "Play in";
     }
-    return "Attondelsfinal";
+    return "Åttondelsfinal";
   }
 
   return "Slutspel runda " + roundIndex;
@@ -5026,6 +7258,12 @@ function parseRoute() {
   }
   if (parts[0] === "player" && parts[1]) {
     return { type: "player", id: parts[1] };
+  }
+  if (parts[0] === "anmalan" && parts[1] === "lag") {
+    return { type: "signupTeam" };
+  }
+  if (parts[0] === "anmalan" && parts[1] === "sommar-draft") {
+    return { type: "signupSummerDraft" };
   }
 
   return { type: "home" };
@@ -5740,11 +7978,11 @@ function findCupSettings(settingsByCup, cup, code, name, id) {
   for (let index = 0; index < candidates.length; index += 1) {
     const key = normalizeLookupKey(candidates[index]);
     if (key && settingsByCup.has(key)) {
-      return applyCupSettingsOverride(settingsByCup.get(key), candidates);
+      return applyCupSettingsOverride(mergeDataRow(settingsByCup.get(key), cup.settings), candidates);
     }
   }
 
-  return applyCupSettingsOverride(createDefaultCupSettings(), candidates);
+  return applyCupSettingsOverride(mergeDataRow(createDefaultCupSettings(), cup.settings), candidates);
 }
 
 function applyCupSettingsOverride(settings, candidates) {
