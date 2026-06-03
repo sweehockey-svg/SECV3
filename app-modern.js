@@ -427,9 +427,10 @@
       </section>
       <section class="sportGrid">
         ${panel("Tabeller", renderStandings(standings))}
-        ${panel("Slutspelsträd", renderBracket(bracket))}
+        ${panel("Slutspelsträd", renderBracket(bracket, cup.settings))}
       </section>
       <section class="dashGrid two">
+        ${panel("Cupinfo", renderCupSettings(cup.settings))}
         ${panel("Matcher", renderMatchRows(rows, 14))}
         ${panel("Toppspelare", renderLeaderRows(cup.topPlayers.slice(0, 10)))}
         ${panel("Toppmålvakter", renderGoalieRows(cup.topGoalies.slice(0, 10)))}
@@ -766,14 +767,15 @@
     });
   }
 
-  function renderBracket(rounds) {
+  function renderBracket(rounds, settings) {
     if (!rounds.length) return `<div class="empty">Inget slutspelsträd hittades för cupen.</div>`;
     return `
       <div class="bracket">
         ${rounds.map(function (round) {
+          const bestOf = getBestOfForRound(round.round, settings);
           return `
             <section class="bracketRound">
-              <h4>${escapeHtml(round.round)}</h4>
+              <h4>${escapeHtml(round.round)}${bestOf ? ` <span class="boBadge">BO${escapeHtml(bestOf)}</span>` : ""}</h4>
               ${round.matches.slice(0, 10).map(function (match) {
                 const winner = number(match.awayScore) > number(match.homeScore) ? match.awayTeam : number(match.homeScore) > number(match.awayScore) ? match.homeTeam : "";
                 return `
@@ -788,6 +790,88 @@
         }).join("")}
       </div>
     `;
+  }
+
+  function renderCupSettings(settings) {
+    const safeSettings = settings || normalizeCupSettings({});
+    const items = [
+      ["Slutspelsstreck 1", formatSettingValue(safeSettings.playoffCut1)],
+      ["Slutspelsstreck 2", formatSettingValue(safeSettings.playoffCut2)],
+      ["BO åtton", formatSettingValue(safeSettings.bestOf.roundOf16)],
+      ["BO kvart", formatSettingValue(safeSettings.bestOf.quarter)],
+      ["BO semi", formatSettingValue(safeSettings.bestOf.semi)],
+      ["BO final", formatSettingValue(safeSettings.bestOf.final)],
+      ["Minst antal spelare", formatSettingValue(safeSettings.minPlayers)],
+      ["Max antal spelare", formatSettingValue(safeSettings.maxPlayers)]
+    ];
+    const hasAny = items.some(function (item) { return item[1] !== "Ej angivet"; })
+      || safeSettings.eligibility
+      || safeSettings.info;
+    if (!hasAny) return `<div class="empty">Ingen extra cupinfo hittades.</div>`;
+    return `
+      <div class="cupInfoGrid">
+        ${items.map(function (item) {
+          return `<div><span>${escapeHtml(item[0])}</span><strong>${escapeHtml(item[1])}</strong></div>`;
+        }).join("")}
+      </div>
+      <div class="cupInfoText">
+        ${safeSettings.eligibility ? `<p><span>Behörighet</span>${escapeHtml(stripRuleLabel(safeSettings.eligibility, "Behörighet"))}</p>` : ""}
+        ${safeSettings.info ? splitSettingsInfo(safeSettings.info).map(function (info) {
+          return `<p><span>Info</span>${escapeHtml(info)}</p>`;
+        }).join("") : ""}
+      </div>
+    `;
+  }
+
+  function normalizeCupSettings(cup) {
+    const source = cup?.settings || cup || {};
+    const bestOf = source.bestOf || {};
+    return {
+      playoffCut1: nullableNumber(source.playoffCut1 ?? source["slutspelsstreck  1"] ?? source["slutspelsstreck 1"]),
+      playoffCut2: nullableNumber(source.playoffCut2 ?? source["slutspelsstreck  2"] ?? source["slutspelsstreck 2"]),
+      bestOf: {
+        roundOf16: nullableNumber(bestOf.roundOf16 ?? source.boAtton ?? source["bo åtton"] ?? source["bo atton"]),
+        quarter: nullableNumber(bestOf.quarter ?? source.boQuarter ?? source["bo kvart"]),
+        semi: nullableNumber(bestOf.semi ?? source.boSemi ?? source["bo semi"]),
+        final: nullableNumber(bestOf.final ?? source.boFinal ?? source["bo final"])
+      },
+      minPlayers: nullableNumber(source.minPlayers ?? source["Minst antal spelare"] ?? source["Min antal spelare"]),
+      maxPlayers: nullableNumber(source.maxPlayers ?? source["Max antal spelare"] ?? source["Max antal"]),
+      eligibility: text(source.eligibility ?? source["Behörighet:"] ?? source["Behörighet"] ?? source.Behorighet ?? ""),
+      info: text(source.info ?? source.Info ?? "")
+    };
+  }
+
+  function getBestOfForRound(roundName, settings) {
+    const bestOf = settings?.bestOf || {};
+    const folded = fold(roundName);
+    if (folded.includes("atton") || folded.includes("16")) return bestOf.roundOf16;
+    if (folded.includes("kvart")) return bestOf.quarter;
+    if (folded.includes("semi")) return bestOf.semi;
+    if (folded.includes("final")) return bestOf.final;
+    return [bestOf.roundOf16, bestOf.quarter, bestOf.semi, bestOf.final].find(Boolean) || null;
+  }
+
+  function formatSettingValue(value) {
+    return value === null || value === undefined || value === "" ? "Ej angivet" : String(value);
+  }
+
+  function stripRuleLabel(value, label) {
+    const clean = text(value);
+    const labels = uniqueStrings([label, removeDiacritics(label)]).map(function (entry) {
+      return entry.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/:$/, "");
+    });
+    for (let index = 0; index < labels.length; index += 1) {
+      const stripped = clean.replace(new RegExp("^\\s*" + labels[index] + "\\s*:?\\s*", "i"), "").trim();
+      if (stripped && stripped !== clean) return stripped;
+    }
+    return clean;
+  }
+
+  function splitSettingsInfo(value) {
+    return text(value).split(/\r?\n|(?:\s*\|\s*)/).map(function (part) {
+      return part.trim();
+    }).filter(Boolean);
   }
 
   function buildTeamRoster(teamName) {
@@ -1196,6 +1280,7 @@
       const teams = Array.from(new Set(matches.flatMap(function (match) {
         return [match.awayTeam, match.homeTeam];
       }).filter(Boolean))).sort(function (a, b) { return a.localeCompare(b, "sv"); });
+      const settings = normalizeCupSettings(cup);
       const topPlayers = collectCupPlayers(cup).slice(0, 10);
       const playerRows = collectCupPlayers(cup).map(function (row) {
         return Object.assign({}, row, {
@@ -1228,6 +1313,7 @@
         name: text(cup.name || cup.code || "SEC"),
         winner: text(cup.placements?.first || cup.winner || ""),
         runnerUp: text(cup.placements?.second || cup.runnerUp || ""),
+        settings: settings,
         matches: matches,
         matchCount: matches.length,
         teams: teams,
