@@ -512,7 +512,7 @@
 
   function splitCupTitle(title) {
     const clean = text(title);
-    const match = clean.match(/^(Svenska eHockey Cupen)\s+(\d+)(?:\s+(.+))?$/i);
+    const match = clean.match(/^(Svenska eHockey Cupen)\s+(\d+(?:\.\d+)?)(?:\s+(.+))?$/i);
     if (match) return { main: match[1], edition: match[2], sub: match[3] || "" };
     return { main: clean, edition: "", sub: "" };
   }
