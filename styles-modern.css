@@ -524,7 +524,7 @@ input {
 }
 
 .cupHero h2 {
-  max-width: 980px;
+  max-width: 780px;
   margin: 0;
   color: #edf7f8;
   font-size: clamp(42px, 5vw, 82px);
