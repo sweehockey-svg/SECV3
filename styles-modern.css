@@ -715,6 +715,53 @@ input {
   text-transform: uppercase;
 }
 
+.sortableStanding th button {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.sortableStanding th:first-child button,
+.sortableStanding th:nth-child(2) button {
+  justify-content: flex-start;
+}
+
+.sortableStanding th button::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+  opacity: 0.35;
+}
+
+.sortableStanding th button.active {
+  color: var(--gold);
+}
+
+.sortableStanding th button.active[data-sort-dir="desc"]::after {
+  border-top: 5px solid currentColor;
+}
+
+.sortableStanding th button.active[data-sort-dir="asc"]::after {
+  border-bottom: 5px solid currentColor;
+}
+
+.rankCell {
+  color: var(--muted);
+  font-weight: 900;
+}
+
 .standing td strong,
 .dataTable td strong {
   color: var(--gold);

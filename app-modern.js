@@ -1016,24 +1016,26 @@
   function renderStandings(groups, settings, options) {
     if (!groups.length) return `<div class="empty">Ingen gruppstatistik hittades.</div>`;
     const opts = options || {};
+    const isFull = Boolean(opts.full);
     const cut1 = settings?.playoffCut1 || null;
     const cut2 = settings?.playoffCut2 || null;
     const displayGroups = opts.preview ? groups.slice(0, 2) : groups;
     return `
-      <div class="standingsDeck ${opts.full ? "fullStandings" : ""}">
+      <div class="standingsDeck ${isFull ? "fullStandings" : ""}">
         ${displayGroups.map(function (group) {
           const rows = opts.preview ? group.rows.slice(0, 8) : group.rows;
           return `
             <section class="standing">
               <h4>${escapeHtml(group.name)}</h4>
-              <table>
-                <thead><tr><th>Lag</th><th>GP</th><th>W</th><th>L</th><th>OTL</th><th>+/-</th><th>PTS</th></tr></thead>
+              <table class="${isFull ? "sortableStanding" : ""}">
+                <thead><tr>${isFull ? `<th><button type="button" data-standing-sort="rank" data-sort-type="number">#</button></th>` : ""}<th>${isFull ? `<button type="button" data-standing-sort="team" data-sort-type="text">Lag</button>` : "Lag"}</th><th>${isFull ? `<button type="button" data-standing-sort="gp" data-sort-type="number">GP</button>` : "GP"}</th><th>${isFull ? `<button type="button" data-standing-sort="w" data-sort-type="number">W</button>` : "W"}</th><th>${isFull ? `<button type="button" data-standing-sort="l" data-sort-type="number">L</button>` : "L"}</th><th>${isFull ? `<button type="button" data-standing-sort="otl" data-sort-type="number">OTL</button>` : "OTL"}</th><th>${isFull ? `<button type="button" data-standing-sort="diff" data-sort-type="number">+/-</button>` : "+/-"}</th><th>${isFull ? `<button type="button" data-standing-sort="pts" data-sort-type="number">PTS</button>` : "PTS"}</th></tr></thead>
                 <tbody>
                   ${rows.map(function (row, index) {
                     const rank = index + 1;
                     const cutClass = rank === cut1 ? " playoffCutLine cutOne" : rank === cut2 ? " playoffCutLine cutTwo" : "";
                     return `
-                      <tr class="${cutClass}">
+                      <tr class="${cutClass}" data-rank="${rank}" data-team="${escapeHtml(fold(row.team))}" data-gp="${row.gp}" data-w="${row.w}" data-l="${row.l}" data-otl="${row.otl}" data-diff="${row.gf - row.ga}" data-pts="${row.pts}">
+                        ${isFull ? `<td class="rankCell">${rank}</td>` : ""}
                         <td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td>
                         <td>${row.gp}</td><td>${row.w}</td><td>${row.l}</td><td>${row.otl}</td>
                         <td>${row.gf - row.ga}</td><td><strong>${row.pts}</strong></td>
@@ -1956,6 +1958,45 @@
         location.hash = "#/cups/" + encodeURIComponent(cupId) + "/matches" + (team ? "?team=" + encodeURIComponent(team) : "");
       });
     }
+    document.querySelectorAll("[data-standing-sort]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        sortStandingTable(button);
+      });
+    });
+  }
+
+  function sortStandingTable(button) {
+    const table = button.closest("table");
+    const tbody = table?.querySelector("tbody");
+    if (!table || !tbody) return;
+    const key = button.dataset.standingSort || "rank";
+    const type = button.dataset.sortType || "number";
+    const currentKey = table.dataset.sortKey || "rank";
+    const currentDir = table.dataset.sortDir || "asc";
+    const defaultDir = type === "text" || key === "rank" ? "asc" : "desc";
+    const direction = currentKey === key ? (currentDir === "desc" ? "asc" : "desc") : defaultDir;
+    table.dataset.sortKey = key;
+    table.dataset.sortDir = direction;
+    table.querySelectorAll("[data-standing-sort]").forEach(function (sortButton) {
+      sortButton.classList.toggle("active", sortButton === button);
+      sortButton.dataset.sortDir = sortButton === button ? direction : "";
+    });
+    const rows = Array.from(tbody.querySelectorAll("tr")).sort(function (left, right) {
+      const leftValue = left.dataset[key] || "";
+      const rightValue = right.dataset[key] || "";
+      if (type === "text") {
+        return direction === "asc"
+          ? leftValue.localeCompare(rightValue, "sv")
+          : rightValue.localeCompare(leftValue, "sv");
+      }
+      const diff = number(leftValue) - number(rightValue);
+      return direction === "asc" ? diff : -diff;
+    });
+    rows.forEach(function (row, index) {
+      const rankCell = row.querySelector(".rankCell");
+      if (rankCell) rankCell.textContent = String(index + 1);
+      tbody.appendChild(row);
+    });
   }
 
   function sortPlayers(a, b) {
