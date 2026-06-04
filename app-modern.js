@@ -434,10 +434,11 @@
 
   function renderCupHero(cup, options) {
     const opts = options || {};
+    const full = opts.full !== false;
     const groupMatches = cup.matches.filter(function (match) { return !isPlayoffMatch(match); }).length;
     const playoffMatches = cup.matches.filter(isPlayoffMatch).length;
     return `
-      <section class="cupHero ${opts.full ? "full" : "compact"} ${isSummer(cup) ? "summer" : ""}">
+      <section class="cupHero ${full ? "full" : "compact"} ${isSummer(cup) ? "summer" : ""}">
         <div class="cupHeroCopy">
           <nav class="crumbs" aria-label="Brödsmulor">
             <a href="#/overview">Start</a>
@@ -449,7 +450,7 @@
           <p class="cupKicker">${escapeHtml(cup.code)}</p>
           <h2>${escapeHtml(opts.title || cup.name)}</h2>
           <p>${escapeHtml(opts.description || cup.name)}</p>
-          ${opts.full ? `
+          ${full ? `
             <div class="cupHeroStats">
               ${cupHeroStat(cup.teams.length, "Lag")}
               ${cupHeroStat(groupMatches, "Gruppmatcher")}
@@ -457,7 +458,7 @@
             </div>
           ` : ""}
         </div>
-        ${opts.full ? `
+        ${full ? `
           <div class="cupHeroLogo">
             <img src="./SECLOGGA.png" alt="">
           </div>
@@ -481,7 +482,7 @@
             <div>
               <span>Poängkung</span>
               <strong>${renderPersonName(topPlayer.name)}</strong>
-              <em>${renderTeamIdentity(topPlayer.team, "teamLogoChip")}</em>
+              <em>${renderTeamIdentityStatic(topPlayer.team, "teamLogoChip")}</em>
               <b>${topPlayer.pts} p</b>
             </div>
           </a>
@@ -500,7 +501,7 @@
             <div>
               <span>Målvaktskung</span>
               <strong>${renderPersonName(topGoalie.name)}</strong>
-              <em>${renderTeamIdentity(topGoalie.team, "teamLogoChip")}</em>
+              <em>${renderTeamIdentityStatic(topGoalie.team, "teamLogoChip")}</em>
               <b>${formatPercent(topGoalie.svp)}</b>
             </div>
           </a>
@@ -1552,6 +1553,16 @@
         ${renderTeamLogo(safeName, logoClass || "teamLogoTiny")}
         <span>${escapeHtml(safeName)}</span>
       </a>
+    `;
+  }
+
+  function renderTeamIdentityStatic(teamName, logoClass) {
+    const safeName = text(teamName || "Okänt lag");
+    return `
+      <span class="teamIdentity teamIdentityStatic">
+        ${renderTeamLogo(safeName, logoClass || "teamLogoTiny")}
+        <span>${escapeHtml(safeName)}</span>
+      </span>
     `;
   }
 

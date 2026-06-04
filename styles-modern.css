@@ -562,8 +562,8 @@ input {
 
 .spotlightCard {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 18px;
   align-items: center;
   min-height: 124px;
   padding: 18px;
@@ -574,9 +574,12 @@ input {
 }
 
 .spotlightCard > img,
+.spotlightCard > .teamLogo,
+.spotlightCard > .playerPortrait,
 .spotlightLogo {
-  width: 72px;
-  height: 72px;
+  width: 82px;
+  height: 82px;
+  justify-self: start;
 }
 
 .spotlightLogo {
@@ -584,8 +587,6 @@ input {
 }
 
 .spotlightPortrait {
-  width: 80px;
-  height: 80px;
   border-radius: 12px;
 }
 
@@ -604,15 +605,23 @@ input {
   margin-top: 4px;
   color: #fff;
   font-size: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .spotlightCard em {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   margin-top: 6px;
   color: #d2dedc;
   font-style: normal;
   font-weight: 800;
+}
+
+.spotlightCard .teamIdentityStatic {
+  pointer-events: none;
 }
 
 .spotlightCard b {
