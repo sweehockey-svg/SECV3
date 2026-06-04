@@ -477,7 +477,7 @@ input {
 }
 
 .cupHero.full {
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
   min-height: 420px;
   align-items: stretch;
 }
@@ -492,7 +492,7 @@ input {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  max-width: 920px;
+  max-width: none;
 }
 
 .crumbs {
@@ -524,17 +524,17 @@ input {
 }
 
 .cupHero h2 {
-  max-width: 780px;
+  max-width: 100%;
   margin: 0;
   color: #edf7f8;
-  font-size: clamp(42px, 5vw, 82px);
+  font-size: clamp(40px, 4.7vw, 72px);
   line-height: 0.92;
   text-transform: none;
   white-space: nowrap;
 }
 
 .cupHero.full h2 {
-  font-size: clamp(46px, 5.2vw, 86px);
+  font-size: clamp(44px, 4.9vw, 76px);
 }
 
 .cupHero h2 span {
@@ -599,14 +599,14 @@ input {
   display: grid;
   place-items: center;
   align-self: stretch;
-  min-height: 300px;
+  min-height: 280px;
   border: 1px solid rgba(233, 197, 110, 0.18);
   border-radius: 18px;
   background: rgba(3, 6, 10, 0.5);
 }
 
 .cupHeroLogo img {
-  width: min(74%, 280px);
+  width: min(70%, 230px);
   height: auto;
   filter: drop-shadow(0 24px 34px rgba(0, 0, 0, 0.48));
 }
