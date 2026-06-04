@@ -532,8 +532,8 @@
       <section class="dashGrid two">
         ${panelWithAction("Cupinfo", "Fullständiga regler", "#/cups/" + encodeURIComponent(cup.id) + "/info", renderCupSettings(cup.settings, { preview: true }))}
         ${panelWithAction("Matcher", "Alla matcher", "#/cups/" + encodeURIComponent(cup.id) + "/matches", renderMatchRows(rows, 14))}
-        ${panelWithAction("Toppspelare", "All statistik", "#/cups/" + encodeURIComponent(cup.id) + "/stats", renderLeaderRows(cup.topPlayers.slice(0, 10)))}
-        ${panelWithAction("Toppmålvakter", "All statistik", "#/cups/" + encodeURIComponent(cup.id) + "/stats", renderGoalieRows(cup.topGoalies.slice(0, 10)))}
+        ${panelWithAction("Toppspelare", "All statistik", "#/cups/" + encodeURIComponent(cup.id) + "/stats", renderCupTopPlayerPreview(cup.topPlayers))}
+        ${panelWithAction("Toppmålvakter", "All statistik", "#/cups/" + encodeURIComponent(cup.id) + "/stats", renderCupTopGoaliePreview(cup.topGoalies))}
         ${panel("Lag i cupen", renderMiniTags(cup.teams, "teams"))}
       </section>
     `;
@@ -921,6 +921,44 @@
               <span>${index + 1}</span>
               <strong>${renderPersonName(goalie.name)}</strong>
               <em>${escapeHtml(goalie.team || "Okänt lag")} · ${goalie.gp} GP</em>
+              <b>${formatPercent(goalie.svp)}</b>
+            </a>
+          `;
+        }).join("") || `<div class="empty">Ingen målvaktsstatistik hittades.</div>`}
+      </div>
+    `;
+  }
+
+  function renderCupTopPlayerPreview(players) {
+    const rows = (players || []).slice(0, 5);
+    return `
+      <div class="previewLeaders">
+        ${rows.map(function (player, index) {
+          return `
+            <a class="previewLeader" href="#/players/${encodeURIComponent(player.name)}">
+              <span class="previewRank">${index + 1}</span>
+              ${renderPlayerPortrait(player, "previewPortrait")}
+              <strong>${renderPersonName(player.name)}</strong>
+              <em>${renderTeamIdentityStatic(player.team, "teamLogoChip")}</em>
+              <b>${player.pts}p</b>
+            </a>
+          `;
+        }).join("") || `<div class="empty">Ingen spelarstatistik hittades.</div>`}
+      </div>
+    `;
+  }
+
+  function renderCupTopGoaliePreview(goalies) {
+    const rows = (goalies || []).slice(0, 5);
+    return `
+      <div class="previewLeaders">
+        ${rows.map(function (goalie, index) {
+          return `
+            <a class="previewLeader" href="#/goalies/${encodeURIComponent(goalie.name)}">
+              <span class="previewRank">${index + 1}</span>
+              ${renderPlayerPortrait(goalie, "previewPortrait")}
+              <strong>${renderPersonName(goalie.name)}</strong>
+              <em>${renderTeamIdentityStatic(goalie.team, "teamLogoChip")} · ${goalie.gp} GP</em>
               <b>${formatPercent(goalie.svp)}</b>
             </a>
           `;

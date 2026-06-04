@@ -1183,6 +1183,65 @@ input {
   text-align: right;
 }
 
+.previewLeaders {
+  display: grid;
+  gap: 8px;
+}
+
+.previewLeader {
+  display: grid;
+  grid-template-columns: 34px 46px minmax(0, 1fr) minmax(140px, auto) 58px;
+  gap: 10px;
+  align-items: center;
+  min-height: 64px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.previewRank {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: #05070b;
+  background: var(--ice);
+  font-weight: 900;
+}
+
+.previewPortrait {
+  width: 42px;
+  height: 52px;
+  border-radius: 999px;
+}
+
+.previewLeader strong,
+.previewLeader em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewLeader em {
+  display: inline-flex;
+  justify-content: flex-end;
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 800;
+}
+
+.previewLeader .teamIdentityStatic {
+  pointer-events: none;
+}
+
+.previewLeader b {
+  color: var(--gold);
+  text-align: right;
+}
+
 .cupStack a {
   grid-template-columns: 76px minmax(0, 1fr) 92px;
 }
@@ -1813,6 +1872,7 @@ h2 .countryFlag {
   .matchRow,
   .leader,
   .cupStack a,
+  .previewLeader,
   .playerRow {
     grid-template-columns: 1fr;
   }
@@ -1820,7 +1880,10 @@ h2 .countryFlag {
   .matchRow em,
   .leader em,
   .leader b,
+  .previewLeader em,
+  .previewLeader b,
   .playerRow b {
     text-align: left;
+    justify-content: flex-start;
   }
 }
