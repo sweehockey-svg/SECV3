@@ -707,6 +707,15 @@ input {
   text-align: left;
 }
 
+.sortableStanding th:nth-child(2),
+.sortableStanding td:nth-child(2),
+.dataTable th:nth-child(3),
+.dataTable td:nth-child(3),
+.standing td:has(.teamIdentity),
+.dataTable td:has(.teamIdentity) {
+  text-align: left;
+}
+
 .standing th,
 .dataTable th {
   color: var(--muted);
@@ -1152,6 +1161,7 @@ input {
 .teamIdentity {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 8px;
   min-width: 0;
   color: inherit;
