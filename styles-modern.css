@@ -562,7 +562,7 @@ input {
 
 .spotlightCard {
   display: grid;
-  grid-template-columns: 82px minmax(0, 1fr);
+  grid-template-columns: 86px minmax(0, 1fr);
   gap: 18px;
   align-items: center;
   min-height: 124px;
@@ -575,7 +575,6 @@ input {
 
 .spotlightCard > img,
 .spotlightCard > .teamLogo,
-.spotlightCard > .playerPortrait,
 .spotlightLogo {
   width: 82px;
   height: 82px;
@@ -587,7 +586,15 @@ input {
 }
 
 .spotlightPortrait {
-  border-radius: 12px;
+  width: 86px;
+  height: 104px;
+  justify-self: start;
+  border-radius: 999px;
+}
+
+.spotlightPortrait img {
+  object-fit: cover;
+  object-position: center top;
 }
 
 .spotlightCard > div > span {

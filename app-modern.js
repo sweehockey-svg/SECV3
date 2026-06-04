@@ -464,6 +464,7 @@
           </div>
         ` : ""}
       </section>
+      ${opts.spotlight === false ? "" : renderCupSpotlight(cup)}
     `;
   }
 
@@ -523,7 +524,6 @@
         description: "Cupsidan visar översikt, tabeller, lag, topplistor och matcher för den valda turneringen.",
         full: true
       })}
-      ${renderCupSpotlight(cup)}
       ${renderCupSectionNav(cup)}
       <section class="sportGrid">
         ${panelWithAction("Tabeller", "Fullständig tabell", "#/cups/" + encodeURIComponent(cup.id) + "/tables", renderStandingsPreview(standings, cup.settings))}
@@ -1332,6 +1332,27 @@
     return series.awayWins > series.homeWins ? series.awayTeam : series.homeTeam;
   }
 
+  function inferCupPlacement(cup) {
+    const rounds = buildBracket(cup);
+    if (!rounds.length) return { winner: "", runnerUp: "" };
+    const sortedRounds = rounds.slice().sort(function (a, b) {
+      return roundRank(b.round) - roundRank(a.round);
+    });
+    const finalRound = sortedRounds.find(function (round) {
+      return fold(round.round).includes("final") && !fold(round.round).includes("semi") && (round.series || []).length === 1;
+    }) || sortedRounds.find(function (round) {
+      return (round.series || []).length === 1;
+    });
+    const finalSeries = finalRound?.series?.[0];
+    if (!finalSeries) return { winner: "", runnerUp: "" };
+    const winner = getSeriesWinner(finalSeries);
+    if (!winner) return { winner: "", runnerUp: "" };
+    return {
+      winner: winner,
+      runnerUp: winner === finalSeries.awayTeam ? finalSeries.homeTeam : finalSeries.awayTeam
+    };
+  }
+
   function normalizeCupSettings(cup) {
     const source = cup?.settings || cup || {};
     const bestOf = source.bestOf || {};
@@ -1882,6 +1903,7 @@
           cupSortTimestamp: cupDateMeta.sortTimestamp
         });
       });
+      const inferredPlacement = inferCupPlacement({ matches: matches });
       return {
         id: String(cup.id || index + 1),
         sortOrder: typeof cup.sortOrder === "number" ? cup.sortOrder : index,
@@ -1890,8 +1912,8 @@
         cupSortTimestamp: cupDateMeta.sortTimestamp,
         code: text(cup.code || "SEC " + (index + 1)),
         name: text(cup.name || cup.code || "SEC"),
-        winner: text(cup.placements?.first || cup.winner || ""),
-        runnerUp: text(cup.placements?.second || cup.runnerUp || ""),
+        winner: text(cup.placements?.first || cup.winner || inferredPlacement.winner || ""),
+        runnerUp: text(cup.placements?.second || cup.runnerUp || inferredPlacement.runnerUp || ""),
         settings: settings,
         matches: matches,
         matchCount: matches.length,
