@@ -902,6 +902,10 @@ input {
   min-width: 620px;
 }
 
+.standing table.sortableStanding {
+  min-width: 1040px;
+}
+
 .standing table.previewStanding {
   min-width: 460px;
 }

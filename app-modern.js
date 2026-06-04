@@ -1092,8 +1092,8 @@
     }).forEach(function (match) {
       const groupName = match.group || "Gruppspel";
       if (!groups.has(groupName)) groups.set(groupName, new Map());
-      ingestStanding(groups.get(groupName), match.awayTeam, match.awayScore, match.homeScore, match.overtime);
-      ingestStanding(groups.get(groupName), match.homeTeam, match.homeScore, match.awayScore, match.overtime);
+      ingestStanding(groups.get(groupName), match.awayTeam, match.awayScore, match.homeScore, match.overtime, match.awayShots, match.homeShots);
+      ingestStanding(groups.get(groupName), match.homeTeam, match.homeScore, match.awayScore, match.overtime, match.homeShots, match.awayShots);
     });
 
     return Array.from(groups.entries()).sort(function (a, b) {
@@ -1108,10 +1108,10 @@
     });
   }
 
-  function ingestStanding(map, team, gf, ga, overtime) {
+  function ingestStanding(map, team, gf, ga, overtime, sf, sa) {
     if (gf === null || ga === null) return;
     if (!map.has(team)) {
-      map.set(team, { team: team, gp: 0, w: 0, l: 0, otl: 0, gf: 0, ga: 0, pts: 0 });
+      map.set(team, { team: team, gp: 0, w: 0, otw: 0, l: 0, otl: 0, gf: 0, ga: 0, sf: 0, sa: 0, pts: 0 });
     }
     const row = map.get(team);
     const goalsFor = number(gf);
@@ -1119,8 +1119,11 @@
     row.gp += 1;
     row.gf += goalsFor;
     row.ga += goalsAgainst;
+    row.sf += nullableNumber(sf) ?? 0;
+    row.sa += nullableNumber(sa) ?? 0;
     if (goalsFor > goalsAgainst) {
       row.w += 1;
+      if (overtime) row.otw += 1;
       row.pts += 3;
     } else if (overtime) {
       row.otl += 1;
@@ -1158,6 +1161,22 @@
     const cut1 = settings?.playoffCut1 || null;
     const cut2 = settings?.playoffCut2 || null;
     const displayGroups = groups;
+    const fullHead = [
+      ["rank", "#"],
+      ["team", "Lag", "text"],
+      ["gp", "GP"],
+      ["w", "W"],
+      ["otw", "OTW"],
+      ["l", "L"],
+      ["otl", "OTL"],
+      ["gf", "GF"],
+      ["ga", "GA"],
+      ["diff", "+/-"],
+      ["sf", "SF"],
+      ["sa", "SA"],
+      ["shotdiff", "S+/-"],
+      ["pts", "PTS"]
+    ];
     return `
       <div class="standingsDeck ${isFull ? "fullStandings" : ""}">
         ${displayGroups.map(function (group) {
@@ -1169,18 +1188,22 @@
                 <colgroup>
                   ${isFull ? `<col class="standingRankCol">` : ""}
                   <col class="standingTeamCol">
-                  <col span="${isFull ? 6 : 4}">
+                  <col span="${isFull ? 12 : 4}">
                 </colgroup>
-                <thead><tr>${isFull ? `<th><button type="button" data-standing-sort="rank" data-sort-type="number">#</button></th>` : ""}<th>${isFull ? `<button type="button" data-standing-sort="team" data-sort-type="text">Lag</button>` : "Lag"}</th><th>${isFull ? `<button type="button" data-standing-sort="gp" data-sort-type="number">GP</button>` : "GP"}</th><th>${isFull ? `<button type="button" data-standing-sort="w" data-sort-type="number">W</button>` : "W"}</th><th>${isFull ? `<button type="button" data-standing-sort="l" data-sort-type="number">L</button>` : "L"}</th>${isFull ? `<th><button type="button" data-standing-sort="otl" data-sort-type="number">OTL</button></th><th><button type="button" data-standing-sort="diff" data-sort-type="number">+/-</button></th>` : ""}<th>${isFull ? `<button type="button" data-standing-sort="pts" data-sort-type="number">PTS</button>` : "PTS"}</th></tr></thead>
+                <thead><tr>${isFull ? fullHead.map(function (head) {
+                  return `<th><button type="button" data-standing-sort="${head[0]}" data-sort-type="${head[2] || "number"}">${head[1]}</button></th>`;
+                }).join("") : "<th>Lag</th><th>GP</th><th>W</th><th>L</th><th>PTS</th>"}</tr></thead>
                 <tbody>
                   ${rows.map(function (row, index) {
                     const rank = index + 1;
                     const cutClass = rank === cut1 ? " playoffCutLine cutOne" : rank === cut2 ? " playoffCutLine cutTwo" : "";
+                    const diff = row.gf - row.ga;
+                    const shotDiff = row.sf - row.sa;
                     return `
-                      <tr class="${cutClass}" data-rank="${rank}" data-team="${escapeHtml(fold(row.team))}" data-gp="${row.gp}" data-w="${row.w}" data-l="${row.l}" data-otl="${row.otl}" data-diff="${row.gf - row.ga}" data-pts="${row.pts}">
+                      <tr class="${cutClass}" data-rank="${rank}" data-team="${escapeHtml(fold(row.team))}" data-gp="${row.gp}" data-w="${row.w}" data-otw="${row.otw}" data-l="${row.l}" data-otl="${row.otl}" data-gf="${row.gf}" data-ga="${row.ga}" data-diff="${diff}" data-sf="${row.sf}" data-sa="${row.sa}" data-shotdiff="${shotDiff}" data-pts="${row.pts}">
                         ${isFull ? `<td class="rankCell">${rank}</td>` : ""}
                         <td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td>
-                        <td>${row.gp}</td><td>${row.w}</td><td>${isFull ? row.l : row.l + row.otl}</td>${isFull ? `<td>${row.otl}</td><td>${row.gf - row.ga}</td>` : ""}
+                        <td>${row.gp}</td><td>${row.w}</td>${isFull ? `<td>${row.otw}</td>` : ""}<td>${isFull ? row.l : row.l + row.otl}</td>${isFull ? `<td>${row.otl}</td><td>${row.gf}</td><td>${row.ga}</td><td>${diff}</td><td>${row.sf}</td><td>${row.sa}</td><td>${shotDiff}</td>` : ""}
                         <td><strong>${row.pts}</strong></td>
                       </tr>
                     `;
@@ -1970,7 +1993,9 @@
           time: text(match.time),
           awayTeam: text(match.awayTeam || "Okänt lag"),
           awayScore: nullableNumber(match.awayScore),
+          awayShots: nullableNumber(match.awayShots),
           homeScore: nullableNumber(match.homeScore),
+          homeShots: nullableNumber(match.homeShots),
           homeTeam: text(match.homeTeam || "Okänt lag"),
           group: text(match.group),
           stage: text(match.stage || "group"),
