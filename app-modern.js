@@ -1888,12 +1888,13 @@
           cupSortTimestamp: cupDateMeta.sortTimestamp
         });
       });
-      const topGoalies = collectCupGoalies(cup).slice(0, 10);
+      const cupGoalies = collectCupGoalies(cup);
+      const topGoalies = filterEligibleCupGoalies(cupGoalies, matches).slice(0, 10);
       const goalieStageRows = {
         group: collectCupGoaliesForStage(cup, "group"),
         playoffs: collectCupGoaliesForStage(cup, "playoffs")
       };
-      const goalieRows = collectCupGoalies(cup).map(function (row) {
+      const goalieRows = cupGoalies.map(function (row) {
         return Object.assign({}, row, {
           cupId: String(cup.id || index + 1),
           cupCode: text(cup.code || "SEC " + (index + 1)),
@@ -1965,6 +1966,19 @@
 
   function collectCupGoaliesForStage(cup, stage) {
     return aggregateCupGoalieRows(getStatRows(cup.goalieStats, stage), cup);
+  }
+
+  function filterEligibleCupGoalies(goalies, matches) {
+    return goalies.filter(function (goalie) {
+      const teamGames = countTeamMatches(matches, goalie.team);
+      return teamGames > 0 && number(goalie.gp) >= teamGames * 0.5;
+    });
+  }
+
+  function countTeamMatches(matches, teamName) {
+    return (matches || []).filter(function (match) {
+      return match.awayTeam === teamName || match.homeTeam === teamName;
+    }).length;
   }
 
   function aggregateCupGoalieRows(rows, cup) {
