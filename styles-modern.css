@@ -2188,9 +2188,9 @@ h2 .countryFlag {
 
 .playerProfileHero {
   display: grid;
-  grid-template-columns: minmax(210px, 300px) minmax(0, 1fr);
+  grid-template-columns: minmax(210px, 300px) minmax(0, 1fr) minmax(300px, 0.95fr);
   gap: clamp(18px, 4vw, 42px);
-  align-items: end;
+  align-items: center;
   overflow: hidden;
   background:
     linear-gradient(135deg, rgba(105, 225, 212, 0.14), rgba(233, 197, 110, 0.09)),
@@ -2208,11 +2208,103 @@ h2 .countryFlag {
   min-width: 0;
 }
 
+.profileLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 8px;
+  color: var(--ice);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .profileCopy p {
   display: flex;
   flex-wrap: wrap;
   gap: 10px 14px;
   align-items: center;
+}
+
+.personBioPanel {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(233, 197, 110, 0.2);
+  border-radius: 14px;
+  background: rgba(2, 6, 11, 0.38);
+}
+
+.personBioPanel p {
+  margin: 0;
+  color: #d7e3e7;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.personBioPanel p + p {
+  margin-top: 11px;
+}
+
+.personBioPanel strong {
+  color: #f2f8f8;
+}
+
+.personMeritsPanel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  min-width: 0;
+  padding: clamp(18px, 2vw, 24px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.personMeritSection {
+  min-width: 0;
+}
+
+.personMeritSection h3 {
+  display: grid;
+  grid-template-columns: minmax(34px, 1fr) auto minmax(34px, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin: 0 0 14px;
+  color: var(--gold);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.personMeritSection h3::before,
+.personMeritSection h3::after {
+  content: "";
+  height: 1px;
+  background: rgba(233, 197, 110, 0.22);
+}
+
+.personMeritList {
+  display: grid;
+  gap: 8px;
+}
+
+.personMeritList div {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  color: #e7f0f1;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.personMeritList span {
+  text-align: center;
 }
 
 .playerPortrait {
@@ -2312,7 +2404,9 @@ h2 .countryFlag {
   .cupHero.full,
   .dashGrid,
   .dashGrid.two,
-  .sportGrid {
+  .sportGrid,
+  .playerProfileHero,
+  .personMeritsPanel {
     grid-template-columns: 1fr;
   }
 

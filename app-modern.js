@@ -294,7 +294,7 @@
     return `
       <header class="top ${compact ? "compactTop" : ""}">
         <div>
-          <p>${compact ? getCupSectionLabel() : (model.latestCup ? model.latestCup.code : "SEC")}</p>
+          <p>${compact ? getCupSectionLabel() : getViewKicker(model)}</p>
           ${compact ? "" : `<h1>${getViewTitle()}</h1>`}
         </div>
         <label class="command">
@@ -304,6 +304,14 @@
       </header>
       ${state.query ? renderSearchResults(model) : ""}
     `;
+  }
+
+  function getViewKicker(model) {
+    if (state.view === "players" && state.activePlayer) return "Spelare";
+    if (state.view === "goalies" && state.activeGoalie) return "Spelare";
+    if (state.view === "teams" && state.activeTeam) return "Lag";
+    if (state.view === "match") return "Match";
+    return model.latestCup ? model.latestCup.code : "SEC";
   }
 
   function getCupSectionLabel() {
@@ -335,8 +343,8 @@
       return cup.name;
     }
     if (state.view === "teams" && state.activeTeam) return state.activeTeam;
-    if (state.view === "players" && state.activePlayer) return state.activePlayer;
-    if (state.view === "goalies" && state.activeGoalie) return state.activeGoalie;
+    if (state.view === "players" && state.activePlayer) return getPersonDisplayName(state.activePlayer);
+    if (state.view === "goalies" && state.activeGoalie) return getPersonDisplayName(state.activeGoalie);
     return {
       overview: "Ãƒâ€“versikt",
       cups: "Cuper",
@@ -2547,6 +2555,10 @@
     return `<span class="personName">${flag ? `<span class="countryFlag" title="${escapeHtml(parsed.country)}">${flag}</span>` : ""}<span>${escapeHtml(parsed.name)}</span></span>`;
   }
 
+  function getPersonDisplayName(name) {
+    return parsePersonCountry(name).name;
+  }
+
   function parsePersonCountry(name) {
     const safeName = text(name);
     const match = safeName.match(/,\s*([A-Z]{3})$/i);
@@ -2688,6 +2700,8 @@
   function renderPersonDetail(player, goalie, source) {
     const person = player || goalie;
     if (!person) return `<section class="emptyPage">Spelaren hittades inte.</section>`;
+    const parsedPerson = parsePersonCountry(person.name);
+    const profileBio = buildPersonBio(player, goalie);
     const teams = uniqueStrings([]
       .concat(player ? Array.from(player.teams || []) : [])
       .concat(goalie ? Array.from(goalie.teams || []) : [])
@@ -2695,39 +2709,239 @@
     const cups = new Set([]
       .concat(player ? Array.from(player.cups || []) : [])
       .concat(goalie ? Array.from(goalie.cups || []) : []));
-    const roleText = player && goalie ? "Utespelare / mÃƒÂ¥lvakt" : player ? "Utespelare" : "MÃƒÂ¥lvakt";
+    const roleText = player && goalie ? "Utespelare / m\u00e5lvakt" : player ? "Utespelare" : "M\u00e5lvakt";
     const meta = [
       cups.size + " cuper",
       player ? player.gp + " GP ute" : "",
-      player ? player.pts + " poÃƒÂ¤ng" : "",
-      goalie ? goalie.gp + " GP mÃƒÂ¥l" : "",
+      player ? player.pts + " po\u00e4ng" : "",
+      goalie ? goalie.gp + " GP m\u00e5l" : "",
       goalie ? formatPercent(goalie.svp) + " SV%" : ""
-    ].filter(Boolean).join(" Ã‚Â· ");
+    ].filter(Boolean).join(" \u00b7 ");
     return `
       <section class="detailHero playerProfileHero">
         <div class="profileMedia">
           ${renderPlayerPortrait(person, "playerPortraitHero")}
         </div>
         <div class="profileCopy">
-          <a href="${source === "goalies" ? "#/goalies" : "#/players"}">Tillbaka till ${source === "goalies" ? "mÃƒÂ¥lvakter" : "spelare"}</a>
-          <h2>${renderPersonName(person.name)}</h2>
-          <p>${teams[0] ? renderTeamIdentity(teams[0], "teamLogoInline") : ""} <span>${escapeHtml(roleText)} Ã‚Â· ${escapeHtml(meta)}.</span></p>
+          <a href="${source === "goalies" ? "#/goalies" : "#/players"}">Tillbaka till ${source === "goalies" ? "m\u00e5lvakter" : "spelare"}</a>
+          <p class="profileLabel">${parsedPerson.country ? `<span class="countryFlag">${countryFlag(parsedPerson.country)}</span>` : ""}<span>Spelarprofil</span></p>
+          <h2>${escapeHtml(parsedPerson.name)}</h2>
+          <p>${teams[0] ? renderTeamIdentity(teams[0], "teamLogoInline") : ""} <span>${escapeHtml(roleText)} \u00b7 ${escapeHtml(meta)}.</span></p>
         </div>
+        ${renderPersonBioPanel(profileBio)}
       </section>
+      ${renderPersonMeritsPanel(profileBio)}
       <section class="metricGrid compact">
-        ${player ? metric("PoÃƒÂ¤ng", player.pts, "utespelare") : ""}
-        ${player ? metric("MÃƒÂ¥l", player.g, "gjorda") : ""}
+        ${player ? metric("Po\u00e4ng", player.pts, "utespelare") : ""}
+        ${player ? metric("M\u00e5l", player.g, "gjorda") : ""}
         ${player ? metric("Assist", player.a, "passningar") : ""}
-        ${goalie ? metric("SV%", formatPercent(goalie.svp), "mÃƒÂ¥lvakt") : ""}
-        ${goalie ? metric("GAA", formatDecimal(goalie.gaa), "mÃƒÂ¥l emot/match") : ""}
-        ${goalie ? metric("SV", goalie.sv, "rÃƒÂ¤ddningar") : ""}
+        ${goalie ? metric("SV%", formatPercent(goalie.svp), "m\u00e5lvakt") : ""}
+        ${goalie ? metric("GAA", formatDecimal(goalie.gaa), "m\u00e5l emot/match") : ""}
+        ${goalie ? metric("SV", goalie.sv, "r\u00e4ddningar") : ""}
       </section>
       <section class="sportGrid personDetailGrid">
         ${player ? panel("Utespelare - cuphistorik", renderPlayerCupTable(player)) : ""}
-        ${goalie ? panel("MÃƒÂ¥lvakt - cuphistorik", renderGoalieCupTable(goalie)) : ""}
+        ${goalie ? panel("M\u00e5lvakt - cuphistorik", renderGoalieCupTable(goalie)) : ""}
         ${panel("Lagresa", renderMiniTags(teams, "teams"))}
       </section>
     `;
+  }
+
+  function buildPersonBio(player, goalie) {
+    const person = player || goalie;
+    const parsed = parsePersonCountry(person.name);
+    const allRows = []
+      .concat(player ? player.rows.map(function (row) { return Object.assign({ role: "skater" }, row); }) : [])
+      .concat(goalie ? goalie.rows.map(function (row) { return Object.assign({ role: "goalie" }, row); }) : [])
+      .sort(compareCupRowsByDate);
+    const chronological = allRows.slice().sort(function (a, b) { return compareCupRowsByDate(b, a); });
+    const regularRows = chronological.filter(function (row) { return !isSummerCupRow(row); });
+    const bioRows = regularRows.length ? regularRows : chronological;
+    const firstRow = bioRows[0] || chronological[0] || null;
+    const lastRow = bioRows[bioRows.length - 1] || chronological[chronological.length - 1] || null;
+    const teams = uniqueStrings(allRows.map(function (row) { return row.team; }).filter(Boolean));
+    const cups = uniqueStrings(allRows.map(function (row) { return row.cupCode; }).filter(Boolean));
+    const bestSkater = player ? player.rows.slice().sort(function (a, b) {
+      return b.pts - a.pts || b.g - a.g || b.gp - a.gp;
+    })[0] : null;
+    const bestGoalie = goalie ? goalie.rows.slice().sort(function (a, b) {
+      return number(b.svp) - number(a.svp) || number(b.sv) - number(a.sv) || number(b.gp) - number(a.gp);
+    })[0] : null;
+    return {
+      name: parsed.name,
+      country: parsed.country,
+      nationality: translateNationality(parsed.country),
+      firstCup: firstRow?.cupCode || "",
+      firstTeam: firstRow?.team || "",
+      lastCup: lastRow?.cupCode || "",
+      lastTeam: lastRow?.team || "",
+      cupsCount: cups.length,
+      teamsCount: teams.length,
+      totalGames: (player ? player.gp : 0) + (goalie ? goalie.gp : 0),
+      bestSkater: bestSkater,
+      bestGoalie: bestGoalie,
+      teamMerits: getPersonTeamMerits(player, goalie),
+      personalMerits: getPersonPersonalMerits(player, goalie)
+    };
+  }
+
+  function renderPersonBioPanel(bio) {
+    return `
+      <aside class="personBioPanel" aria-label="Spelarbio och meriter">
+        <p><strong>${escapeHtml(bio.name)}</strong> ${bio.nationality ? "\u00e4r en <strong>" + escapeHtml(bio.nationality) + "</strong>" : "\u00e4r en"} eHockey-spelare som gjorde sitt f\u00f6rsta framtr\u00e4dande i <strong>${escapeHtml(bio.firstCup || "SEC")}</strong>${bio.firstTeam ? " f\u00f6r <strong>" + escapeHtml(bio.firstTeam) + "</strong>" : ""}.</p>
+        <p>Totalt har han deltagit i <strong>${bio.cupsCount}</strong> upplagor av <strong>Svenska eHockey Cupen</strong> och representerat <strong>${bio.teamsCount}</strong> olika lag. Senast spelade han i <strong>${escapeHtml(bio.lastCup || "SEC")}</strong>${bio.lastTeam ? " f\u00f6r <strong>" + escapeHtml(bio.lastTeam) + "</strong>" : ""}.</p>
+        <p>Sammanlagt st\u00e5r han p\u00e5 <strong>${bio.totalGames}</strong> matcher i SEC.</p>
+        ${bio.bestSkater ? `<p>Hans b\u00e4sta turnering som utespelare kom i <strong>${escapeHtml(bio.bestSkater.cupCode)}</strong>, d\u00e4r han gjorde <strong>${bio.bestSkater.pts}</strong> po\u00e4ng f\u00f6r <strong>${escapeHtml(bio.bestSkater.team)}</strong>.</p>` : ""}
+        ${bio.bestGoalie ? `<p>Hans b\u00e4sta turnering som m\u00e5lvakt kom i <strong>${escapeHtml(bio.bestGoalie.cupCode)}</strong>, med <strong>${formatPercent(bio.bestGoalie.svp)}</strong> i SV% f\u00f6r <strong>${escapeHtml(bio.bestGoalie.team)}</strong>.</p>` : ""}
+      </aside>
+    `;
+  }
+
+  function renderPersonMeritsPanel(bio) {
+    if (!bio.teamMerits.length && !bio.personalMerits.length) return "";
+    return `
+      <section class="personMeritsPanel">
+        ${renderPersonMeritSection("Meriter", bio.teamMerits)}
+        ${renderPersonMeritSection("Personliga meriter", bio.personalMerits)}
+      </section>
+    `;
+  }
+
+  function renderPersonMeritSection(title, items) {
+    if (!items.length) return "";
+    return `
+      <div class="personMeritSection">
+        <h3>${escapeHtml(title)}</h3>
+        <div class="personMeritList">
+          ${items.map(function (item) {
+            return `<div><span>${escapeHtml(item.icon)}</span><strong>${escapeHtml(item.text)}</strong></div>`;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  function getPersonTeamMerits(player, goalie) {
+    const rows = [].concat(player ? player.rows : []).concat(goalie ? goalie.rows : []);
+    const output = [];
+    const seen = new Set();
+    state.cups.forEach(function (cup) {
+      uniqueStrings(rows.filter(function (row) {
+        return row.cupId === cup.id && row.team;
+      }).map(function (row) { return row.team; })).forEach(function (team) {
+        const teamKey = fold(team);
+        if (cup.winner && fold(cup.winner) === teamKey) {
+          const key = "gold-" + cup.id + "-" + teamKey;
+          if (!seen.has(key)) {
+            seen.add(key);
+            output.push({ icon: trophyIcon(1), text: "M\u00e4stare i " + cup.code + " med " + team + "." });
+          }
+        }
+        if (cup.runnerUp && fold(cup.runnerUp) === teamKey) {
+          const key = "silver-" + cup.id + "-" + teamKey;
+          if (!seen.has(key)) {
+            seen.add(key);
+            output.push({ icon: trophyIcon(2), text: "2:a i " + cup.code + " med " + team + "." });
+          }
+        }
+      });
+    });
+    return output.sort(function (a, b) { return a.text.localeCompare(b.text, "sv"); });
+  }
+
+  function getPersonPersonalMerits(player, goalie) {
+    return []
+      .concat(player ? getSkaterPointMerits(player) : [])
+      .concat(player ? getSkaterGoalMerits(player) : [])
+      .concat(goalie ? getGoaliePersonalMerits(goalie) : []);
+  }
+
+  function getSkaterPointMerits(player) {
+    return getRankMerits(player.rows, "pts", function (row, index) {
+      return { icon: targetIcon(index), text: (index + 1) + ":a i po\u00e4ngligan i " + getStageCupLabel(row) + " (" + row.pts + "p)." };
+    }, function (a, b) {
+      return b.pts - a.pts || b.g - a.g || a.name.localeCompare(b.name, "sv");
+    });
+  }
+
+  function getSkaterGoalMerits(player) {
+    return getRankMerits(player.rows, "g", function (row, index) {
+      return { icon: targetIcon(index), text: (index + 1) + ":a i skytteligan i " + getStageCupLabel(row) + " (" + row.g + " m\u00e5l)." };
+    }, function (a, b) {
+      return b.g - a.g || b.pts - a.pts || a.name.localeCompare(b.name, "sv");
+    });
+  }
+
+  function getGoaliePersonalMerits(goalie) {
+    return getRankMerits(goalie.rows, "svp", function (row, index) {
+      return { icon: targetIcon(index), text: (index + 1) + ":a i m\u00e5lvaktsligan i " + getStageCupLabel(row) + " (" + formatPercent(row.svp) + ")." };
+    }, function (a, b) {
+      return number(b.svp) - number(a.svp) || number(b.sv) - number(a.sv) || a.name.localeCompare(b.name, "sv");
+    });
+  }
+
+  function getRankMerits(rows, statKey, makeItem, sorter) {
+    const output = [];
+    rows.forEach(function (row) {
+      if (!number(row[statKey])) return;
+      const cup = state.cups.find(function (entry) { return entry.id === row.cupId; });
+      if (!cup) return;
+      const peers = getCupStageRows(cup, row, row.sa !== undefined ? "goalie" : "player").slice().sort(sorter);
+      const index = peers.findIndex(function (candidate) {
+        return getPersonProfileKey(candidate.name) === getPersonProfileKey(row.name) && fold(candidate.team) === fold(row.team);
+      });
+      if (index >= 0 && index < 3) output.push(makeItem(row, index));
+    });
+    return output;
+  }
+
+  function getCupStageRows(cup, row, type) {
+    const rows = type === "goalie" ? cup.goalieRows : cup.playerRows;
+    return rows.filter(function (candidate) {
+      return normalizeStage(candidate.stage) === normalizeStage(row.stage);
+    });
+  }
+
+  function getStageCupLabel(row) {
+    return row.cupCode + (normalizeStage(row.stage) === "playoffs" ? " S" : " G");
+  }
+
+  function normalizeStage(value) {
+    return value === "playoffs" || /slut|playoff/i.test(String(value || "")) ? "playoffs" : "group";
+  }
+
+  function isSummerCupRow(row) {
+    return /sommar/i.test(String(row?.cupId || row?.cupCode || ""));
+  }
+
+  function translateNationality(code) {
+    const map = {
+      SWE: "svensk",
+      SE: "svensk",
+      FIN: "finsk",
+      FI: "finsk",
+      NOR: "norsk",
+      NO: "norsk",
+      DEN: "dansk",
+      DNK: "dansk",
+      DK: "dansk",
+      GER: "tysk",
+      DEU: "tysk",
+      DE: "tysk",
+      CZE: "tjeckisk",
+      SVK: "slovakisk",
+      CAN: "kanadensisk",
+      USA: "amerikansk"
+    };
+    return map[String(code || "").trim().toUpperCase()] || "";
+  }
+
+  function trophyIcon(place) {
+    return place === 1 ? String.fromCodePoint(0x1f3c6) : place === 2 ? String.fromCodePoint(0x1f948) : String.fromCodePoint(0x1f949);
+  }
+
+  function targetIcon(index) {
+    return index === 0 ? String.fromCodePoint(0x1f3af) : trophyIcon(index + 1);
   }
 
   function findPlayerByPersonName(name) {
