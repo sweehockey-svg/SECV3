@@ -276,6 +276,7 @@
       const cup = state.cups.find(function (entry) { return entry.id === state.activeCupId; });
       if (!cup) return "Cup";
       if (state.activeCupSection === "tables") return cup.name + " - tabeller";
+      if (state.activeCupSection === "teams") return cup.name + " - lag";
       if (state.activeCupSection === "bracket") return cup.name + " - slutspel";
       if (state.activeCupSection === "players") return cup.name + " - spelare";
       if (state.activeCupSection === "goalies") return cup.name + " - målvakter";
@@ -337,6 +338,7 @@
     if (state.view === "cups" && state.activeCupId) {
       const cup = state.cups.find(function (entry) { return entry.id === state.activeCupId; });
       if (state.activeCupSection === "tables") return renderCupTablesPage(cup);
+      if (state.activeCupSection === "teams") return renderCupTeamsPage(cup);
       if (state.activeCupSection === "bracket") return renderCupBracketPage(cup);
       if (state.activeCupSection === "players") return renderCupPlayersPage(cup);
       if (state.activeCupSection === "goalies") return renderCupGoaliesPage(cup);
@@ -500,6 +502,8 @@
     const base = "#/cups/" + encodeURIComponent(cup.id);
     const current = state.activeCupSection || "";
     const items = [
+      ["", "Översikt"],
+      ["teams", "Lag"],
       ["tables", "Tabell"],
       ["bracket", "Slutspel"],
       ["matches", "Matcher"],
@@ -509,9 +513,34 @@
     return `
       <nav class="cupSectionNav" aria-label="Cupmeny">
         ${items.map(function (item) {
-          return `<a class="${current === item[0] ? "active" : ""}" href="${base}/${item[0]}">${escapeHtml(item[1])}</a>`;
+          return `<a class="${current === item[0] ? "active" : ""}" href="${item[0] ? base + "/" + item[0] : base}">${escapeHtml(item[1])}</a>`;
         }).join("")}
       </nav>
+    `;
+  }
+
+  function renderCupTeamsPage(cup) {
+    if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
+    const rows = buildCupTeamRows(cup);
+    return `
+      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
+        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
+        <h2>Lag</h2>
+        <p>${escapeHtml(cup.name)} · ${rows.length} lag med matcher, mål och resultat i cupen.</p>
+      </section>
+      ${renderCupSectionNav(cup)}
+      <section class="cupTeamGrid">
+        ${rows.map(function (team) {
+          return `
+            <a class="teamTile cupTeamTile" href="#/teams/${encodeURIComponent(team.name)}">
+              ${renderTeamLogo(team.name, "teamLogoTile")}
+              <strong>${escapeHtml(team.name)}</strong>
+              <em>${team.matches} matcher · ${team.wins} vinster · ${team.goalsFor}-${team.goalsAgainst}</em>
+              <span>${team.points} pts</span>
+            </a>
+          `;
+        }).join("")}
+      </section>
     `;
   }
 
@@ -898,6 +927,43 @@
         }).join("")}
       </div>
     `;
+  }
+
+  function buildCupTeamRows(cup) {
+    const map = new Map();
+    cup.teams.forEach(function (team) {
+      map.set(team, { name: team, matches: 0, wins: 0, losses: 0, otl: 0, goalsFor: 0, goalsAgainst: 0, points: 0 });
+    });
+    cup.matches.forEach(function (match) {
+      ingestCupTeamRow(map, match.awayTeam, match.awayScore, match.homeScore, match.overtime);
+      ingestCupTeamRow(map, match.homeTeam, match.homeScore, match.awayScore, match.overtime);
+    });
+    return Array.from(map.values()).sort(function (a, b) {
+      return b.points - a.points
+        || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst)
+        || b.goalsFor - a.goalsFor
+        || a.name.localeCompare(b.name, "sv");
+    });
+  }
+
+  function ingestCupTeamRow(map, team, gf, ga, overtime) {
+    if (!map.has(team)) map.set(team, { name: team, matches: 0, wins: 0, losses: 0, otl: 0, goalsFor: 0, goalsAgainst: 0, points: 0 });
+    if (gf === null || ga === null) return;
+    const row = map.get(team);
+    const goalsFor = number(gf);
+    const goalsAgainst = number(ga);
+    row.matches += 1;
+    row.goalsFor += goalsFor;
+    row.goalsAgainst += goalsAgainst;
+    if (goalsFor > goalsAgainst) {
+      row.wins += 1;
+      row.points += 3;
+    } else if (overtime) {
+      row.otl += 1;
+      row.points += 1;
+    } else {
+      row.losses += 1;
+    }
   }
 
   function buildStandings(cup) {

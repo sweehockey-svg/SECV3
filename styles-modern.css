@@ -988,9 +988,32 @@ input {
   gap: 10px;
 }
 
+.cupTeamGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+
 .teamTile {
   min-height: 168px;
   padding: 14px;
+}
+
+.cupTeamTile {
+  min-height: 178px;
+}
+
+.cupTeamTile span {
+  display: inline-flex;
+  align-self: start;
+  justify-self: start;
+  padding: 5px 8px;
+  border: 1px solid rgba(233, 197, 110, 0.25);
+  border-radius: 999px;
+  color: var(--gold);
+  background: rgba(233, 197, 110, 0.08);
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .teamLogo {
