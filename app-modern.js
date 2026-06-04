@@ -485,7 +485,7 @@
             <strong>${escapeHtml(cup.code)}</strong>
           </nav>
           ${opts.kicker === true ? `<p class="cupKicker">${escapeHtml(cup.code)}</p>` : ""}
-          <h2>${escapeHtml(titleParts.main)}</h2>
+          <h2>${escapeHtml(titleParts.main)}${titleParts.edition ? ` <span>${escapeHtml(titleParts.edition)}</span>` : ""}</h2>
           ${titleParts.sub ? `<p class="cupHeroSub">${escapeHtml(titleParts.sub)}</p>` : ""}
           <p>${escapeHtml(opts.description || cup.name)}</p>
           ${full ? `
@@ -513,8 +513,8 @@
   function splitCupTitle(title) {
     const clean = text(title);
     const match = clean.match(/^(Svenska eHockey Cupen)\s+(\d+)(?:\s+(.+))?$/i);
-    if (match) return { main: match[1], sub: match[3] || "" };
-    return { main: clean, sub: "" };
+    if (match) return { main: match[1], edition: match[2], sub: match[3] || "" };
+    return { main: clean, edition: "", sub: "" };
   }
 
   function renderCupSpotlight(cup) {

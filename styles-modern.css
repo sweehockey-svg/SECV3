@@ -537,6 +537,13 @@ input {
   font-size: clamp(46px, 5.2vw, 86px);
 }
 
+.cupHero h2 span {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 0.62em;
+  vertical-align: baseline;
+}
+
 .cupHeroSub {
   margin: 8px 0 0;
   color: #d8e5e8;
