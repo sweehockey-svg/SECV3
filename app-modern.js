@@ -1320,6 +1320,9 @@
     const series = buildPlayoffSeries(matches).sort(function (a, b) {
       return a.firstTimestamp - b.firstTimestamp;
     });
+    const bracketRounds = inferPlayoffRoundsFromWinners(series);
+    if (bracketRounds.length >= 2) return bracketRounds;
+
     const rounds = [];
     let remaining = series.slice();
     const pattern = [
@@ -1338,6 +1341,56 @@
 
     if (remaining.length) {
       rounds.push({ round: "Slutspel", series: remaining, matches: remaining.flatMap(function (item) { return item.matches; }) });
+    }
+
+    return rounds.sort(function (a, b) {
+      return roundRank(a.round) - roundRank(b.round);
+    });
+  }
+
+  function inferPlayoffRoundsFromWinners(series) {
+    if (!series.length) return [];
+    const assigned = new Set();
+    const finalSeries = series.slice().sort(function (a, b) {
+      return b.firstTimestamp - a.firstTimestamp;
+    })[0];
+    const rounds = [{ round: "Final", series: [finalSeries], matches: finalSeries.matches }];
+    assigned.add(finalSeries);
+
+    let current = [finalSeries];
+    ["Semifinal", "Kvartsfinal", "Åttondelsfinal"].forEach(function (roundName) {
+      const previous = [];
+      current.forEach(function (targetSeries) {
+        [targetSeries.awayTeam, targetSeries.homeTeam].forEach(function (team) {
+          const predecessor = series
+            .filter(function (candidate) {
+              return !assigned.has(candidate)
+                && candidate.firstTimestamp < targetSeries.firstTimestamp
+                && getSeriesWinner(candidate) === team;
+            })
+            .sort(function (a, b) {
+              return b.firstTimestamp - a.firstTimestamp;
+            })[0];
+          if (predecessor && !previous.includes(predecessor)) {
+            previous.push(predecessor);
+            assigned.add(predecessor);
+          }
+        });
+      });
+      if (previous.length) {
+        previous.sort(function (a, b) { return a.firstTimestamp - b.firstTimestamp; });
+        rounds.push({ round: roundName, series: previous, matches: previous.flatMap(function (item) { return item.matches; }) });
+        current = previous;
+      }
+    });
+
+    const leftovers = series.filter(function (candidate) {
+      return !assigned.has(candidate);
+    });
+    if (leftovers.length) {
+      const earliestName = rounds.some(function (round) { return round.round === "Åttondelsfinal"; }) ? "Slutspel" : "Åttondelsfinal";
+      leftovers.sort(function (a, b) { return a.firstTimestamp - b.firstTimestamp; });
+      rounds.push({ round: earliestName, series: leftovers, matches: leftovers.flatMap(function (item) { return item.matches; }) });
     }
 
     return rounds.sort(function (a, b) {
