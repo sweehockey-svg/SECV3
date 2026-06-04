@@ -231,7 +231,7 @@
     return `
       <footer class="siteFooter">
         <div>
-          <strong>SEC Live</strong>
+          <strong>SEC</strong>
           <span>Copyright © ${new Date().getFullYear()} Svenska eHockey Cupen. Designad av SEC.</span>
         </div>
         <nav aria-label="Kontakt">
@@ -248,7 +248,7 @@
         <a class="mark" href="#/overview" aria-label="SEC start">
           <img src="./SECLOGGA.png" alt="">
           <span>SEC</span>
-          <b>Live</b>
+          <b>Cup</b>
         </a>
         <nav class="railnav" aria-label="SEC meny">
           ${navItem("overview", "Översikt", "⌂")}
@@ -257,10 +257,10 @@
           ${navItem("players", "Spelare", "●")}
           ${navItem("matches", "Matcher", "↯")}
           ${navItem("goalies", "Målvakter", "▣")}
-          ${navItem("about", "Live", "i")}
+          ${navItem("about", "Info", "i")}
         </nav>
         <div class="railcard">
-          <span>Live</span>
+          <span>SEC</span>
           <strong>${model.totalMatches}</strong>
           <em>matcher</em>
         </div>
@@ -311,13 +311,13 @@
     if (state.view === "players" && state.activePlayer) return state.activePlayer;
     if (state.view === "goalies" && state.activeGoalie) return state.activeGoalie;
     return {
-      overview: "Liveöversikt",
+      overview: "Översikt",
       cups: "Cuper",
       teams: "Lagkartan",
       players: "Spelarhubben",
       goalies: "Målvaktshubben",
       matches: "Matchflöde",
-      about: "SEC Live"
+      about: "SEC"
     }[state.view] || "SEC";
   }
 
@@ -394,15 +394,15 @@
     return `
       <section class="hero">
         <div class="heroCopy">
-          <span class="tag liveTag">Live</span>
-          <h2>SEC Live</h2>
+          <span class="tag">SEC</span>
+          <h2>Svenska eHockey Cupen</h2>
           <p>Följ cuper, tabeller, slutspel, lag, spelare, målvakter och senaste matcherna från hela SEC.</p>
-          <div class="liveStrip">
-            <span>Uppdaterad ${escapeHtml(formatLiveClock())}</span>
+          <div class="updateStrip">
+            <span>Uppdaterad ${escapeHtml(formatClock())}</span>
             <span>${model.latestMatches[0] ? escapeHtml(model.latestMatches[0].cup.code + " · " + formatDate(model.latestMatches[0].match.date)) : "Väntar på matchdata"}</span>
           </div>
           <div class="actions">
-            <a href="#/matches">Liveflöde</a>
+            <a href="#/matches">Matcher</a>
             <a href="#/cups">Cuper</a>
           </div>
         </div>
@@ -894,8 +894,8 @@
   function renderAbout(model) {
     return `
       <section class="manifest">
-        <span>Live</span>
-        <h2>SEC Live</h2>
+        <span>SEC</span>
+        <h2>Svenska eHockey Cupen</h2>
         <p>Sidan samlar aktuell cupdata, historik, matchflöde, tabeller, slutspel, lag, spelare och målvakter på ett ställe.</p>
         <p>Senaste registrerade match: <strong>${model.latestMatches[0] ? escapeHtml(model.latestMatches[0].cup.code + " · " + model.latestMatches[0].match.awayTeam + " - " + model.latestMatches[0].match.homeTeam + " " + score(model.latestMatches[0].match)) : "Ingen match hittad"}</strong>.</p>
       </section>
@@ -2558,7 +2558,7 @@
     return new Intl.DateTimeFormat("sv-SE", { year: "numeric", month: "short", day: "numeric" }).format(parsed);
   }
 
-  function formatLiveClock() {
+  function formatClock() {
     return new Intl.DateTimeFormat("sv-SE", {
       hour: "2-digit",
       minute: "2-digit"
