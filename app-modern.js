@@ -1378,8 +1378,9 @@
         });
       });
       if (previous.length) {
+        const effectiveRoundName = roundName === "Åttondelsfinal" && previous.length < current.length * 2 ? "Play in" : roundName;
         previous.sort(function (a, b) { return a.firstTimestamp - b.firstTimestamp; });
-        rounds.push({ round: roundName, series: previous, matches: previous.flatMap(function (item) { return item.matches; }) });
+        rounds.push({ round: effectiveRoundName, series: previous, matches: previous.flatMap(function (item) { return item.matches; }) });
         current = previous;
       }
     });
@@ -1388,7 +1389,7 @@
       return !assigned.has(candidate);
     });
     if (leftovers.length) {
-      const earliestName = rounds.some(function (round) { return round.round === "Åttondelsfinal"; }) ? "Slutspel" : "Åttondelsfinal";
+      const earliestName = rounds.some(function (round) { return round.round === "Åttondelsfinal" || round.round === "Play in"; }) ? "Slutspel" : "Play in";
       leftovers.sort(function (a, b) { return a.firstTimestamp - b.firstTimestamp; });
       rounds.push({ round: earliestName, series: leftovers, matches: leftovers.flatMap(function (item) { return item.matches; }) });
     }
@@ -1482,6 +1483,7 @@
   function getBestOfForRound(roundName, settings) {
     const bestOf = settings?.bestOf || {};
     const folded = fold(roundName);
+    if (folded.includes("play in") || folded.includes("playin")) return null;
     if (folded.includes("atton") || folded.includes("16")) return bestOf.roundOf16;
     if (folded.includes("kvart")) return bestOf.quarter;
     if (folded.includes("semi")) return bestOf.semi;
@@ -2416,6 +2418,7 @@
 
   function roundRank(round) {
     const folded = fold(round);
+    if (folded.includes("play in") || folded.includes("playin")) return 0;
     if (folded.includes("atton")) return 1;
     if (folded.includes("kvart")) return 2;
     if (folded.includes("semi")) return 3;
