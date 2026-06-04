@@ -7,7 +7,7 @@
     goalies: [],
     teamLogoIndex: new Map(),
     playerImageIndex: new Map(),
-    view: "overview",
+    view: "cups",
     query: "",
     activeCupId: "",
     activeCupSection: "",
@@ -200,7 +200,7 @@
     const routeAndQuery = hash.split("?");
     const parts = routeAndQuery[0].split("/").filter(Boolean);
     const params = new URLSearchParams(routeAndQuery[1] || "");
-    state.view = routes.has(parts[0]) ? parts[0] : "overview";
+    state.view = routes.has(parts[0]) ? parts[0] : "cups";
     state.activeCupId = state.view === "cups" ? decodeURIComponent(parts[1] || "") : "";
     state.activeCupSection = state.view === "cups" ? decodeURIComponent(parts[2] || "") : "";
     state.activeCupTeamName = state.view === "cups" && state.activeCupSection === "teams" ? decodeURIComponent(parts[3] || "") : "";
@@ -226,7 +226,6 @@
     const model = buildModel();
     app.innerHTML = `
       <div class="shell">
-        ${renderArenaHeader(model)}
         <main class="stage">
           ${renderTopbar(model)}
           <div class="view" data-view="${state.view}">
@@ -236,6 +235,7 @@
         ${renderFooter()}
       </div>
     `;
+    repairRenderedText(app);
     bindInteractions();
   }
 
@@ -244,11 +244,11 @@
       <footer class="siteFooter">
         <div>
           <strong>SEC</strong>
-          <span>Copyright © ${new Date().getFullYear()} Svenska eHockey Cupen. Designad av SEC.</span>
+          <span>Copyright Ã‚Â© ${new Date().getFullYear()} Svenska eHockey Cupen. Designad av SEC.</span>
         </div>
         <nav aria-label="Kontakt">
           <a href="mailto:svenskehockey@gmail.com">E-post: svenskehockey@gmail.com</a>
-          <a href="https://discord.gg/B9TYMEjpj6" target="_blank" rel="noopener">Gå med i Discord</a>
+          <a href="https://discord.gg/B9TYMEjpj6" target="_blank" rel="noopener">GÃƒÂ¥ med i Discord</a>
         </nav>
       </footer>
     `;
@@ -263,12 +263,12 @@
           <b>Cup</b>
         </a>
         <nav class="railnav" aria-label="SEC meny">
-          ${navItem("overview", "Översikt", "⌂")}
-          ${navItem("cups", "Cuper", "◆")}
-          ${navItem("teams", "Lag", "▦")}
-          ${navItem("players", "Spelare", "●")}
-          ${navItem("matches", "Matcher", "↯")}
-          ${navItem("goalies", "Målvakter", "▣")}
+          ${navItem("overview", "Ãƒâ€“versikt", "Ã¢Å’â€š")}
+          ${navItem("cups", "Cuper", "Ã¢â€”â€ ")}
+          ${navItem("teams", "Lag", "Ã¢â€“Â¦")}
+          ${navItem("players", "Spelare", "Ã¢â€”Â")}
+          ${navItem("matches", "Matcher", "Ã¢â€ Â¯")}
+          ${navItem("goalies", "MÃƒÂ¥lvakter", "Ã¢â€“Â£")}
           ${navItem("about", "Info", "i")}
         </nav>
         <div class="railcard">
@@ -298,7 +298,7 @@
           ${compact ? "" : `<h1>${getViewTitle()}</h1>`}
         </div>
         <label class="command">
-          <span>Sök</span>
+          <span>SÃƒÂ¶k</span>
           <input data-global-search value="${escapeHtml(state.query)}" placeholder="Lag, spelare, cup eller match" autocomplete="off">
         </label>
       </header>
@@ -312,11 +312,11 @@
       teams: "Lag",
       bracket: "Slutspel",
       players: "Spelare",
-      goalies: "Målvakter",
+      goalies: "MÃƒÂ¥lvakter",
       stats: "Statistik",
       info: "Regler",
       matches: "Matcher"
-    }[state.activeCupSection] || "Översikt";
+    }[state.activeCupSection] || "Ãƒâ€“versikt";
   }
 
   function getViewTitle() {
@@ -328,7 +328,7 @@
       if (state.activeCupSection === "teams") return cup.name + " - lag";
       if (state.activeCupSection === "bracket") return cup.name + " - slutspel";
       if (state.activeCupSection === "players") return cup.name + " - spelare";
-      if (state.activeCupSection === "goalies") return cup.name + " - målvakter";
+      if (state.activeCupSection === "goalies") return cup.name + " - mÃƒÂ¥lvakter";
       if (state.activeCupSection === "stats") return cup.name + " - statistik";
       if (state.activeCupSection === "info") return cup.name + " - cupinfo";
       if (state.activeCupSection === "matches") return cup.name + " - matcher";
@@ -338,12 +338,12 @@
     if (state.view === "players" && state.activePlayer) return state.activePlayer;
     if (state.view === "goalies" && state.activeGoalie) return state.activeGoalie;
     return {
-      overview: "Översikt",
+      overview: "Ãƒâ€“versikt",
       cups: "Cuper",
       teams: "Lagkartan",
       players: "Spelarhubben",
-      goalies: "Målvaktshubben",
-      matches: "Matchflöde",
+      goalies: "MÃƒÂ¥lvaktshubben",
+      matches: "MatchflÃƒÂ¶de",
       about: "SEC"
     }[state.view] || "SEC";
   }
@@ -356,31 +356,55 @@
     const teamHits = state.teams.filter(function (team) {
       return fold(team.name).includes(query);
     }).slice(0, 4);
-    const playerHits = state.players.filter(function (player) {
-      return fold(player.name + " " + player.team).includes(query);
-    }).slice(0, 4);
-    const goalieHits = state.goalies.filter(function (goalie) {
-      return fold(goalie.name + " " + goalie.team).includes(query);
-    }).slice(0, 4);
+    const personHits = buildPersonSearchHits(query).slice(0, 4);
     const matchHits = model.allMatches.filter(function (entry) {
       return fold(entry.cup.code + " " + entry.match.awayTeam + " " + entry.match.homeTeam).includes(query);
     }).slice(0, 4);
     const hits = []
       .concat(cupHits.map(function (cup) { return searchLink("#/cups/" + encodeURIComponent(cup.id), "Cup", cup.name, cup.matchCount + " matcher"); }))
       .concat(teamHits.map(function (team) { return searchLink("#/teams/" + encodeURIComponent(team.name), "Lag", team.name, team.matches + " matcher"); }))
-      .concat(playerHits.map(function (player) { return searchLink("#/players/" + encodeURIComponent(player.name), "Spelare", player.name, player.pts + " poäng"); }))
-      .concat(goalieHits.map(function (goalie) { return searchLink("#/goalies/" + encodeURIComponent(goalie.name), "Målvakt", goalie.name, formatPercent(goalie.svp) + " SV%"); }))
+      .concat(personHits.map(function (person) { return searchLink(person.href, person.type, person.name, person.meta); }))
       .concat(matchHits.map(function (entry) { return searchLink(getMatchUrl(entry.cup, entry.match), entry.cup.code, entry.match.awayTeam + " - " + entry.match.homeTeam, score(entry.match)); }));
 
     return `
       <section class="searchdrop">
-        ${hits.length ? hits.join("") : `<div class="empty">Inga träffar för "${escapeHtml(state.query)}".</div>`}
+        ${hits.length ? hits.join("") : `<div class="empty">Inga trÃƒÂ¤ffar fÃƒÂ¶r "${escapeHtml(state.query)}".</div>`}
       </section>
     `;
   }
 
   function searchLink(href, type, title, meta) {
     return `<a href="${href}"><span>${escapeHtml(type)}</span><strong>${escapeHtml(title)}</strong><em>${escapeHtml(meta)}</em></a>`;
+  }
+
+  function buildPersonSearchHits(query) {
+    const map = new Map();
+    state.players.forEach(function (player) {
+      if (!fold(player.name + " " + player.team).includes(query)) return;
+      const key = getPersonProfileKey(player.name);
+      if (!map.has(key)) map.set(key, { player: null, goalie: null });
+      map.get(key).player = player;
+    });
+    state.goalies.forEach(function (goalie) {
+      if (!fold(goalie.name + " " + goalie.team).includes(query)) return;
+      const key = getPersonProfileKey(goalie.name);
+      if (!map.has(key)) map.set(key, { player: null, goalie: null });
+      map.get(key).goalie = goalie;
+    });
+    return Array.from(map.values()).map(function (entry) {
+      const player = entry.player;
+      const goalie = entry.goalie;
+      const person = player || goalie;
+      const parts = [];
+      if (player) parts.push(player.pts + " poÃ¤ng");
+      if (goalie) parts.push(formatPercent(goalie.svp) + " SV%");
+      return {
+        href: player ? "#/players/" + encodeURIComponent(player.name) : "#/goalies/" + encodeURIComponent(goalie.name),
+        type: player && goalie ? "Spelare/MÃ¥lvakt" : player ? "Spelare" : "MÃ¥lvakt",
+        name: person.name,
+        meta: parts.join(" Â· ")
+      };
+    });
   }
 
   function renderView(model) {
@@ -432,10 +456,10 @@
         <div class="heroCopy">
           <span class="tag">SEC</span>
           <h2>Svenska eHockey Cupen</h2>
-          <p>Följ cuper, tabeller, slutspel, lag, spelare, målvakter och senaste matcherna från hela SEC.</p>
+          <p>FÃƒÂ¶lj cuper, tabeller, slutspel, lag, spelare, mÃƒÂ¥lvakter och senaste matcherna frÃƒÂ¥n hela SEC.</p>
           <div class="updateStrip">
             <span>Uppdaterad ${escapeHtml(formatClock())}</span>
-            <span>${model.latestMatches[0] ? escapeHtml(model.latestMatches[0].cup.code + " · " + formatDate(model.latestMatches[0].match.date)) : "Väntar på matchdata"}</span>
+            <span>${model.latestMatches[0] ? escapeHtml(model.latestMatches[0].cup.code + " Ã‚Â· " + formatDate(model.latestMatches[0].match.date)) : "VÃƒÂ¤ntar pÃƒÂ¥ matchdata"}</span>
           </div>
           <div class="actions">
             <a href="#/matches">Matcher</a>
@@ -446,7 +470,7 @@
           <div class="rinkLine"></div>
           <div class="puck"></div>
           <strong>${model.latestCup ? escapeHtml(model.latestCup.code) : "SEC"}</strong>
-          <span>${model.totalGoals} mål registrerade</span>
+          <span>${model.totalGoals} mÃƒÂ¥l registrerade</span>
         </div>
       </section>
       <section class="metricGrid">
@@ -454,21 +478,20 @@
         ${metric("Matcher", model.totalMatches, "i arkivet")}
         ${metric("Lag", state.teams.length, "unika namn")}
         ${metric("Spelare", state.players.length, "statistikrader")}
-        ${metric("Målvakter", state.goalies.length, "registrerade")}
-        ${metric("Mål", model.totalGoals, "totalt")}
-        ${metric("Snitt", model.avgGoals, "mål per match")}
+        ${metric("MÃƒÂ¥lvakter", state.goalies.length, "registrerade")}
+        ${metric("MÃƒÂ¥l", model.totalGoals, "totalt")}
+        ${metric("Snitt", model.avgGoals, "mÃƒÂ¥l per match")}
       </section>
       <section class="dashGrid">
         ${panel("Senaste matcher", renderMatchRows(model.latestMatches, 7))}
-        ${panel("Poängtoppen", renderLeaderRows(model.topPlayers))}
-        ${panel("Målvaktstoppen", renderGoalieRows(model.topGoalies))}
+        ${panel("PoÃƒÂ¤ngtoppen", renderLeaderRows(model.topPlayers))}
+        ${panel("MÃƒÂ¥lvaktstoppen", renderGoalieRows(model.topGoalies))}
       </section>
     `;
   }
 
   function renderCups(model) {
     return `
-      <p class="viewIntro">Välj en cup för tabeller, slutspel, matcher, lag och toppspelare.</p>
       <section class="cupMatrix">
         ${state.cups.map(renderCupCard).join("")}
       </section>
@@ -476,16 +499,25 @@
   }
 
   function renderCupCard(cup) {
+    const cupLogo = isSummer(cup) ? "./sommarcuplogga.png" : "./SECLOGGA.png";
+    const hasWinner = Boolean(cup.winner);
     return `
       <a class="cupTile ${isSummer(cup) ? "summer" : ""}" href="#/cups/${encodeURIComponent(cup.id)}">
-        <span>${escapeHtml(cup.code)}</span>
+        <img class="cupTileLogo" src="${cupLogo}" alt="" loading="lazy" decoding="async">
+        <span class="cupTileCode">${escapeHtml(cup.code)}</span>
         <strong>${escapeHtml(cup.name)}</strong>
-        <div>
+        <div class="cupTileStats">
           <b>${cup.matchCount}</b><em>matcher</em>
           <b>${cup.teams.length}</b><em>lag</em>
         </div>
-        <p>${escapeHtml(formatCupDateRange(cup))}</p>
-        <p>Vinnare: ${escapeHtml(cup.winner || "Ej klar")}</p>
+        <p class="cupTileDate">${escapeHtml(formatCupDateRange(cup))}</p>
+        <div class="cupTileWinner">
+          ${hasWinner ? renderTeamLogo(cup.winner, "cupWinnerLogo") : ""}
+          <span>
+            <em>Vinnare</em>
+            <b>${escapeHtml(cup.winner || "Ej klar")}</b>
+          </span>
+        </div>
       </a>
     `;
   }
@@ -499,7 +531,7 @@
     return `
       <section class="cupHero ${full ? "full" : "compact"} ${isSummer(cup) ? "summer" : ""}">
         <div class="cupHeroCopy">
-          <nav class="crumbs" aria-label="Brödsmulor">
+          <nav class="crumbs" aria-label="BrÃƒÂ¶dsmulor">
             <a href="#/overview">Start</a>
             <span>/</span>
             <a href="#/cups">Cuper</a>
@@ -548,7 +580,7 @@
           <a class="spotlightCard" href="#/players/${encodeURIComponent(topPlayer.name)}">
             ${renderPlayerPortrait(topPlayer, "spotlightPortrait")}
             <div>
-              <span>Poängkung</span>
+              <span>PoÃƒÂ¤ngkung</span>
               <strong>${renderPersonName(topPlayer.name)}</strong>
               <em>${renderTeamIdentityStatic(topPlayer.team, "teamLogoChip")}</em>
               <b>${topPlayer.pts} p</b>
@@ -567,7 +599,7 @@
           <a class="spotlightCard" href="#/goalies/${encodeURIComponent(topGoalie.name)}">
             ${renderPlayerPortrait(topGoalie, "spotlightPortrait")}
             <div>
-              <span>Målvaktskung</span>
+              <span>MÃƒÂ¥lvaktskung</span>
               <strong>${renderPersonName(topGoalie.name)}</strong>
               <em>${renderTeamIdentityStatic(topGoalie.team, "teamLogoChip")}</em>
               <b>${formatPercent(topGoalie.svp)}</b>
@@ -588,19 +620,19 @@
     return `
       ${renderCupHero(cup, {
         title: cup.name,
-        description: "Cupsidan visar översikt, tabeller, lag, topplistor och matcher för den valda turneringen.",
+        description: "Cupsidan visar ÃƒÂ¶versikt, tabeller, lag, topplistor och matcher fÃƒÂ¶r den valda turneringen.",
         full: true
       })}
       ${renderCupSectionNav(cup)}
       <section class="sportGrid">
-        ${panelWithAction("Tabeller", "Fullständig tabell", "#/cups/" + encodeURIComponent(cup.id) + "/tables", renderStandingsPreview(standings, cup.settings))}
-        ${panelWithAction("Slutspelsträd", "Fullständigt träd", "#/cups/" + encodeURIComponent(cup.id) + "/bracket", renderBracketPreview(bracket, cup.settings))}
+        ${panelWithAction("Tabeller", "FullstÃƒÂ¤ndig tabell", "#/cups/" + encodeURIComponent(cup.id) + "/tables", renderStandingsPreview(standings, cup.settings))}
+        ${panelWithAction("SlutspelstrÃƒÂ¤d", "FullstÃƒÂ¤ndigt trÃƒÂ¤d", "#/cups/" + encodeURIComponent(cup.id) + "/bracket", renderBracketPreview(bracket, cup.settings))}
       </section>
       <section class="dashGrid two">
-        ${panelWithAction("Cupinfo", "Fullständiga regler", "#/cups/" + encodeURIComponent(cup.id) + "/info", renderCupSettings(cup.settings, { preview: true }))}
+        ${panelWithAction("Cupinfo", "FullstÃƒÂ¤ndiga regler", "#/cups/" + encodeURIComponent(cup.id) + "/info", renderCupSettings(cup.settings, { preview: true }))}
         ${panelWithAction("Matcher", "Alla matcher", "#/cups/" + encodeURIComponent(cup.id) + "/matches", renderCupMatchPreview(rows))}
         ${panelWithAction("Toppspelare", "All statistik", "#/cups/" + encodeURIComponent(cup.id) + "/stats", renderCupTopPlayerPreview(cup.topPlayers))}
-        ${panelWithAction("Toppmålvakter", "All statistik", "#/cups/" + encodeURIComponent(cup.id) + "/stats", renderCupTopGoaliePreview(cup.topGoalies))}
+        ${panelWithAction("ToppmÃƒÂ¥lvakter", "All statistik", "#/cups/" + encodeURIComponent(cup.id) + "/stats", renderCupTopGoaliePreview(cup.topGoalies))}
         ${panel("Lag i cupen", renderMiniTags(cup.teams, "teams"))}
       </section>
     `;
@@ -612,7 +644,7 @@
     return `
       ${renderCupHero(cup, {
         title: cup.name,
-        description: cup.name + " · " + formatCupDateRange(cup) + " · streck enligt cupinfo."
+        description: cup.name + " Ã‚Â· " + formatCupDateRange(cup) + " Ã‚Â· streck enligt cupinfo."
       })}
       ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
@@ -627,7 +659,7 @@
     return `
       ${renderCupHero(cup, {
         title: cup.name,
-        description: cup.name + " · " + bracket.reduce(function (sum, round) { return sum + ((round.series && round.series.length) || 0); }, 0) + " serier."
+        description: cup.name + " Ã‚Â· " + bracket.reduce(function (sum, round) { return sum + ((round.series && round.series.length) || 0); }, 0) + " serier."
       })}
       ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
@@ -640,7 +672,7 @@
     const base = "#/cups/" + encodeURIComponent(cup.id);
     const current = state.activeCupSection || "";
     const items = [
-      ["", "Översikt"],
+      ["", "Ãƒâ€“versikt"],
       ["teams", "Lag"],
       ["tables", "Tabell"],
       ["bracket", "Slutspel"],
@@ -663,7 +695,7 @@
     return `
       ${renderCupHero(cup, {
         title: cup.name,
-        description: cup.name + " · " + rows.length + " lag med matcher, mål och resultat i cupen."
+        description: cup.name + " Ã‚Â· " + rows.length + " lag med matcher, mÃƒÂ¥l och resultat i cupen."
       })}
       ${renderCupSectionNav(cup)}
       <section class="cupTeamGrid">
@@ -672,7 +704,7 @@
             <a class="teamTile cupTeamTile" href="#/cups/${encodeURIComponent(cup.id)}/teams/${encodeURIComponent(team.name)}">
               ${renderTeamLogo(team.name, "teamLogoTile")}
               <strong>${escapeHtml(team.name)}</strong>
-              <em>${team.matches} matcher · ${team.wins} vinster · ${team.goalsFor}-${team.goalsAgainst}</em>
+              <em>${team.matches} matcher Ã‚Â· ${team.wins} vinster Ã‚Â· ${team.goalsFor}-${team.goalsAgainst}</em>
               <span>${team.points} pts</span>
             </a>
           `;
@@ -686,7 +718,7 @@
     return `
       ${renderCupHero(cup, {
         title: cup.name,
-        description: cup.name + " · all spelarstatistik från gruppspel och slutspel."
+        description: cup.name + " Ã‚Â· all spelarstatistik frÃƒÂ¥n gruppspel och slutspel."
       })}
       ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
@@ -700,7 +732,7 @@
     return `
       ${renderCupHero(cup, {
         title: cup.name,
-        description: cup.name + " · räddningsprocent, GAA, räddningar och nollor."
+        description: cup.name + " Ã‚Â· rÃƒÂ¤ddningsprocent, GAA, rÃƒÂ¤ddningar och nollor."
       })}
       ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
@@ -718,12 +750,12 @@
     return `
       ${renderCupHero(cup, {
         title: cup.name,
-        description: cup.name + " · spelare och målvakter uppdelat på gruppspel och slutspel."
+        description: cup.name + " Ã‚Â· spelare och mÃƒÂ¥lvakter uppdelat pÃƒÂ¥ gruppspel och slutspel."
       })}
       ${renderCupSectionNav(cup)}
       <section class="statPageGrid">
         ${panelWithTools("Spelare - " + modeLabel, renderCupStatsModeTabs(cup, mode), renderCupPlayerStatsTable(playerRows))}
-        ${panel("Målvakter - " + modeLabel, renderCupGoalieStatsTable(goalieRows))}
+        ${panel("MÃƒÂ¥lvakter - " + modeLabel, renderCupGoalieStatsTable(goalieRows))}
       </section>
     `;
   }
@@ -735,7 +767,7 @@
       ["playoffs", "Slutspel"]
     ];
     return `
-      <nav class="subTabs" aria-label="Statistikläge">
+      <nav class="subTabs" aria-label="StatistiklÃƒÂ¤ge">
         ${modes.map(function (mode) {
           const href = "#/cups/" + encodeURIComponent(cup.id) + "/stats?mode=" + encodeURIComponent(mode[0]);
           return `<a class="${activeMode === mode[0] ? "active" : ""}" href="${href}">${mode[1]}</a>`;
@@ -749,7 +781,7 @@
     return `
       ${renderCupHero(cup, {
         title: cup.name,
-        description: cup.name + " · cupinfo, behörighet, BO-format och spelargränser."
+        description: cup.name + " Ã‚Â· cupinfo, behÃƒÂ¶righet, BO-format och spelargrÃƒÂ¤nser."
       })}
       ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
@@ -778,7 +810,7 @@
     return `
       ${renderCupHero(cup, {
         title: cup.name,
-        description: cup.name + " · " + rows.length + " av " + cup.matches.length + " matcher" + (selectedTeam ? " för " + selectedTeam : "") + "."
+        description: cup.name + " Ã‚Â· " + rows.length + " av " + cup.matches.length + " matcher" + (selectedTeam ? " fÃƒÂ¶r " + selectedTeam : "") + "."
       })}
       ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
@@ -824,14 +856,14 @@
           <div class="matchDetailCenter">
             <span>${escapeHtml(match.group || (isPlayoffMatch(match) ? "Slutspel" : "Gruppspel"))}</span>
             <strong>${score(match)}</strong>
-            <em>${escapeHtml(formatDate(match.date))}${match.time ? " · " + escapeHtml(match.time) : ""}</em>
+            <em>${escapeHtml(formatDate(match.date))}${match.time ? " Ã‚Â· " + escapeHtml(match.time) : ""}</em>
           </div>
           ${renderMatchDetailTeam(cup, match.homeTeam)}
         </div>
       </section>
       <section class="matchDetailGrid">
-        ${panel("Matchöversikt", renderMatchStatBoard(match, playerStats, goalieStats))}
-        ${panel("Händelser", renderMatchTimeline(events))}
+        ${panel("MatchÃƒÂ¶versikt", renderMatchStatBoard(match, playerStats, goalieStats))}
+        ${panel("HÃƒÂ¤ndelser", renderMatchTimeline(events))}
       </section>
       <section class="matchTeamStatsGrid">
         ${renderMatchPlayerSide(match.awayTeam, playerStats.away)}
@@ -859,9 +891,9 @@
     const homePim = sumMatchRows(playerStats.home, "pim");
     const rows = [
       shots ? { label: "Skott", away: shots.away, home: shots.home } : null,
-      { label: "Mål", away: match.awayScore, home: match.homeScore },
+      { label: "MÃƒÂ¥l", away: match.awayScore, home: match.homeScore },
       { label: "PIM", away: awayPim, home: homePim },
-      { label: "Målvaktsräddningar", away: sumMatchRows(goalieStats.away, "sv"), home: sumMatchRows(goalieStats.home, "sv") },
+      { label: "MÃƒÂ¥lvaktsrÃƒÂ¤ddningar", away: sumMatchRows(goalieStats.away, "sv"), home: sumMatchRows(goalieStats.home, "sv") },
       { label: "SV%", away: goalieStats.away[0] ? formatPercent(goalieStats.away[0].svp) : "-", home: goalieStats.home[0] ? formatPercent(goalieStats.home[0].svp) : "-" }
     ].filter(Boolean);
     return `
@@ -879,9 +911,9 @@
     return `
       <div class="matchTimeline">
         ${events.map(function (event) {
-          const typeLabel = event.type === "penalty" ? "Utvisning" : event.type === "goal" ? "Mål" : "Info";
+          const typeLabel = event.type === "penalty" ? "Utvisning" : event.type === "goal" ? "MÃƒÂ¥l" : "Info";
           const description = event.type === "goal"
-            ? event.player + (event.assists.length ? " (" + event.assists.join(", ") + ")" : "") + (event.tags.length ? " · " + event.tags.join(", ") : "")
+            ? event.player + (event.assists.length ? " (" + event.assists.join(", ") + ")" : "") + (event.tags.length ? " Ã‚Â· " + event.tags.join(", ") : "")
             : event.type === "penalty"
               ? event.player + (event.penalty ? " - " + event.penalty : "") + (event.pim ? " (" + event.pim + " min)" : "")
               : event.body;
@@ -916,16 +948,16 @@
 
   function renderMatchGoalieSide(teamName, rows) {
     const sorted = (rows || []).slice().sort(sortGoalies);
-    return panel(teamName + " - målvakter", sorted.length ? `
+    return panel(teamName + " - mÃƒÂ¥lvakter", sorted.length ? `
       <div class="dataTable matchStatsTable">
         <table>
-          <thead><tr><th>Målvakt</th><th>SA</th><th>GA</th><th>SV</th><th>SV%</th></tr></thead>
+          <thead><tr><th>MÃƒÂ¥lvakt</th><th>SA</th><th>GA</th><th>SV</th><th>SV%</th></tr></thead>
           <tbody>${sorted.map(function (row) {
             return `<tr><td><a href="#/goalies/${encodeURIComponent(row.name)}">${renderPersonName(row.name)}</a></td><td>${row.sa}</td><td>${row.ga}</td><td>${row.sv}</td><td><strong>${formatPercent(row.svp)}</strong></td></tr>`;
           }).join("")}</tbody>
         </table>
       </div>
-    ` : `<div class="empty">Ingen målvaktsstatistik finns registrerad.</div>`);
+    ` : `<div class="empty">Ingen mÃƒÂ¥lvaktsstatistik finns registrerad.</div>`);
   }
 
   function normalizeMatchStatSides(stats, normalizer) {
@@ -943,7 +975,7 @@
   function normalizePlayerRowsForMatch(rows) {
     return (rows || []).map(function (row) {
       return {
-        name: text(row.displayName || row.player || row.name || "Okänd spelare"),
+        name: text(row.displayName || row.player || row.name || "OkÃƒÂ¤nd spelare"),
         team: text(row.team),
         gp: number(row.gp) || 1,
         g: number(row.g),
@@ -960,7 +992,7 @@
       const sv = number(row.sv);
       const sa = number(row.sa) || ga + sv;
       return finalizeGoalie({
-        name: text(row.displayName || row.player || row.name || "Okänd målvakt"),
+        name: text(row.displayName || row.player || row.name || "OkÃƒÂ¤nd mÃƒÂ¥lvakt"),
         team: text(row.team),
         gp: number(row.gp) || 1,
         sa: sa,
@@ -982,7 +1014,7 @@
     let currentTeam = "";
     text(summary).split("|").map(text).filter(Boolean).forEach(function (part) {
       const header = part.match(/^([^:]+):\s*(.*)$/);
-      if (header && !/^målvakt$/i.test(text(header[1]))) {
+      if (header && !/^mÃƒÂ¥lvakt$/i.test(text(header[1]))) {
         currentTeam = text(header[1]);
         part = text(header[2]);
         if (!part) return;
@@ -1015,7 +1047,7 @@
   }
 
   function parseMatchGoalieStatLine(line, teamName) {
-    const match = text(line).match(/^Målvakt:\s*(.*?)\s+(-|\d+)SA\s+(\d+)GA\s+(\d+)SV\s+(-|[.\d,]+)SV%$/i);
+    const match = text(line).match(/^MÃƒÂ¥lvakt:\s*(.*?)\s+(-|\d+)SA\s+(\d+)GA\s+(\d+)SV\s+(-|[.\d,]+)SV%$/i);
     if (!match) return null;
     const ga = number(match[3]);
     const sv = number(match[4]);
@@ -1045,7 +1077,7 @@
       const match = line.match(/^(\d{1,2}:\d{2})\s+(.+)$/);
       const time = match ? match[1] : "";
       const body = match ? text(match[2]) : line;
-      const penalty = body.match(/^UTV\s+(.+?)\s+-\s+(.+?)(?:\s+([A-Za-zÅÄÖåäö -]+))?\s+(\d+)\s+min$/i);
+      const penalty = body.match(/^UTV\s+(.+?)\s+-\s+(.+?)(?:\s+([A-Za-zÃƒâ€¦Ãƒâ€žÃƒâ€“ÃƒÂ¥ÃƒÂ¤ÃƒÂ¶ -]+))?\s+(\d+)\s+min$/i);
       if (penalty) {
         return {
           type: "penalty",
@@ -1110,14 +1142,14 @@
 
   function renderTeams() {
     return `
-      <p class="viewIntro">Alla lag samlade som scanbara brickor. Klicka ett lag för snabb historik.</p>
+      <p class="viewIntro">Alla lag samlade som scanbara brickor. Klicka ett lag fÃƒÂ¶r snabb historik.</p>
       <section class="teamGrid">
         ${state.teams.slice(0, 240).map(function (team) {
           return `
             <a class="teamTile" href="#/teams/${encodeURIComponent(team.name)}">
               ${renderTeamLogo(team.name, "teamLogoTile")}
               <strong>${escapeHtml(team.name)}</strong>
-              <em>${team.matches} matcher · ${team.wins} vinster</em>
+              <em>${team.matches} matcher Ã‚Â· ${team.wins} vinster</em>
             </a>
           `;
         }).join("")}
@@ -1138,18 +1170,18 @@
         <a href="#/teams">Tillbaka till lag</a>
         ${renderTeamLogo(team.name, "teamLogoHero")}
         <h2>${escapeHtml(team.name)}</h2>
-        <p>${team.cups} cuper, ${team.matches} matcher, ${team.wins} vinster och ${team.goalsFor} mål framåt.</p>
+        <p>${team.cups} cuper, ${team.matches} matcher, ${team.wins} vinster och ${team.goalsFor} mÃƒÂ¥l framÃƒÂ¥t.</p>
       </section>
       <section class="metricGrid compact">
         ${metric("Cuper", team.cups, "deltaganden")}
         ${metric("Matcher", team.matches, "totalt")}
         ${metric("Vinster", team.wins, "registrerade")}
-        ${metric("Mål", team.goalsFor, "gjorda")}
+        ${metric("MÃƒÂ¥l", team.goalsFor, "gjorda")}
       </section>
       <section class="sportGrid">
-        ${panel("Lagets SEC-säsonger", renderTeamCupTable(cupRows))}
+        ${panel("Lagets SEC-sÃƒÂ¤songer", renderTeamCupTable(cupRows))}
         ${panel("Profiler i laget", renderLeaderRows(roster.slice(0, 12)))}
-        ${panel("Målvakter i laget", renderGoalieRows(buildTeamGoalies(team.name).slice(0, 8)))}
+        ${panel("MÃƒÂ¥lvakter i laget", renderGoalieRows(buildTeamGoalies(team.name).slice(0, 8)))}
       </section>
       ${panel("Senaste matcher", renderMatchRows(matches, 16))}
     `;
@@ -1182,13 +1214,13 @@
         <a href="${cup ? "#/cups/" + encodeURIComponent(cup.id) + "/teams" : "#/teams"}">Tillbaka till lag</a>
         ${renderTeamLogo(team.name, "teamLogoHero")}
         <h2>${escapeHtml(team.name)}</h2>
-        <p>${cup ? escapeHtml(cup.name) + " · " : ""}${scopedMatches.length} matcher, ${wins} vinster och ${goalsFor}-${goalsAgainst} i mål.</p>
+        <p>${cup ? escapeHtml(cup.name) + " Ã‚Â· " : ""}${scopedMatches.length} matcher, ${wins} vinster och ${goalsFor}-${goalsAgainst} i mÃƒÂ¥l.</p>
       </section>
       <section class="metricGrid compact">
         ${metric(cup ? "Cup" : "Cuper", cup ? cup.code : String(team.cups || 0), cup ? "vald turnering" : "deltaganden")}
         ${metric("Matcher", scopedMatches.length, "totalt")}
         ${metric("Vinster", wins, "registrerade")}
-        ${metric("Mål", goalsFor, "gjorda")}
+        ${metric("MÃƒÂ¥l", goalsFor, "gjorda")}
       </section>
       ${renderTeamTabs(base, activeTab)}
       <section class="fullPagePanel teamTabPanel">
@@ -1202,7 +1234,7 @@
 
   function renderTeamTabs(base, activeTab) {
     const tabs = [
-      ["roster", "Laguppställning"],
+      ["roster", "LaguppstÃƒÂ¤llning"],
       ["matches", "Alla matcher"],
       ["stats", "Statistik"],
       ["history", "Historisk statistik"]
@@ -1216,23 +1248,23 @@
     `;
   }
 
-  function renderTeamRosterPanel(teamName, roster) {
+  function renderTeamRosterPanel(teamName, roster, title) {
     return `
-      <div class="panelHead"><h3>Laguppställning</h3></div>
+      <div class="panelHead"><h3>LaguppstÃƒÂ¤llning</h3></div>
       <div class="teamRosterGrid">
-        ${roster.length ? roster.map(renderTeamRosterCard).join("") : `<div class="empty">Inga spelare hittades för ${escapeHtml(teamName)}.</div>`}
+        ${roster.length ? roster.map(renderTeamRosterCard).join("") : `<div class="empty">Inga spelare hittades fÃƒÂ¶r ${escapeHtml(teamName)}.</div>`}
       </div>
     `;
   }
 
   function renderTeamRosterCard(row) {
-    const href = row.role === "Målvakt" && !row.gp ? "#/goalies/" + encodeURIComponent(row.name) : "#/players/" + encodeURIComponent(row.name);
+    const href = row.role === "MÃƒÂ¥lvakt" && !row.gp ? "#/goalies/" + encodeURIComponent(row.name) : "#/players/" + encodeURIComponent(row.name);
     const statLine = [
       row.gp ? row.gp + " GP" : "",
       row.pts ? row.pts + " PTS" : "",
-      row.goalieGp ? row.goalieGp + " GP målvakt" : "",
+      row.goalieGp ? row.goalieGp + " GP mÃƒÂ¥lvakt" : "",
       row.sa ? formatPercent(row.svp) + " SV%" : ""
-    ].filter(Boolean).join(" · ");
+    ].filter(Boolean).join(" Ã‚Â· ");
     return `
       <a class="teamRosterCard" href="${href}">
         ${renderPlayerPortrait(row, "previewPortrait")}
@@ -1256,7 +1288,7 @@
     return `
       <div class="teamStatsGrid">
         ${panel("Utespelare", renderCupPlayerStatsTable(playerRows))}
-        ${panel("Målvakter", renderCupGoalieStatsTable(goalieRows))}
+        ${panel("MÃƒÂ¥lvakter", renderCupGoalieStatsTable(goalieRows))}
       </div>
     `;
   }
@@ -1265,11 +1297,13 @@
     const playerRows = getTeamPlayerRows(teamName, null);
     const goalieRows = getTeamGoalieRows(teamName, null);
     const cupRows = buildTeamCupRows(teamName);
+    const roster = buildTeamRosterRows(playerRows, goalieRows);
     return `
+      ${renderTeamRosterPanel(teamName, roster)}
       <div class="teamStatsGrid">
         ${panel("Cuphistorik", renderTeamCupTable(cupRows))}
         ${panel("Historiska utespelare", renderCupPlayerStatsTable(playerRows))}
-        ${panel("Historiska målvakter", renderCupGoalieStatsTable(goalieRows))}
+        ${panel("Historiska mÃƒÂ¥lvakter", renderCupGoalieStatsTable(goalieRows))}
       </div>
     `;
   }
@@ -1289,7 +1323,7 @@
   function aggregateTeamPlayerRows(rows) {
     const map = new Map();
     rows.forEach(function (row) {
-      const key = fold(row.name);
+      const key = getRosterPersonKey(row);
       if (!map.has(key)) {
         map.set(key, { name: row.name, team: row.team, playerId: row.playerId || "", gp: 0, g: 0, a: 0, pts: 0, pim: 0 });
       }
@@ -1306,7 +1340,7 @@
   function aggregateTeamGoalieRows(rows) {
     const map = new Map();
     rows.forEach(function (row) {
-      const key = fold(row.name);
+      const key = getRosterPersonKey(row);
       if (!map.has(key)) {
         map.set(key, { name: row.name, team: row.team, playerId: row.playerId || "", gp: 0, sa: 0, ga: 0, sv: 0, svp: 0, gaa: 0, so: 0 });
       }
@@ -1323,16 +1357,16 @@
   function buildTeamRosterRows(playerRows, goalieRows) {
     const map = new Map();
     playerRows.forEach(function (row) {
-      const key = fold(row.name);
+      const key = getRosterPersonKey(row);
       map.set(key, Object.assign({}, row, { role: "Utespelare", goalieGp: 0, sa: 0, sv: 0, ga: 0, svp: 0 }));
     });
     goalieRows.forEach(function (row) {
-      const key = fold(row.name);
+      const key = getRosterPersonKey(row);
       if (!map.has(key)) {
-        map.set(key, { name: row.name, team: row.team, gp: 0, g: 0, a: 0, pts: 0, pim: 0, role: "Målvakt", goalieGp: row.gp, sa: row.sa, sv: row.sv, ga: row.ga, svp: row.svp });
+        map.set(key, { name: row.name, team: row.team, gp: 0, g: 0, a: 0, pts: 0, pim: 0, role: "MÃƒÂ¥lvakt", goalieGp: row.gp, sa: row.sa, sv: row.sv, ga: row.ga, svp: row.svp });
       } else {
         const target = map.get(key);
-        target.role = "Utespelare/Målvakt";
+        target.role = "Utespelare/MÃƒÂ¥lvakt";
         target.goalieGp = row.gp;
         target.sa = row.sa;
         target.sv = row.sv;
@@ -1345,16 +1379,21 @@
     });
   }
 
+  function getRosterPersonKey(row) {
+    const parsed = parsePersonCountry(row?.name || row?.player || "");
+    return fold(parsed.name || row?.name || row?.player || "");
+  }
+
   function renderPlayers() {
     return `
-      <p class="viewIntro">En kompakt leaderboard över spelare från all cupdata.</p>
+      <p class="viewIntro">En kompakt leaderboard ÃƒÂ¶ver spelare frÃƒÂ¥n all cupdata.</p>
       <section class="playerBoard">
         ${state.players.slice(0, 160).map(function (player, index) {
           return `
             <a class="playerRow" href="#/players/${encodeURIComponent(player.name)}">
               <span>${index + 1}</span>
               <strong>${renderPersonName(player.name)}</strong>
-              <em>${escapeHtml(player.team || "Okänt lag")}</em>
+              <em>${escapeHtml(player.team || "OkÃƒÂ¤nt lag")}</em>
               <b>${player.pts}p</b>
             </a>
           `;
@@ -1365,14 +1404,14 @@
 
   function renderGoalies() {
     return `
-      <p class="viewIntro">Räddningsprocent, räddningar, GAA och historik för målvakter från båda datakällorna.</p>
+      <p class="viewIntro">RÃƒÂ¤ddningsprocent, rÃƒÂ¤ddningar, GAA och historik fÃƒÂ¶r mÃƒÂ¥lvakter frÃƒÂ¥n bÃƒÂ¥da datakÃƒÂ¤llorna.</p>
       <section class="playerBoard">
         ${state.goalies.slice(0, 160).map(function (goalie, index) {
           return `
             <a class="playerRow" href="#/goalies/${encodeURIComponent(goalie.name)}">
               <span>${index + 1}</span>
               <strong>${renderPersonName(goalie.name)}</strong>
-              <em>${escapeHtml(goalie.team || "Okänt lag")} · ${goalie.gp} GP</em>
+              <em>${escapeHtml(goalie.team || "OkÃƒÂ¤nt lag")} Ã‚Â· ${goalie.gp} GP</em>
               <b>${formatPercent(goalie.svp)}</b>
             </a>
           `;
@@ -1387,11 +1426,11 @@
       <section class="detailHero">
         <a href="#/players">Tillbaka till spelare</a>
         <h2>${renderPersonName(player.name)}</h2>
-        <p>${escapeHtml(player.team || "Okänt lag")} · ${player.cups.size} cuper · ${player.gp} GP · ${player.pts} poäng.</p>
+        <p>${escapeHtml(player.team || "OkÃƒÂ¤nt lag")} Ã‚Â· ${player.cups.size} cuper Ã‚Â· ${player.gp} GP Ã‚Â· ${player.pts} poÃƒÂ¤ng.</p>
       </section>
       <section class="metricGrid compact">
-        ${metric("Poäng", player.pts, "totalt")}
-        ${metric("Mål", player.g, "gjorda")}
+        ${metric("PoÃƒÂ¤ng", player.pts, "totalt")}
+        ${metric("MÃƒÂ¥l", player.g, "gjorda")}
         ${metric("Assist", player.a, "passningar")}
         ${metric("Matcher", player.gp, "GP")}
       </section>
@@ -1403,18 +1442,18 @@
   }
 
   function renderGoalieDetail(model, goalie) {
-    if (!goalie) return `<section class="emptyPage">Målvakten hittades inte.</section>`;
+    if (!goalie) return `<section class="emptyPage">MÃƒÂ¥lvakten hittades inte.</section>`;
     return `
       <section class="detailHero">
-        <a href="#/goalies">Tillbaka till målvakter</a>
+        <a href="#/goalies">Tillbaka till mÃƒÂ¥lvakter</a>
         <h2>${renderPersonName(goalie.name)}</h2>
-        <p>${escapeHtml(goalie.team || "Okänt lag")} · ${goalie.cups.size} cuper · ${goalie.gp} GP · ${formatPercent(goalie.svp)} SV%.</p>
+        <p>${escapeHtml(goalie.team || "OkÃƒÂ¤nt lag")} Ã‚Â· ${goalie.cups.size} cuper Ã‚Â· ${goalie.gp} GP Ã‚Â· ${formatPercent(goalie.svp)} SV%.</p>
       </section>
       <section class="metricGrid compact">
-        ${metric("SV%", formatPercent(goalie.svp), "räddningsprocent")}
-        ${metric("GAA", formatDecimal(goalie.gaa), "mål emot/match")}
-        ${metric("SV", goalie.sv, "räddningar")}
-        ${metric("SO", goalie.so, "hållna nollor")}
+        ${metric("SV%", formatPercent(goalie.svp), "rÃƒÂ¤ddningsprocent")}
+        ${metric("GAA", formatDecimal(goalie.gaa), "mÃƒÂ¥l emot/match")}
+        ${metric("SV", goalie.sv, "rÃƒÂ¤ddningar")}
+        ${metric("SO", goalie.so, "hÃƒÂ¥llna nollor")}
       </section>
       <section class="sportGrid">
         ${panel("Cuphistorik", renderGoalieCupTable(goalie))}
@@ -1425,7 +1464,7 @@
 
   function renderMatches(model) {
     return `
-      <p class="viewIntro">Senaste registrerade matcher från hela datan, oavsett cup.</p>
+      <p class="viewIntro">Senaste registrerade matcher frÃƒÂ¥n hela datan, oavsett cup.</p>
       ${panel("Matcher", renderMatchRows(model.allMatches.slice(0, 90), 90))}
     `;
   }
@@ -1435,8 +1474,8 @@
       <section class="manifest">
         <span>SEC</span>
         <h2>Svenska eHockey Cupen</h2>
-        <p>Sidan samlar aktuell cupdata, historik, matchflöde, tabeller, slutspel, lag, spelare och målvakter på ett ställe.</p>
-        <p>Senaste registrerade match: <strong>${model.latestMatches[0] ? escapeHtml(model.latestMatches[0].cup.code + " · " + model.latestMatches[0].match.awayTeam + " - " + model.latestMatches[0].match.homeTeam + " " + score(model.latestMatches[0].match)) : "Ingen match hittad"}</strong>.</p>
+        <p>Sidan samlar aktuell cupdata, historik, matchflÃƒÂ¶de, tabeller, slutspel, lag, spelare och mÃƒÂ¥lvakter pÃƒÂ¥ ett stÃƒÂ¤lle.</p>
+        <p>Senaste registrerade match: <strong>${model.latestMatches[0] ? escapeHtml(model.latestMatches[0].cup.code + " Ã‚Â· " + model.latestMatches[0].match.awayTeam + " - " + model.latestMatches[0].match.homeTeam + " " + score(model.latestMatches[0].match)) : "Ingen match hittad"}</strong>.</p>
       </section>
     `;
   }
@@ -1483,7 +1522,7 @@
             <b>${score(entry.match)}</b>
             ${renderTeamIdentityStatic(entry.match.homeTeam, "teamLogoInline")}
           </strong>
-          <em>${escapeHtml(formatDate(entry.match.date))} · ${escapeHtml(entry.match.group || entry.match.stage || "Match")}</em>
+          <em>${escapeHtml(formatDate(entry.match.date))} Ã‚Â· ${escapeHtml(entry.match.group || entry.match.stage || "Match")}</em>
         </a>
       `;
     }).join("");
@@ -1565,7 +1604,7 @@
             <a class="leader" href="#/players/${encodeURIComponent(player.name)}">
               <span>${index + 1}</span>
               <strong>${renderPersonName(player.name)}</strong>
-              <em>${escapeHtml(player.team || "Okänt lag")}</em>
+              <em>${escapeHtml(player.team || "OkÃƒÂ¤nt lag")}</em>
               <b>${player.pts}p</b>
             </a>
           `;
@@ -1582,11 +1621,11 @@
             <a class="leader" href="#/goalies/${encodeURIComponent(goalie.name)}">
               <span>${index + 1}</span>
               <strong>${renderPersonName(goalie.name)}</strong>
-              <em>${escapeHtml(goalie.team || "Okänt lag")} · ${goalie.gp} GP</em>
+              <em>${escapeHtml(goalie.team || "OkÃƒÂ¤nt lag")} Ã‚Â· ${goalie.gp} GP</em>
               <b>${formatPercent(goalie.svp)}</b>
             </a>
           `;
-        }).join("") || `<div class="empty">Ingen målvaktsstatistik hittades.</div>`}
+        }).join("") || `<div class="empty">Ingen mÃƒÂ¥lvaktsstatistik hittades.</div>`}
       </div>
     `;
   }
@@ -1620,11 +1659,11 @@
               <span class="previewRank">${index + 1}</span>
               ${renderPlayerPortrait(goalie, "previewPortrait")}
               <strong>${renderPersonName(goalie.name)}</strong>
-              <em>${renderTeamIdentityStatic(goalie.team, "teamLogoChip")} · ${goalie.gp} GP</em>
+              <em>${renderTeamIdentityStatic(goalie.team, "teamLogoChip")} Ã‚Â· ${goalie.gp} GP</em>
               <b>${formatPercent(goalie.svp)}</b>
             </a>
           `;
-        }).join("") || `<div class="empty">Ingen målvaktsstatistik hittades.</div>`}
+        }).join("") || `<div class="empty">Ingen mÃƒÂ¥lvaktsstatistik hittades.</div>`}
       </div>
     `;
   }
@@ -1652,11 +1691,11 @@
     const sorted = rows.slice().sort(function (a, b) {
       return number(b.svp) - number(a.svp) || number(a.gaa) - number(b.gaa) || number(b.sv) - number(a.sv) || b.gp - a.gp || a.name.localeCompare(b.name, "sv");
     });
-    if (!sorted.length) return `<div class="empty">Ingen målvaktsstatistik hittades.</div>`;
+    if (!sorted.length) return `<div class="empty">Ingen mÃƒÂ¥lvaktsstatistik hittades.</div>`;
     return `
       <div class="dataTable fullStatsTable">
         <table>
-          <thead><tr><th>#</th><th>Målvakt</th><th>Lag</th><th>GP</th><th>SA</th><th>GA</th><th>SV</th><th>SV%</th><th>GAA</th><th>SO</th></tr></thead>
+          <thead><tr><th>#</th><th>MÃƒÂ¥lvakt</th><th>Lag</th><th>GP</th><th>SA</th><th>GA</th><th>SV</th><th>SV%</th><th>GAA</th><th>SO</th></tr></thead>
           <tbody>
             ${sorted.map(function (row, index) {
               return `<tr><td>${index + 1}</td><td><a href="#/goalies/${encodeURIComponent(row.name)}">${renderPersonName(row.name)}</a></td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.sa}</td><td>${row.ga}</td><td>${row.sv}</td><td><strong>${formatPercent(row.svp)}</strong></td><td>${formatDecimal(row.gaa)}</td><td>${row.so}</td></tr>`;
@@ -1889,7 +1928,7 @@
   }
 
   function renderBracket(rounds, settings, options) {
-    if (!rounds.length) return `<div class="empty">Inget slutspelsträd hittades för cupen.</div>`;
+    if (!rounds.length) return `<div class="empty">Inget slutspelstrÃƒÂ¤d hittades fÃƒÂ¶r cupen.</div>`;
     const opts = options || {};
     const displayRounds = rounds;
     return `
@@ -1946,7 +1985,7 @@
     const items = [
       ["Slutspelsstreck 1", formatSettingValue(safeSettings.playoffCut1)],
       ["Slutspelsstreck 2", formatSettingValue(safeSettings.playoffCut2)],
-      ["BO åtton", formatSettingValue(safeSettings.bestOf.roundOf16)],
+      ["BO ÃƒÂ¥tton", formatSettingValue(safeSettings.bestOf.roundOf16)],
       ["BO kvart", formatSettingValue(safeSettings.bestOf.quarter)],
       ["BO semi", formatSettingValue(safeSettings.bestOf.semi)],
       ["BO final", formatSettingValue(safeSettings.bestOf.final)],
@@ -1966,7 +2005,7 @@
         }).join("")}
       </div>
       <div class="cupInfoText">
-        ${safeSettings.eligibility ? `<p><span>Behörighet</span>${escapeHtml(stripRuleLabel(safeSettings.eligibility, "Behörighet"))}</p>` : ""}
+        ${safeSettings.eligibility ? `<p><span>BehÃƒÂ¶righet</span>${escapeHtml(stripRuleLabel(safeSettings.eligibility, "BehÃƒÂ¶righet"))}</p>` : ""}
         ${shownInfo.map(function (info) {
           return `<p><span>Info</span>${escapeHtml(info)}</p>`;
         }).join("")}
@@ -2011,91 +2050,91 @@
       {
         title: "Medlemsregistrering",
         items: [
-          { heading: "Allmänt", text: "Alla spelare som deltar i SEC måste ha ett registrerat konto på SportsGamer.gg med sitt PSN-ID eller Gamertag tillagt i sin profil." },
-          { heading: "Kontodetaljer", text: "SportsGamer-kontonamn, PSN-ID, Gamertag och spelarnamn får inte vara stötande, förolämpande, råa eller vulgära. SportsGamers personal kan begära att uppgifter ändras om de anses olämpliga." },
-          { heading: "Acceptera regler", text: "Genom att gå med i ett lag som är registrerat för en cup accepterar spelaren dessa regler." },
-          { heading: "Antal konton", text: "Ingen spelare får ha mer än ett konto på SportsGamer.gg. Kontot kan användas på olika konsoler och i olika ligor eller turneringar så länge spelarens PSN-ID eller Gamertag finns på profilen." },
-          { heading: "Konto i samma hushåll", text: "Om flera spelare använder konton från samma IP-adress, till exempel syskon i samma hem, ska administratör informeras om detta." },
-          { heading: "Playercard", text: "Namn och nummer på SportsGamer-playercard ska stämma med spelet. Alla spelare i ett lag ska ha unika nummer, och korrekt nationalitet och stad ska vara synliga. Ålder är frivilligt." }
+          { heading: "AllmÃƒÂ¤nt", text: "Alla spelare som deltar i SEC mÃƒÂ¥ste ha ett registrerat konto pÃƒÂ¥ SportsGamer.gg med sitt PSN-ID eller Gamertag tillagt i sin profil." },
+          { heading: "Kontodetaljer", text: "SportsGamer-kontonamn, PSN-ID, Gamertag och spelarnamn fÃƒÂ¥r inte vara stÃƒÂ¶tande, fÃƒÂ¶rolÃƒÂ¤mpande, rÃƒÂ¥a eller vulgÃƒÂ¤ra. SportsGamers personal kan begÃƒÂ¤ra att uppgifter ÃƒÂ¤ndras om de anses olÃƒÂ¤mpliga." },
+          { heading: "Acceptera regler", text: "Genom att gÃƒÂ¥ med i ett lag som ÃƒÂ¤r registrerat fÃƒÂ¶r en cup accepterar spelaren dessa regler." },
+          { heading: "Antal konton", text: "Ingen spelare fÃƒÂ¥r ha mer ÃƒÂ¤n ett konto pÃƒÂ¥ SportsGamer.gg. Kontot kan anvÃƒÂ¤ndas pÃƒÂ¥ olika konsoler och i olika ligor eller turneringar sÃƒÂ¥ lÃƒÂ¤nge spelarens PSN-ID eller Gamertag finns pÃƒÂ¥ profilen." },
+          { heading: "Konto i samma hushÃƒÂ¥ll", text: "Om flera spelare anvÃƒÂ¤nder konton frÃƒÂ¥n samma IP-adress, till exempel syskon i samma hem, ska administratÃƒÂ¶r informeras om detta." },
+          { heading: "Playercard", text: "Namn och nummer pÃƒÂ¥ SportsGamer-playercard ska stÃƒÂ¤mma med spelet. Alla spelare i ett lag ska ha unika nummer, och korrekt nationalitet och stad ska vara synliga. Ãƒâ€¦lder ÃƒÂ¤r frivilligt." }
         ]
       },
       {
         title: "Lagregistrering",
         items: [
-          { heading: "Allmänt", text: "Registrerade svenska, norska och danska medlemmar får registrera lag för SEC. Lagets registrant blir kapten som standard. Lagregistrering är endast möjlig under registreringsperioden." },
-          { heading: "Registrering", text: "Registreringar är slutgiltiga när anmälningstiden har passerat. SportsGamers personal har sista ordet kring placering i divisioner eller grupper." },
-          { heading: "Dra tillbaka en registrering", text: "För att dra tillbaka en registrering ska kaptenen ta bort anmälan och meddela att laget inte längre avser delta. Om laget redan placerats i division ska support kontaktas. Detta kan bara göras innan anmälningstiden gått ut." },
-          { heading: "Logotyper", text: "Genom anmälan samtycker laget till att SportsGamer, SportsGamers dotterbolag och motståndare får använda lagets logotyp för sändnings- och reklamändamål." },
-          { heading: "Sändningsbilder", text: "Genom anmälan samtycker spelare och lag till att inskickade bilder får användas för sändnings- och reklamändamål." },
-          { heading: "Sponsring", text: "Lag får ha sponsorer, men sponsorer får inte stå i konflikt med SportsGamers värderingar, turneringens huvudsponsor eller cupens arrangör. Alkohol, tobak, spel och vuxenunderhållning är inte tillåtet." }
+          { heading: "AllmÃƒÂ¤nt", text: "Registrerade svenska, norska och danska medlemmar fÃƒÂ¥r registrera lag fÃƒÂ¶r SEC. Lagets registrant blir kapten som standard. Lagregistrering ÃƒÂ¤r endast mÃƒÂ¶jlig under registreringsperioden." },
+          { heading: "Registrering", text: "Registreringar ÃƒÂ¤r slutgiltiga nÃƒÂ¤r anmÃƒÂ¤lningstiden har passerat. SportsGamers personal har sista ordet kring placering i divisioner eller grupper." },
+          { heading: "Dra tillbaka en registrering", text: "FÃƒÂ¶r att dra tillbaka en registrering ska kaptenen ta bort anmÃƒÂ¤lan och meddela att laget inte lÃƒÂ¤ngre avser delta. Om laget redan placerats i division ska support kontaktas. Detta kan bara gÃƒÂ¶ras innan anmÃƒÂ¤lningstiden gÃƒÂ¥tt ut." },
+          { heading: "Logotyper", text: "Genom anmÃƒÂ¤lan samtycker laget till att SportsGamer, SportsGamers dotterbolag och motstÃƒÂ¥ndare fÃƒÂ¥r anvÃƒÂ¤nda lagets logotyp fÃƒÂ¶r sÃƒÂ¤ndnings- och reklamÃƒÂ¤ndamÃƒÂ¥l." },
+          { heading: "SÃƒÂ¤ndningsbilder", text: "Genom anmÃƒÂ¤lan samtycker spelare och lag till att inskickade bilder fÃƒÂ¥r anvÃƒÂ¤ndas fÃƒÂ¶r sÃƒÂ¤ndnings- och reklamÃƒÂ¤ndamÃƒÂ¥l." },
+          { heading: "Sponsring", text: "Lag fÃƒÂ¥r ha sponsorer, men sponsorer fÃƒÂ¥r inte stÃƒÂ¥ i konflikt med SportsGamers vÃƒÂ¤rderingar, turneringens huvudsponsor eller cupens arrangÃƒÂ¶r. Alkohol, tobak, spel och vuxenunderhÃƒÂ¥llning ÃƒÂ¤r inte tillÃƒÂ¥tet." }
         ]
       },
       {
-        title: "Uppförandekod",
+        title: "UppfÃƒÂ¶randekod",
         items: [
-          { heading: "Allmänt", text: "Medlemmar förväntas behandla varandra med respekt och undvika kränkande språkbruk i cupens konversationer på SportsGamer.gg och i extern kommunikation där bevis och kontext kan lämnas." },
-          { heading: "Försök att kringgå regler", text: "Medlemmar får inte kringgå reglerna, försöka göra det, eller lura SportsGamers personal och Cup Administration." }
+          { heading: "AllmÃƒÂ¤nt", text: "Medlemmar fÃƒÂ¶rvÃƒÂ¤ntas behandla varandra med respekt och undvika krÃƒÂ¤nkande sprÃƒÂ¥kbruk i cupens konversationer pÃƒÂ¥ SportsGamer.gg och i extern kommunikation dÃƒÂ¤r bevis och kontext kan lÃƒÂ¤mnas." },
+          { heading: "FÃƒÂ¶rsÃƒÂ¶k att kringgÃƒÂ¥ regler", text: "Medlemmar fÃƒÂ¥r inte kringgÃƒÂ¥ reglerna, fÃƒÂ¶rsÃƒÂ¶ka gÃƒÂ¶ra det, eller lura SportsGamers personal och Cup Administration." }
         ]
       },
       {
         title: "Lagledningens ansvar",
         items: [
-          { heading: "Allmänt", text: "Lagledare är representanter för hela laget och ansvarar för lagets agerande.", bullets: [
-            "Schemalägga matcher.",
-            "Se till att laget alltid följer cupens och turneringens regler.",
-            "Sköta kommunikation med managers och cupadministration i lagets namn.",
-            "Se till att laget slutför sina matcher."
+          { heading: "AllmÃƒÂ¤nt", text: "Lagledare ÃƒÂ¤r representanter fÃƒÂ¶r hela laget och ansvarar fÃƒÂ¶r lagets agerande.", bullets: [
+            "SchemalÃƒÂ¤gga matcher.",
+            "Se till att laget alltid fÃƒÂ¶ljer cupens och turneringens regler.",
+            "SkÃƒÂ¶ta kommunikation med managers och cupadministration i lagets namn.",
+            "Se till att laget slutfÃƒÂ¶r sina matcher."
           ] }
         ]
       },
       {
         title: "Cupens administration",
         items: [
-          { heading: "Ansvar", text: "Cupens administration ansvarar för att anordna cupen, upprätthålla reglerna, undersöka överträdelser och lösa tvister mellan spelare och lag." },
-          { heading: "Regeländringar", text: "Cupens administration kan lägga till förtydliganden eller nya regler om ett fall inte täcks av befintliga regler. Efter beslut ska berörda parter få en förklaring kring vilka regler som åberopats." },
-          { heading: "Definition av bestraffning", text: "Spelar- och lagbestraffningar definieras efter allvarlighetsgrad och tidigare beslut kan användas som prejudikat." },
-          { heading: "Majoritetsbeslut", text: "Cupadministrationen beslutar med majoritet och agerar som en enhet efter beslut. Enskilda röster avslöjas inte." },
-          { heading: "Kontakt", text: "Kontakt med cupadministrationen ska ske via supportfunktionen och SEC Support. Använd inte privata meddelanden till enskilda CA-medlemmar för CA-frågor." }
+          { heading: "Ansvar", text: "Cupens administration ansvarar fÃƒÂ¶r att anordna cupen, upprÃƒÂ¤tthÃƒÂ¥lla reglerna, undersÃƒÂ¶ka ÃƒÂ¶vertrÃƒÂ¤delser och lÃƒÂ¶sa tvister mellan spelare och lag." },
+          { heading: "RegelÃƒÂ¤ndringar", text: "Cupens administration kan lÃƒÂ¤gga till fÃƒÂ¶rtydliganden eller nya regler om ett fall inte tÃƒÂ¤cks av befintliga regler. Efter beslut ska berÃƒÂ¶rda parter fÃƒÂ¥ en fÃƒÂ¶rklaring kring vilka regler som ÃƒÂ¥beropats." },
+          { heading: "Definition av bestraffning", text: "Spelar- och lagbestraffningar definieras efter allvarlighetsgrad och tidigare beslut kan anvÃƒÂ¤ndas som prejudikat." },
+          { heading: "Majoritetsbeslut", text: "Cupadministrationen beslutar med majoritet och agerar som en enhet efter beslut. Enskilda rÃƒÂ¶ster avslÃƒÂ¶jas inte." },
+          { heading: "Kontakt", text: "Kontakt med cupadministrationen ska ske via supportfunktionen och SEC Support. AnvÃƒÂ¤nd inte privata meddelanden till enskilda CA-medlemmar fÃƒÂ¶r CA-frÃƒÂ¥gor." }
         ]
       },
       {
         title: "Lagregler",
         items: [
-          { heading: "Spelare", text: "Lag får endast använda spelare som är listade i den officiella laguppställningen på SportsGamer.gg." },
-          { heading: "WO-matcher", text: "Lag får lämna WO, men varje fall avgörs av CA. Motståndarlaget får walkover-vinst." },
-          { heading: "Annullera matcher", text: "Om en match spelas med en eller flera otillåtna spelare kan CA annullera matcher och tilldela WO-segrar till laget som inte brutit mot reglerna." }
+          { heading: "Spelare", text: "Lag fÃƒÂ¥r endast anvÃƒÂ¤nda spelare som ÃƒÂ¤r listade i den officiella laguppstÃƒÂ¤llningen pÃƒÂ¥ SportsGamer.gg." },
+          { heading: "WO-matcher", text: "Lag fÃƒÂ¥r lÃƒÂ¤mna WO, men varje fall avgÃƒÂ¶rs av CA. MotstÃƒÂ¥ndarlaget fÃƒÂ¥r walkover-vinst." },
+          { heading: "Annullera matcher", text: "Om en match spelas med en eller flera otillÃƒÂ¥tna spelare kan CA annullera matcher och tilldela WO-segrar till laget som inte brutit mot reglerna." }
         ]
       },
       {
         title: "Fair Play",
         items: [
-          { heading: "Allmänt", text: "Fair Play är grundregeln i alla matcher på SportsGamer.gg. Behandla motståndaren som du själv vill bli behandlad.", bullets: [
-            "Utnyttja inte spelmekanik eller buggar för att ge motståndaren nackdel.",
-            "Distrahera inte motståndaren från spelet genom spam, samtal under match eller liknande."
+          { heading: "AllmÃƒÂ¤nt", text: "Fair Play ÃƒÂ¤r grundregeln i alla matcher pÃƒÂ¥ SportsGamer.gg. Behandla motstÃƒÂ¥ndaren som du sjÃƒÂ¤lv vill bli behandlad.", bullets: [
+            "Utnyttja inte spelmekanik eller buggar fÃƒÂ¶r att ge motstÃƒÂ¥ndaren nackdel.",
+            "Distrahera inte motstÃƒÂ¥ndaren frÃƒÂ¥n spelet genom spam, samtal under match eller liknande."
           ] }
         ]
       },
       {
         title: "Buggar",
         items: [
-          { heading: "Spelare fastnar i animationer", text: "Om spelare eller målvakter fastnar i oavsiktliga animationer ska laget rensa pucken så snart felet upptäcks. Vid oenighet kan videobevis skickas till CA." },
-          { heading: "Slagsmål vid tekning", text: "Spelare får inte initiera slagsmål innan pucken släpps vid tekning." },
-          { heading: "Målvakter lämnar målgården", text: "Målvakter får inte lämna målgården i syfte att störa motståndarens skridskoåkare." },
-          { heading: "Hindra spelare utan puck", text: "Skridskoåkare får inte slå, stöta eller aktivt åka i vägen för spelare som inte har pucken." },
-          { heading: "Fånga spelare i målet", text: "Målvakten får inte försöka hindra en motståndare bakom målet eller i sarghörnet genom att stå i vägen så spelaren inte kan åka därifrån." }
+          { heading: "Spelare fastnar i animationer", text: "Om spelare eller mÃƒÂ¥lvakter fastnar i oavsiktliga animationer ska laget rensa pucken sÃƒÂ¥ snart felet upptÃƒÂ¤cks. Vid oenighet kan videobevis skickas till CA." },
+          { heading: "SlagsmÃƒÂ¥l vid tekning", text: "Spelare fÃƒÂ¥r inte initiera slagsmÃƒÂ¥l innan pucken slÃƒÂ¤pps vid tekning." },
+          { heading: "MÃƒÂ¥lvakter lÃƒÂ¤mnar mÃƒÂ¥lgÃƒÂ¥rden", text: "MÃƒÂ¥lvakter fÃƒÂ¥r inte lÃƒÂ¤mna mÃƒÂ¥lgÃƒÂ¥rden i syfte att stÃƒÂ¶ra motstÃƒÂ¥ndarens skridskoÃƒÂ¥kare." },
+          { heading: "Hindra spelare utan puck", text: "SkridskoÃƒÂ¥kare fÃƒÂ¥r inte slÃƒÂ¥, stÃƒÂ¶ta eller aktivt ÃƒÂ¥ka i vÃƒÂ¤gen fÃƒÂ¶r spelare som inte har pucken." },
+          { heading: "FÃƒÂ¥nga spelare i mÃƒÂ¥let", text: "MÃƒÂ¥lvakten fÃƒÂ¥r inte fÃƒÂ¶rsÃƒÂ¶ka hindra en motstÃƒÂ¥ndare bakom mÃƒÂ¥let eller i sarghÃƒÂ¶rnet genom att stÃƒÂ¥ i vÃƒÂ¤gen sÃƒÂ¥ spelaren inte kan ÃƒÂ¥ka dÃƒÂ¤rifrÃƒÂ¥n." }
         ]
       },
       {
-        title: "Schemaläggning",
+        title: "SchemalÃƒÂ¤ggning",
         items: [
-          { heading: "Schemaläggning", text: "Varje match har en officiell speldag. Lag får flytta matcher om de inte sänds eller är utvalda matcher, men ska kommunicera med motståndare före speldagen och skicka överenskomna ändringar via rescheduling-verktyget." }
+          { heading: "SchemalÃƒÂ¤ggning", text: "Varje match har en officiell speldag. Lag fÃƒÂ¥r flytta matcher om de inte sÃƒÂ¤nds eller ÃƒÂ¤r utvalda matcher, men ska kommunicera med motstÃƒÂ¥ndare fÃƒÂ¶re speldagen och skicka ÃƒÂ¶verenskomna ÃƒÂ¤ndringar via rescheduling-verktyget." }
         ]
       },
       {
-        title: "Diskvalificering och förbjudna spelare",
+        title: "Diskvalificering och fÃƒÂ¶rbjudna spelare",
         items: [
-          { heading: "Diskvalificering av lag", text: "Om ett lag diskvalificeras stängs lagkaptener och assisterande kaptener av från cupen. Övriga spelare kan byta lag om de inte var inblandade i diskvalificeringen." },
-          { heading: "Förvärv av förbjudna spelare", text: "Lag som plockar upp spelare som är förbjudna att spela på SportsGamer får allvarliga påföljder. Lagkaptenerna kan stängas av och laget diskvalificeras." }
+          { heading: "Diskvalificering av lag", text: "Om ett lag diskvalificeras stÃƒÂ¤ngs lagkaptener och assisterande kaptener av frÃƒÂ¥n cupen. Ãƒâ€“vriga spelare kan byta lag om de inte var inblandade i diskvalificeringen." },
+          { heading: "FÃƒÂ¶rvÃƒÂ¤rv av fÃƒÂ¶rbjudna spelare", text: "Lag som plockar upp spelare som ÃƒÂ¤r fÃƒÂ¶rbjudna att spela pÃƒÂ¥ SportsGamer fÃƒÂ¥r allvarliga pÃƒÂ¥fÃƒÂ¶ljder. Lagkaptenerna kan stÃƒÂ¤ngas av och laget diskvalificeras." }
         ]
       }
     ];
@@ -2121,7 +2160,7 @@
     const rounds = [];
     let remaining = series.slice();
     const pattern = [
-      { count: 8, round: "Åttondelsfinal" },
+      { count: 8, round: "Ãƒâ€¦ttondelsfinal" },
       { count: 4, round: "Kvartsfinal" },
       { count: 2, round: "Semifinal" },
       { count: 1, round: "Final" }
@@ -2153,7 +2192,7 @@
     assigned.add(finalSeries);
 
     let current = [finalSeries];
-    ["Semifinal", "Kvartsfinal", "Åttondelsfinal"].forEach(function (roundName) {
+    ["Semifinal", "Kvartsfinal", "Ãƒâ€¦ttondelsfinal"].forEach(function (roundName) {
       const previous = [];
       current.forEach(function (targetSeries) {
         [targetSeries.awayTeam, targetSeries.homeTeam].forEach(function (team) {
@@ -2173,7 +2212,7 @@
         });
       });
       if (previous.length) {
-        const effectiveRoundName = roundName === "Åttondelsfinal" && previous.length < current.length * 2 ? "Play in" : roundName;
+        const effectiveRoundName = roundName === "Ãƒâ€¦ttondelsfinal" && previous.length < current.length * 2 ? "Play in" : roundName;
         previous.sort(function (a, b) { return a.firstTimestamp - b.firstTimestamp; });
         rounds.push({ round: effectiveRoundName, series: previous, matches: previous.flatMap(function (item) { return item.matches; }) });
         current = previous;
@@ -2184,7 +2223,7 @@
       return !assigned.has(candidate);
     });
     if (leftovers.length) {
-      const earliestName = rounds.some(function (round) { return round.round === "Åttondelsfinal" || round.round === "Play in"; }) ? "Slutspel" : "Play in";
+      const earliestName = rounds.some(function (round) { return round.round === "Ãƒâ€¦ttondelsfinal" || round.round === "Play in"; }) ? "Slutspel" : "Play in";
       leftovers.sort(function (a, b) { return a.firstTimestamp - b.firstTimestamp; });
       rounds.push({ round: earliestName, series: leftovers, matches: leftovers.flatMap(function (item) { return item.matches; }) });
     }
@@ -2263,14 +2302,14 @@
       playoffCut1: nullableNumber(source.playoffCut1 ?? source["slutspelsstreck  1"] ?? source["slutspelsstreck 1"]),
       playoffCut2: nullableNumber(source.playoffCut2 ?? source["slutspelsstreck  2"] ?? source["slutspelsstreck 2"]),
       bestOf: {
-        roundOf16: nullableNumber(bestOf.roundOf16 ?? source.boAtton ?? source["bo åtton"] ?? source["bo atton"]),
+        roundOf16: nullableNumber(bestOf.roundOf16 ?? source.boAtton ?? source["bo ÃƒÂ¥tton"] ?? source["bo atton"]),
         quarter: nullableNumber(bestOf.quarter ?? source.boQuarter ?? source["bo kvart"]),
         semi: nullableNumber(bestOf.semi ?? source.boSemi ?? source["bo semi"]),
         final: nullableNumber(bestOf.final ?? source.boFinal ?? source["bo final"])
       },
       minPlayers: nullableNumber(source.minPlayers ?? source["Minst antal spelare"] ?? source["Min antal spelare"]),
       maxPlayers: nullableNumber(source.maxPlayers ?? source["Max antal spelare"] ?? source["Max antal"]),
-      eligibility: text(source.eligibility ?? source["Behörighet:"] ?? source["Behörighet"] ?? source.Behorighet ?? ""),
+      eligibility: text(source.eligibility ?? source["BehÃƒÂ¶righet:"] ?? source["BehÃƒÂ¶righet"] ?? source.Behorighet ?? ""),
       info: text(source.info ?? source.Info ?? "")
     };
   }
@@ -2356,7 +2395,7 @@
     return `
       <div class="dataTable">
         <table>
-          <thead><tr><th>Cup</th><th>Matcher</th><th>Vinster</th><th>Mål</th><th>Spelare</th></tr></thead>
+          <thead><tr><th>Cup</th><th>Matcher</th><th>Vinster</th><th>MÃƒÂ¥l</th><th>Spelare</th></tr></thead>
           <tbody>
             ${rows.map(function (row) {
               return `<tr><td><a href="#/cups/${encodeURIComponent(row.cup.id)}">${escapeHtml(row.cup.code)}</a></td><td>${row.matches}</td><td>${row.wins}</td><td>${row.goalsFor}</td><td>${row.players}</td></tr>`;
@@ -2390,7 +2429,7 @@
     const rows = goalie.rows.slice().sort(function (a, b) {
       return compareCupRowsByDate(a, b);
     });
-    if (!rows.length) return `<div class="empty">Ingen målvaktshistorik hittades.</div>`;
+    if (!rows.length) return `<div class="empty">Ingen mÃƒÂ¥lvaktshistorik hittades.</div>`;
     return `
       <div class="dataTable">
         <table>
@@ -2472,7 +2511,7 @@
   }
 
   function renderTeamIdentity(teamName, logoClass) {
-    const safeName = text(teamName || "Okänt lag");
+    const safeName = text(teamName || "OkÃƒÂ¤nt lag");
     return `
       <a class="teamIdentity" href="${getTeamHref(safeName)}">
         ${renderTeamLogo(safeName, logoClass || "teamLogoTiny")}
@@ -2482,7 +2521,7 @@
   }
 
   function renderTeamIdentityStatic(teamName, logoClass) {
-    const safeName = text(teamName || "Okänt lag");
+    const safeName = text(teamName || "OkÃƒÂ¤nt lag");
     return `
       <span class="teamIdentity teamIdentityStatic">
         ${renderTeamLogo(safeName, logoClass || "teamLogoTiny")}
@@ -2492,7 +2531,7 @@
   }
 
   function getTeamHref(teamName) {
-    const safeName = text(teamName || "Okänt lag");
+    const safeName = text(teamName || "OkÃƒÂ¤nt lag");
     if (state.view === "cups" && state.activeCupId) {
       return "#/cups/" + encodeURIComponent(state.activeCupId) + "/teams/" + encodeURIComponent(safeName);
     }
@@ -2520,40 +2559,42 @@
 
   function countryFlag(code) {
     const countries = {
-      SWE: "🇸🇪",
-      FIN: "🇫🇮",
-      NOR: "🇳🇴",
-      DEN: "🇩🇰",
-      DNK: "🇩🇰",
-      ISL: "🇮🇸",
-      USA: "🇺🇸",
-      CAN: "🇨🇦",
-      GBR: "🇬🇧",
-      GER: "🇩🇪",
-      DEU: "🇩🇪",
-      FRA: "🇫🇷",
-      ESP: "🇪🇸",
-      ITA: "🇮🇹",
-      CZE: "🇨🇿",
-      SVK: "🇸🇰",
-      POL: "🇵🇱",
-      AUT: "🇦🇹",
-      SUI: "🇨🇭",
-      CHE: "🇨🇭",
-      NED: "🇳🇱",
-      NLD: "🇳🇱",
-      BEL: "🇧🇪",
-      LAT: "🇱🇻",
-      LVA: "🇱🇻",
-      EST: "🇪🇪",
-      LTU: "🇱🇹",
-      RUS: "🇷🇺",
-      UKR: "🇺🇦",
-      UNK: "🌐"
+      SWE: "SE",
+      FIN: "FI",
+      NOR: "NO",
+      DEN: "DK",
+      DNK: "DK",
+      ISL: "IS",
+      USA: "US",
+      CAN: "CA",
+      GBR: "GB",
+      GER: "DE",
+      DEU: "DE",
+      FRA: "FR",
+      ESP: "ES",
+      ITA: "IT",
+      CZE: "CZ",
+      SVK: "SK",
+      POL: "PL",
+      AUT: "AT",
+      SUI: "CH",
+      CHE: "CH",
+      NED: "NL",
+      NLD: "NL",
+      BEL: "BE",
+      LAT: "LV",
+      LVA: "LV",
+      EST: "EE",
+      LTU: "LT",
+      RUS: "RU",
+      UKR: "UA"
     };
-    return countries[code] || "";
+    const iso2 = countries[code];
+    if (!iso2) return "";
+    return iso2.split("").map(function (letter) {
+      return String.fromCodePoint(0x1f1e6 + letter.charCodeAt(0) - 65);
+    }).join("");
   }
-
   function renderPlayerPortrait(player, className) {
     const safeName = text(player?.name || player?.player || "Spelare");
     const urls = getPlayerImageCandidates(player);
@@ -2644,8 +2685,74 @@
     return (parts[0]?.[0] || "?") + (parts[1]?.[0] || "");
   }
 
+  function renderPersonDetail(player, goalie, source) {
+    const person = player || goalie;
+    if (!person) return `<section class="emptyPage">Spelaren hittades inte.</section>`;
+    const teams = uniqueStrings([]
+      .concat(player ? Array.from(player.teams || []) : [])
+      .concat(goalie ? Array.from(goalie.teams || []) : [])
+      .filter(Boolean));
+    const cups = new Set([]
+      .concat(player ? Array.from(player.cups || []) : [])
+      .concat(goalie ? Array.from(goalie.cups || []) : []));
+    const roleText = player && goalie ? "Utespelare / mÃƒÂ¥lvakt" : player ? "Utespelare" : "MÃƒÂ¥lvakt";
+    const meta = [
+      cups.size + " cuper",
+      player ? player.gp + " GP ute" : "",
+      player ? player.pts + " poÃƒÂ¤ng" : "",
+      goalie ? goalie.gp + " GP mÃƒÂ¥l" : "",
+      goalie ? formatPercent(goalie.svp) + " SV%" : ""
+    ].filter(Boolean).join(" Ã‚Â· ");
+    return `
+      <section class="detailHero playerProfileHero">
+        <div class="profileMedia">
+          ${renderPlayerPortrait(person, "playerPortraitHero")}
+        </div>
+        <div class="profileCopy">
+          <a href="${source === "goalies" ? "#/goalies" : "#/players"}">Tillbaka till ${source === "goalies" ? "mÃƒÂ¥lvakter" : "spelare"}</a>
+          <h2>${renderPersonName(person.name)}</h2>
+          <p>${teams[0] ? renderTeamIdentity(teams[0], "teamLogoInline") : ""} <span>${escapeHtml(roleText)} Ã‚Â· ${escapeHtml(meta)}.</span></p>
+        </div>
+      </section>
+      <section class="metricGrid compact">
+        ${player ? metric("PoÃƒÂ¤ng", player.pts, "utespelare") : ""}
+        ${player ? metric("MÃƒÂ¥l", player.g, "gjorda") : ""}
+        ${player ? metric("Assist", player.a, "passningar") : ""}
+        ${goalie ? metric("SV%", formatPercent(goalie.svp), "mÃƒÂ¥lvakt") : ""}
+        ${goalie ? metric("GAA", formatDecimal(goalie.gaa), "mÃƒÂ¥l emot/match") : ""}
+        ${goalie ? metric("SV", goalie.sv, "rÃƒÂ¤ddningar") : ""}
+      </section>
+      <section class="sportGrid personDetailGrid">
+        ${player ? panel("Utespelare - cuphistorik", renderPlayerCupTable(player)) : ""}
+        ${goalie ? panel("MÃƒÂ¥lvakt - cuphistorik", renderGoalieCupTable(goalie)) : ""}
+        ${panel("Lagresa", renderMiniTags(teams, "teams"))}
+      </section>
+    `;
+  }
+
+  function findPlayerByPersonName(name) {
+    const key = getPersonProfileKey(name);
+    return state.players.find(function (player) {
+      return getPersonProfileKey(player.name) === key;
+    }) || null;
+  }
+
+  function findGoalieByPersonName(name) {
+    const key = getPersonProfileKey(name);
+    return state.goalies.find(function (goalie) {
+      return getPersonProfileKey(goalie.name) === key;
+    }) || null;
+  }
+
+  function getPersonProfileKey(name) {
+    const parsed = parsePersonCountry(name);
+    return fold(parsed.name || name);
+  }
+
   function renderPlayerDetail(_model, player) {
     if (!player) return `<section class="emptyPage">Spelaren hittades inte.</section>`;
+    return renderPersonDetail(player, findGoalieByPersonName(player.name), "players");
+    /*
     return `
       <section class="detailHero playerProfileHero">
         <div class="profileMedia">
@@ -2654,7 +2761,7 @@
         <div class="profileCopy">
           <a href="#/players">Tillbaka till spelare</a>
           <h2>${renderPersonName(player.name)}</h2>
-          <p>${renderTeamIdentity(player.team || "Okant lag", "teamLogoInline")} <span>${player.cups.size} cuper · ${player.gp} GP · ${player.pts} poang.</span></p>
+          <p>${renderTeamIdentity(player.team || "Okant lag", "teamLogoInline")} <span>${player.cups.size} cuper Ã‚Â· ${player.gp} GP Ã‚Â· ${player.pts} poang.</span></p>
         </div>
       </section>
       <section class="metricGrid compact">
@@ -2668,10 +2775,13 @@
         ${panel("Lagresa", renderMiniTags(Array.from(player.teams), "teams"))}
       </section>
     `;
+    */
   }
 
   function renderGoalieDetail(_model, goalie) {
     if (!goalie) return `<section class="emptyPage">Malvakten hittades inte.</section>`;
+    return renderPersonDetail(findPlayerByPersonName(goalie.name), goalie, "goalies");
+    /*
     return `
       <section class="detailHero playerProfileHero">
         <div class="profileMedia">
@@ -2680,7 +2790,7 @@
         <div class="profileCopy">
           <a href="#/goalies">Tillbaka till malvakter</a>
           <h2>${renderPersonName(goalie.name)}</h2>
-          <p>${renderTeamIdentity(goalie.team || "Okant lag", "teamLogoInline")} <span>${goalie.cups.size} cuper · ${goalie.gp} GP · ${formatPercent(goalie.svp)} SV%.</span></p>
+          <p>${renderTeamIdentity(goalie.team || "Okant lag", "teamLogoInline")} <span>${goalie.cups.size} cuper Ã‚Â· ${goalie.gp} GP Ã‚Â· ${formatPercent(goalie.svp)} SV%.</span></p>
         </div>
       </section>
       <section class="metricGrid compact">
@@ -2694,6 +2804,7 @@
         ${panel("Lagresa", renderMiniTags(Array.from(goalie.teams), "teams"))}
       </section>
     `;
+    */
   }
 
   function getTeamLogoCandidates(teamName) {
@@ -2774,12 +2885,12 @@
           id: String(match.id || cup.id + "-" + matchIndex),
           date: text(match.date),
           time: text(match.time),
-          awayTeam: text(match.awayTeam || "Okänt lag"),
+          awayTeam: text(match.awayTeam || "OkÃƒÂ¤nt lag"),
           awayScore: nullableNumber(match.awayScore),
           awayShots: nullableNumber(match.awayShots),
           homeScore: nullableNumber(match.homeScore),
           homeShots: nullableNumber(match.homeShots),
-          homeTeam: text(match.homeTeam || "Okänt lag"),
+          homeTeam: text(match.homeTeam || "OkÃƒÂ¤nt lag"),
           group: text(match.group),
           stage: text(match.stage || "group"),
           overtime: Boolean(match.overtime),
@@ -2864,7 +2975,7 @@
   function aggregateCupPlayerRows(rows, cup) {
     const map = new Map();
     rows.forEach(function (row) {
-      const name = text(row.displayName || row.player || "Okänd spelare");
+      const name = text(row.displayName || row.player || "OkÃƒÂ¤nd spelare");
       const key = fold(name);
         if (!map.has(key)) {
           map.set(key, { name: name, team: text(row.team), playerId: text(row.playerId), gp: 0, g: 0, a: 0, pts: 0, pim: 0, cups: new Set([text(cup.code)]) });
@@ -2905,7 +3016,7 @@
   function aggregateCupGoalieRows(rows, cup) {
     const map = new Map();
     rows.forEach(function (row) {
-      const name = text(row.displayName || row.player || "Okänd målvakt");
+      const name = text(row.displayName || row.player || "OkÃƒÂ¤nd mÃƒÂ¥lvakt");
       const key = fold(name);
         if (!map.has(key)) {
           map.set(key, { name: name, team: text(row.team), playerId: text(row.playerId), gp: 0, sa: 0, ga: 0, sv: 0, svp: 0, gaa: 0, so: 0, cups: new Set([text(cup.code)]) });
@@ -3223,7 +3334,7 @@
     if (folded.includes("final") && !folded.includes("semi")) return "Final";
     if (folded.includes("semi")) return "Semifinal";
     if (folded.includes("kvart")) return "Kvartsfinal";
-    if (folded.includes("atton") || folded.includes("åtton") || folded.includes("16")) return "Åttondelsfinal";
+    if (folded.includes("atton") || folded.includes("ÃƒÂ¥tton") || folded.includes("16")) return "Ãƒâ€¦ttondelsfinal";
     if (folded.includes("playoff") || folded.includes("slutspel")) return "Slutspel";
     return value || "Slutspel";
   }
@@ -3284,20 +3395,66 @@
   }
 
   function fixEncoding(value) {
-    return value
-      .replace(/Ã¥/g, "å").replace(/Ã¤/g, "ä").replace(/Ã¶/g, "ö")
-      .replace(/Ã…/g, "Å").replace(/Ã„/g, "Ä").replace(/Ã–/g, "Ö")
-      .replace(/MÃ¥/g, "Må").replace(/mÃ¥/g, "må")
-      .replace(/Ã©/g, "é").replace(/Ã¨/g, "è")
-      .replace(/â€“/g, "-").replace(/â€”/g, "-").replace(/Â/g, "");
+    let output = String(value || "");
+    for (let pass = 0; pass < 3 && /[\u00c3\u00c2\u00e2]/.test(output); pass += 1) {
+      try {
+        const encoded = Array.from(output).map(function (char) {
+          const code = cp1252Byte(char);
+          if (code !== null) return "%" + code.toString(16).padStart(2, "0");
+          return encodeURIComponent(char);
+        }).join("");
+        const decoded = decodeURIComponent(encoded);
+        if (decoded === output) break;
+        output = decoded;
+      } catch (_error) {
+        break;
+      }
+    }
+    return output
+      .replace(/[\u2013\u2014]/g, "-")
+      .replace(/\u00a0/g, " ")
+      .replace(/[\u2302\u25c6\u25a6\u25cf\u21af\u25a3]/g, "");
+  }
+
+  function cp1252Byte(char) {
+    const code = char.charCodeAt(0);
+    if (code <= 255) return code;
+    const map = {
+      0x20ac: 0x80, 0x201a: 0x82, 0x0192: 0x83, 0x201e: 0x84,
+      0x2026: 0x85, 0x2020: 0x86, 0x2021: 0x87, 0x02c6: 0x88,
+      0x2030: 0x89, 0x0160: 0x8a, 0x2039: 0x8b, 0x0152: 0x8c,
+      0x017d: 0x8e, 0x2018: 0x91, 0x2019: 0x92, 0x201c: 0x93,
+      0x201d: 0x94, 0x2022: 0x95, 0x2013: 0x96, 0x2014: 0x97,
+      0x02dc: 0x98, 0x2122: 0x99, 0x0161: 0x9a, 0x203a: 0x9b,
+      0x0153: 0x9c, 0x017e: 0x9e, 0x0178: 0x9f
+    };
+    return Object.prototype.hasOwnProperty.call(map, code) ? map[code] : null;
   }
 
   function escapeHtml(value) {
-    return String(value ?? "")
+    return fixEncoding(String(value ?? ""))
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  function repairRenderedText(root) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const textNodes = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+    textNodes.forEach(function (node) {
+      const fixed = fixEncoding(node.nodeValue);
+      if (fixed !== node.nodeValue) node.nodeValue = fixed;
+    });
+    root.querySelectorAll("[placeholder], [aria-label], [title], [alt]").forEach(function (node) {
+      ["placeholder", "aria-label", "title", "alt"].forEach(function (attribute) {
+        if (!node.hasAttribute(attribute)) return;
+        const value = node.getAttribute(attribute);
+        const fixed = fixEncoding(value);
+        if (fixed !== value) node.setAttribute(attribute, fixed);
+      });
+    });
   }
 })();

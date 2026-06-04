@@ -1748,11 +1748,14 @@ input {
 }
 
 .cupTile {
+  position: relative;
   display: grid;
   gap: 16px;
   min-height: 238px;
+  overflow: hidden;
   padding: 18px;
   background:
+    radial-gradient(circle at 86% 10%, rgba(233, 197, 110, 0.08), transparent 34%),
     linear-gradient(135deg, rgba(105, 225, 212, 0.09), transparent),
     var(--panel);
   transition: transform 160ms ease, border-color 160ms ease;
@@ -1769,18 +1772,46 @@ input {
 
 .cupTile.summer {
   background:
+    radial-gradient(circle at 86% 10%, rgba(233, 197, 110, 0.16), transparent 34%),
     linear-gradient(135deg, rgba(233, 197, 110, 0.18), rgba(255, 93, 102, 0.08)),
     var(--panel);
 }
 
+.cupTile > *:not(.cupTileLogo) {
+  position: relative;
+  z-index: 1;
+}
+
+.cupTileLogo {
+  position: absolute;
+  top: 14px;
+  right: 12px;
+  width: 92px;
+  height: 92px;
+  object-fit: contain;
+  opacity: 0.18;
+  filter: saturate(1.05);
+  pointer-events: none;
+}
+
+.cupTile.summer .cupTileLogo {
+  opacity: 0.22;
+}
+
+.cupTileCode {
+  min-height: 22px;
+  padding-right: 84px;
+}
+
 .cupTile strong {
+  max-width: 92%;
   font-family: "Barlow Condensed", sans-serif;
   font-size: 34px;
   line-height: 0.95;
   text-transform: uppercase;
 }
 
-.cupTile div {
+.cupTileStats {
   display: grid;
   grid-template-columns: repeat(4, auto);
   justify-content: start;
@@ -1788,17 +1819,60 @@ input {
   align-items: baseline;
 }
 
-.cupTile b {
+.cupTileStats b {
   color: var(--gold);
   font-family: "Barlow Condensed", sans-serif;
   font-size: 36px;
 }
 
-.cupTile em,
-.cupTile p {
+.cupTileStats em,
+.cupTileDate {
   margin: 0;
   color: var(--muted);
   font-style: normal;
+}
+
+.cupTileWinner {
+  align-self: end;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 42px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cupTileWinner span {
+  min-width: 0;
+}
+
+.cupTileWinner em {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cupTileWinner b {
+  display: block;
+  overflow: hidden;
+  color: #dce8eb;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cupWinnerLogo {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
 }
 
 .teamGrid {
@@ -2292,7 +2366,7 @@ h2 .countryFlag {
   }
 
   .stage {
-    padding: 14px 12px 86px;
+    padding: 14px 12px 22px;
   }
 
   .top {
