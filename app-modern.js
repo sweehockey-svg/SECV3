@@ -278,11 +278,12 @@
   }
 
   function renderTopbar(model) {
+    const compact = state.view === "cups" && state.activeCupId;
     return `
-      <header class="top">
+      <header class="top ${compact ? "compactTop" : ""}">
         <div>
-          <p>${model.latestCup ? model.latestCup.code : "SEC"}</p>
-          <h1>${getViewTitle()}</h1>
+          <p>${compact ? getCupSectionLabel() : (model.latestCup ? model.latestCup.code : "SEC")}</p>
+          ${compact ? "" : `<h1>${getViewTitle()}</h1>`}
         </div>
         <label class="command">
           <span>Sök</span>
@@ -291,6 +292,19 @@
       </header>
       ${state.query ? renderSearchResults(model) : ""}
     `;
+  }
+
+  function getCupSectionLabel() {
+    return {
+      tables: "Tabell",
+      teams: "Lag",
+      bracket: "Slutspel",
+      players: "Spelare",
+      goalies: "Målvakter",
+      stats: "Statistik",
+      info: "Regler",
+      matches: "Matcher"
+    }[state.activeCupSection] || "Översikt";
   }
 
   function getViewTitle() {
@@ -459,6 +473,7 @@
     const full = opts.full !== false;
     const groupMatches = cup.matches.filter(function (match) { return !isPlayoffMatch(match); }).length;
     const playoffMatches = cup.matches.filter(isPlayoffMatch).length;
+    const titleParts = splitCupTitle(opts.title || cup.name);
     return `
       <section class="cupHero ${full ? "full" : "compact"} ${isSummer(cup) ? "summer" : ""}">
         <div class="cupHeroCopy">
@@ -470,7 +485,8 @@
             <strong>${escapeHtml(cup.code)}</strong>
           </nav>
           <p class="cupKicker">${escapeHtml(cup.code)}</p>
-          <h2>${escapeHtml(opts.title || cup.name)}</h2>
+          <h2>${escapeHtml(titleParts.main)}</h2>
+          ${titleParts.sub ? `<p class="cupHeroSub">${escapeHtml(titleParts.sub)}</p>` : ""}
           <p>${escapeHtml(opts.description || cup.name)}</p>
           ${full ? `
             <div class="cupHeroStats">
@@ -492,6 +508,13 @@
 
   function cupHeroStat(value, label) {
     return `<div><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></div>`;
+  }
+
+  function splitCupTitle(title) {
+    const clean = text(title);
+    const match = clean.match(/^(Svenska eHockey Cupen\s+\d+)\s+(.+)$/i);
+    if (match) return { main: match[1], sub: match[2] };
+    return { main: clean, sub: "" };
   }
 
   function renderCupSpotlight(cup) {
@@ -566,7 +589,7 @@
     const standings = buildStandings(cup);
     return `
       ${renderCupHero(cup, {
-        title: "Fullständig tabell",
+        title: cup.name,
         description: cup.name + " · " + formatCupDateRange(cup) + " · streck enligt cupinfo."
       })}
       ${renderCupSectionNav(cup)}
@@ -581,7 +604,7 @@
     const bracket = buildBracket(cup);
     return `
       ${renderCupHero(cup, {
-        title: "Fullständigt slutspelsträd",
+        title: cup.name,
         description: cup.name + " · " + bracket.reduce(function (sum, round) { return sum + ((round.series && round.series.length) || 0); }, 0) + " serier."
       })}
       ${renderCupSectionNav(cup)}
@@ -617,7 +640,7 @@
     const rows = buildCupTeamRows(cup);
     return `
       ${renderCupHero(cup, {
-        title: "Lag",
+        title: cup.name,
         description: cup.name + " · " + rows.length + " lag med matcher, mål och resultat i cupen."
       })}
       ${renderCupSectionNav(cup)}
@@ -640,7 +663,7 @@
     if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
     return `
       ${renderCupHero(cup, {
-        title: "Toppspelare",
+        title: cup.name,
         description: cup.name + " · all spelarstatistik från gruppspel och slutspel."
       })}
       ${renderCupSectionNav(cup)}
@@ -654,7 +677,7 @@
     if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
     return `
       ${renderCupHero(cup, {
-        title: "Målvakter",
+        title: cup.name,
         description: cup.name + " · räddningsprocent, GAA, räddningar och nollor."
       })}
       ${renderCupSectionNav(cup)}
@@ -672,7 +695,7 @@
     const modeLabel = mode === "group" ? "Gruppspel" : mode === "playoffs" ? "Slutspel" : "All statistik";
     return `
       ${renderCupHero(cup, {
-        title: "Statistik",
+        title: cup.name,
         description: cup.name + " · spelare och målvakter uppdelat på gruppspel och slutspel."
       })}
       ${renderCupSectionNav(cup)}
@@ -704,7 +727,7 @@
     if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
     return `
       ${renderCupHero(cup, {
-        title: "Fullständiga regler",
+        title: cup.name,
         description: cup.name + " · cupinfo, behörighet, BO-format och spelargränser."
       })}
       ${renderCupSectionNav(cup)}
@@ -733,7 +756,7 @@
     });
     return `
       ${renderCupHero(cup, {
-        title: "Alla matcher",
+        title: cup.name,
         description: cup.name + " · " + rows.length + " av " + cup.matches.length + " matcher" + (selectedTeam ? " för " + selectedTeam : "") + "."
       })}
       ${renderCupSectionNav(cup)}
