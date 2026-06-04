@@ -221,9 +221,25 @@
             ${renderView(model)}
           </div>
         </main>
+        ${renderFooter()}
       </div>
     `;
     bindInteractions();
+  }
+
+  function renderFooter() {
+    return `
+      <footer class="siteFooter">
+        <div>
+          <strong>SEC Live</strong>
+          <span>Copyright © ${new Date().getFullYear()} Svenska eHockey Cupen. Designad av SEC.</span>
+        </div>
+        <nav aria-label="Kontakt">
+          <a href="mailto:svenskehockey@gmail.com">E-post: svenskehockey@gmail.com</a>
+          <a href="https://discord.gg/B9TYMEjpj6" target="_blank" rel="noopener">Gå med i Discord</a>
+        </nav>
+      </footer>
+    `;
   }
 
   function renderArenaHeader(model) {

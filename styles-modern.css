@@ -243,6 +243,51 @@ input {
   margin: 0 auto;
 }
 
+.siteFooter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 24px;
+  align-items: center;
+  justify-content: space-between;
+  width: min(1496px, calc(100% - 44px));
+  margin: 0 auto 22px;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--muted);
+  background: rgba(3, 6, 10, 0.74);
+  box-shadow: var(--shadow);
+}
+
+.siteFooter div,
+.siteFooter nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+}
+
+.siteFooter strong {
+  color: var(--gold);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 22px;
+  text-transform: uppercase;
+}
+
+.siteFooter span,
+.siteFooter a {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.siteFooter a {
+  color: #dbe8e6;
+}
+
+.siteFooter a:hover {
+  color: var(--gold);
+}
+
 .top {
   position: sticky;
   top: 0;
