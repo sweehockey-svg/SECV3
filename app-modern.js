@@ -900,9 +900,11 @@
       return `
         <div class="matchPreviewRow">
           ${renderTeamLogo(entry.match.awayTeam, "teamLogoInline")}
+          <span>${escapeHtml(entry.match.awayTeam)}</span>
           <b>${score(entry.match)}</b>
           ${renderTeamLogo(entry.match.homeTeam, "teamLogoInline")}
-          <em>${escapeHtml(formatDate(entry.match.date))} · ${escapeHtml(entry.match.group || entry.match.stage || "Match")}</em>
+          <span>${escapeHtml(entry.match.homeTeam)}</span>
+          <em>${escapeHtml(entry.match.group || entry.match.stage || "Match")}</em>
         </div>
       `;
     }).join("");
@@ -1163,13 +1165,13 @@
           return `
             <section class="standing">
               <h4>${escapeHtml(group.name)}</h4>
-              <table class="${isFull ? "sortableStanding" : ""}">
+              <table class="${isFull ? "sortableStanding" : "previewStanding"}">
                 <colgroup>
                   ${isFull ? `<col class="standingRankCol">` : ""}
                   <col class="standingTeamCol">
-                  <col span="6">
+                  <col span="${isFull ? 6 : 4}">
                 </colgroup>
-                <thead><tr>${isFull ? `<th><button type="button" data-standing-sort="rank" data-sort-type="number">#</button></th>` : ""}<th>${isFull ? `<button type="button" data-standing-sort="team" data-sort-type="text">Lag</button>` : "Lag"}</th><th>${isFull ? `<button type="button" data-standing-sort="gp" data-sort-type="number">GP</button>` : "GP"}</th><th>${isFull ? `<button type="button" data-standing-sort="w" data-sort-type="number">W</button>` : "W"}</th><th>${isFull ? `<button type="button" data-standing-sort="l" data-sort-type="number">L</button>` : "L"}</th><th>${isFull ? `<button type="button" data-standing-sort="otl" data-sort-type="number">OTL</button>` : "OTL"}</th><th>${isFull ? `<button type="button" data-standing-sort="diff" data-sort-type="number">+/-</button>` : "+/-"}</th><th>${isFull ? `<button type="button" data-standing-sort="pts" data-sort-type="number">PTS</button>` : "PTS"}</th></tr></thead>
+                <thead><tr>${isFull ? `<th><button type="button" data-standing-sort="rank" data-sort-type="number">#</button></th>` : ""}<th>${isFull ? `<button type="button" data-standing-sort="team" data-sort-type="text">Lag</button>` : "Lag"}</th><th>${isFull ? `<button type="button" data-standing-sort="gp" data-sort-type="number">GP</button>` : "GP"}</th><th>${isFull ? `<button type="button" data-standing-sort="w" data-sort-type="number">W</button>` : "W"}</th><th>${isFull ? `<button type="button" data-standing-sort="l" data-sort-type="number">L</button>` : "L"}</th>${isFull ? `<th><button type="button" data-standing-sort="otl" data-sort-type="number">OTL</button></th><th><button type="button" data-standing-sort="diff" data-sort-type="number">+/-</button></th>` : ""}<th>${isFull ? `<button type="button" data-standing-sort="pts" data-sort-type="number">PTS</button>` : "PTS"}</th></tr></thead>
                 <tbody>
                   ${rows.map(function (row, index) {
                     const rank = index + 1;
@@ -1178,8 +1180,8 @@
                       <tr class="${cutClass}" data-rank="${rank}" data-team="${escapeHtml(fold(row.team))}" data-gp="${row.gp}" data-w="${row.w}" data-l="${row.l}" data-otl="${row.otl}" data-diff="${row.gf - row.ga}" data-pts="${row.pts}">
                         ${isFull ? `<td class="rankCell">${rank}</td>` : ""}
                         <td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td>
-                        <td>${row.gp}</td><td>${row.w}</td><td>${row.l}</td><td>${row.otl}</td>
-                        <td>${row.gf - row.ga}</td><td><strong>${row.pts}</strong></td>
+                        <td>${row.gp}</td><td>${row.w}</td><td>${isFull ? row.l : row.l + row.otl}</td>${isFull ? `<td>${row.otl}</td><td>${row.gf - row.ga}</td>` : ""}
+                        <td><strong>${row.pts}</strong></td>
                       </tr>
                     `;
                   }).join("")}

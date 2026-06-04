@@ -803,12 +803,12 @@ input {
 }
 
 .dashGrid.two {
-  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .sportGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -900,6 +900,10 @@ input {
   width: 100%;
   border-collapse: collapse;
   min-width: 620px;
+}
+
+.standing table.previewStanding {
+  min-width: 460px;
 }
 
 .standingRankCol {
@@ -1190,7 +1194,7 @@ input {
 
 .matchPreviewRow {
   display: grid;
-  grid-template-columns: 34px 58px 34px minmax(130px, 1fr);
+  grid-template-columns: 28px minmax(0, 1fr) 58px 28px minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
   min-height: 52px;
@@ -1198,6 +1202,15 @@ input {
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.035);
+}
+
+.matchPreviewRow > span:not(.teamLogoInline) {
+  min-width: 0;
+  overflow: hidden;
+  color: #dce8e6;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .matchPreviewRow b {
