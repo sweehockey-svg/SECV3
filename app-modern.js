@@ -12,6 +12,7 @@
     activeCupId: "",
     activeCupSection: "",
     activeCupTeamFilter: "",
+    activeCupStatsMode: "all",
     activeTeam: "",
     activePlayer: "",
     activeGoalie: ""
@@ -199,9 +200,14 @@
     state.activeCupId = state.view === "cups" ? decodeURIComponent(parts[1] || "") : "";
     state.activeCupSection = state.view === "cups" ? decodeURIComponent(parts[2] || "") : "";
     state.activeCupTeamFilter = state.view === "cups" && state.activeCupSection === "matches" ? params.get("team") || "" : "";
+    state.activeCupStatsMode = state.view === "cups" && state.activeCupSection === "stats" ? normalizeStatsMode(params.get("mode")) : "all";
     state.activeTeam = state.view === "teams" ? decodeURIComponent(parts[1] || "") : "";
     state.activePlayer = state.view === "players" ? decodeURIComponent(parts[1] || "") : "";
     state.activeGoalie = state.view === "goalies" ? decodeURIComponent(parts[1] || "") : "";
+  }
+
+  function normalizeStatsMode(value) {
+    return value === "group" || value === "playoffs" || value === "all" ? value : "all";
   }
 
   function render() {
@@ -644,18 +650,37 @@
 
   function renderCupStatsPage(cup) {
     if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
+    const mode = state.activeCupStatsMode || "all";
+    const playerRows = mode === "group" ? cup.playerStageRows.group : mode === "playoffs" ? cup.playerStageRows.playoffs : cup.playerRows;
+    const goalieRows = mode === "group" ? cup.goalieStageRows.group : mode === "playoffs" ? cup.goalieStageRows.playoffs : cup.goalieRows;
+    const modeLabel = mode === "group" ? "Gruppspel" : mode === "playoffs" ? "Slutspel" : "All statistik";
     return `
       ${renderCupHero(cup, {
         title: "Statistik",
         description: cup.name + " · spelare och målvakter uppdelat på gruppspel och slutspel."
       })}
       ${renderCupSectionNav(cup)}
+      ${renderCupStatsModeTabs(cup, mode)}
       <section class="statPageGrid">
-        ${panel("Spelare - gruppspel", renderCupPlayerStatsTable(cup.playerStageRows.group))}
-        ${panel("Spelare - slutspel", renderCupPlayerStatsTable(cup.playerStageRows.playoffs))}
-        ${panel("Målvakter - gruppspel", renderCupGoalieStatsTable(cup.goalieStageRows.group))}
-        ${panel("Målvakter - slutspel", renderCupGoalieStatsTable(cup.goalieStageRows.playoffs))}
+        ${panel("Spelare - " + modeLabel, renderCupPlayerStatsTable(playerRows))}
+        ${panel("Målvakter - " + modeLabel, renderCupGoalieStatsTable(goalieRows))}
       </section>
+    `;
+  }
+
+  function renderCupStatsModeTabs(cup, activeMode) {
+    const modes = [
+      ["all", "Allt"],
+      ["group", "Gruppspel"],
+      ["playoffs", "Slutspel"]
+    ];
+    return `
+      <nav class="subTabs" aria-label="Statistikläge">
+        ${modes.map(function (mode) {
+          const href = "#/cups/" + encodeURIComponent(cup.id) + "/stats?mode=" + encodeURIComponent(mode[0]);
+          return `<a class="${activeMode === mode[0] ? "active" : ""}" href="${href}">${mode[1]}</a>`;
+        }).join("")}
+      </nav>
     `;
   }
 
