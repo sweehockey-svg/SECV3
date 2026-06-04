@@ -705,7 +705,7 @@
           return `
             <a class="playerRow" href="#/players/${encodeURIComponent(player.name)}">
               <span>${index + 1}</span>
-              <strong>${escapeHtml(player.name)}</strong>
+              <strong>${renderPersonName(player.name)}</strong>
               <em>${escapeHtml(player.team || "Okänt lag")}</em>
               <b>${player.pts}p</b>
             </a>
@@ -723,7 +723,7 @@
           return `
             <a class="playerRow" href="#/goalies/${encodeURIComponent(goalie.name)}">
               <span>${index + 1}</span>
-              <strong>${escapeHtml(goalie.name)}</strong>
+              <strong>${renderPersonName(goalie.name)}</strong>
               <em>${escapeHtml(goalie.team || "Okänt lag")} · ${goalie.gp} GP</em>
               <b>${formatPercent(goalie.svp)}</b>
             </a>
@@ -738,7 +738,7 @@
     return `
       <section class="detailHero">
         <a href="#/players">Tillbaka till spelare</a>
-        <h2>${escapeHtml(player.name)}</h2>
+        <h2>${renderPersonName(player.name)}</h2>
         <p>${escapeHtml(player.team || "Okänt lag")} · ${player.cups.size} cuper · ${player.gp} GP · ${player.pts} poäng.</p>
       </section>
       <section class="metricGrid compact">
@@ -759,7 +759,7 @@
     return `
       <section class="detailHero">
         <a href="#/goalies">Tillbaka till målvakter</a>
-        <h2>${escapeHtml(goalie.name)}</h2>
+        <h2>${renderPersonName(goalie.name)}</h2>
         <p>${escapeHtml(goalie.team || "Okänt lag")} · ${goalie.cups.size} cuper · ${goalie.gp} GP · ${formatPercent(goalie.svp)} SV%.</p>
       </section>
       <section class="metricGrid compact">
@@ -837,7 +837,7 @@
           return `
             <a class="leader" href="#/players/${encodeURIComponent(player.name)}">
               <span>${index + 1}</span>
-              <strong>${escapeHtml(player.name)}</strong>
+              <strong>${renderPersonName(player.name)}</strong>
               <em>${escapeHtml(player.team || "Okänt lag")}</em>
               <b>${player.pts}p</b>
             </a>
@@ -854,7 +854,7 @@
           return `
             <a class="leader" href="#/goalies/${encodeURIComponent(goalie.name)}">
               <span>${index + 1}</span>
-              <strong>${escapeHtml(goalie.name)}</strong>
+              <strong>${renderPersonName(goalie.name)}</strong>
               <em>${escapeHtml(goalie.team || "Okänt lag")} · ${goalie.gp} GP</em>
               <b>${formatPercent(goalie.svp)}</b>
             </a>
@@ -875,7 +875,7 @@
           <thead><tr><th>#</th><th>Spelare</th><th>Lag</th><th>GP</th><th>G</th><th>A</th><th>PTS</th><th>PIM</th></tr></thead>
           <tbody>
             ${sorted.map(function (row, index) {
-              return `<tr><td>${index + 1}</td><td><a href="#/players/${encodeURIComponent(row.name)}">${escapeHtml(row.name)}</a></td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.g}</td><td>${row.a}</td><td><strong>${row.pts}</strong></td><td>${row.pim}</td></tr>`;
+              return `<tr><td>${index + 1}</td><td><a href="#/players/${encodeURIComponent(row.name)}">${renderPersonName(row.name)}</a></td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.g}</td><td>${row.a}</td><td><strong>${row.pts}</strong></td><td>${row.pim}</td></tr>`;
             }).join("")}
           </tbody>
         </table>
@@ -894,7 +894,7 @@
           <thead><tr><th>#</th><th>Målvakt</th><th>Lag</th><th>GP</th><th>SA</th><th>GA</th><th>SV</th><th>SV%</th><th>GAA</th><th>SO</th></tr></thead>
           <tbody>
             ${sorted.map(function (row, index) {
-              return `<tr><td>${index + 1}</td><td><a href="#/goalies/${encodeURIComponent(row.name)}">${escapeHtml(row.name)}</a></td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.sa}</td><td>${row.ga}</td><td>${row.sv}</td><td><strong>${formatPercent(row.svp)}</strong></td><td>${formatDecimal(row.gaa)}</td><td>${row.so}</td></tr>`;
+              return `<tr><td>${index + 1}</td><td><a href="#/goalies/${encodeURIComponent(row.name)}">${renderPersonName(row.name)}</a></td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.sa}</td><td>${row.ga}</td><td>${row.sv}</td><td><strong>${formatPercent(row.svp)}</strong></td><td>${formatDecimal(row.gaa)}</td><td>${row.so}</td></tr>`;
             }).join("")}
           </tbody>
         </table>
@@ -1467,6 +1467,58 @@
     `;
   }
 
+  function renderPersonName(name) {
+    const parsed = parsePersonCountry(name);
+    const flag = countryFlag(parsed.country);
+    return `<span class="personName">${flag ? `<span class="countryFlag" title="${escapeHtml(parsed.country)}">${flag}</span>` : ""}<span>${escapeHtml(parsed.name)}</span></span>`;
+  }
+
+  function parsePersonCountry(name) {
+    const safeName = text(name);
+    const match = safeName.match(/,\s*([A-Z]{3})$/i);
+    if (!match) return { name: safeName, country: "" };
+    return {
+      name: safeName.slice(0, match.index).trim(),
+      country: match[1].toUpperCase()
+    };
+  }
+
+  function countryFlag(code) {
+    const countries = {
+      SWE: "🇸🇪",
+      FIN: "🇫🇮",
+      NOR: "🇳🇴",
+      DEN: "🇩🇰",
+      DNK: "🇩🇰",
+      ISL: "🇮🇸",
+      USA: "🇺🇸",
+      CAN: "🇨🇦",
+      GBR: "🇬🇧",
+      GER: "🇩🇪",
+      DEU: "🇩🇪",
+      FRA: "🇫🇷",
+      ESP: "🇪🇸",
+      ITA: "🇮🇹",
+      CZE: "🇨🇿",
+      SVK: "🇸🇰",
+      POL: "🇵🇱",
+      AUT: "🇦🇹",
+      SUI: "🇨🇭",
+      CHE: "🇨🇭",
+      NED: "🇳🇱",
+      NLD: "🇳🇱",
+      BEL: "🇧🇪",
+      LAT: "🇱🇻",
+      LVA: "🇱🇻",
+      EST: "🇪🇪",
+      LTU: "🇱🇹",
+      RUS: "🇷🇺",
+      UKR: "🇺🇦",
+      UNK: "🌐"
+    };
+    return countries[code] || "";
+  }
+
   function renderPlayerPortrait(player, className) {
     const safeName = text(player?.name || player?.player || "Spelare");
     const urls = getPlayerImageCandidates(player);
@@ -1566,7 +1618,7 @@
         </div>
         <div class="profileCopy">
           <a href="#/players">Tillbaka till spelare</a>
-          <h2>${escapeHtml(player.name)}</h2>
+          <h2>${renderPersonName(player.name)}</h2>
           <p>${renderTeamIdentity(player.team || "Okant lag", "teamLogoInline")} <span>${player.cups.size} cuper · ${player.gp} GP · ${player.pts} poang.</span></p>
         </div>
       </section>
@@ -1592,7 +1644,7 @@
         </div>
         <div class="profileCopy">
           <a href="#/goalies">Tillbaka till malvakter</a>
-          <h2>${escapeHtml(goalie.name)}</h2>
+          <h2>${renderPersonName(goalie.name)}</h2>
           <p>${renderTeamIdentity(goalie.team || "Okant lag", "teamLogoInline")} <span>${goalie.cups.size} cuper · ${goalie.gp} GP · ${formatPercent(goalie.svp)} SV%.</span></p>
         </div>
       </section>
