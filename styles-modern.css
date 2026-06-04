@@ -1183,6 +1183,38 @@ input {
   text-align: right;
 }
 
+.matchPreviewList {
+  display: grid;
+  gap: 8px;
+}
+
+.matchPreviewRow {
+  display: grid;
+  grid-template-columns: 34px 58px 34px minmax(130px, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 52px;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.matchPreviewRow b {
+  color: var(--gold);
+  text-align: center;
+}
+
+.matchPreviewRow em {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-style: normal;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .previewLeaders {
   display: grid;
   gap: 8px;
@@ -1870,6 +1902,7 @@ h2 .countryFlag {
   }
 
   .matchRow,
+  .matchPreviewRow,
   .leader,
   .cupStack a,
   .previewLeader,
@@ -1878,6 +1911,7 @@ h2 .countryFlag {
   }
 
   .matchRow em,
+  .matchPreviewRow em,
   .leader em,
   .leader b,
   .previewLeader em,

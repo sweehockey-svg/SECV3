@@ -513,7 +513,7 @@
 
   function renderCupDetail(model, cup) {
     if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
-    const rows = cup.matches.slice().sort(compareMatches).slice(0, 14).map(function (match) {
+    const rows = cup.matches.slice().sort(compareMatches).slice(0, 10).map(function (match) {
       return { cup: cup, match: match };
     });
     const standings = buildStandings(cup);
@@ -531,7 +531,7 @@
       </section>
       <section class="dashGrid two">
         ${panelWithAction("Cupinfo", "Fullständiga regler", "#/cups/" + encodeURIComponent(cup.id) + "/info", renderCupSettings(cup.settings, { preview: true }))}
-        ${panelWithAction("Matcher", "Alla matcher", "#/cups/" + encodeURIComponent(cup.id) + "/matches", renderMatchRows(rows, 14))}
+        ${panelWithAction("Matcher", "Alla matcher", "#/cups/" + encodeURIComponent(cup.id) + "/matches", renderCupMatchPreview(rows))}
         ${panelWithAction("Toppspelare", "All statistik", "#/cups/" + encodeURIComponent(cup.id) + "/stats", renderCupTopPlayerPreview(cup.topPlayers))}
         ${panelWithAction("Toppmålvakter", "All statistik", "#/cups/" + encodeURIComponent(cup.id) + "/stats", renderCupTopGoaliePreview(cup.topGoalies))}
         ${panel("Lag i cupen", renderMiniTags(cup.teams, "teams"))}
@@ -893,6 +893,20 @@
       `;
     }).join("");
     return `<div class="matchList">${rows || `<div class="empty">Inga matcher hittades.</div>`}</div>`;
+  }
+
+  function renderCupMatchPreview(entries) {
+    const rows = entries.slice(0, 10).map(function (entry) {
+      return `
+        <div class="matchPreviewRow">
+          ${renderTeamLogo(entry.match.awayTeam, "teamLogoInline")}
+          <b>${score(entry.match)}</b>
+          ${renderTeamLogo(entry.match.homeTeam, "teamLogoInline")}
+          <em>${escapeHtml(formatDate(entry.match.date))} · ${escapeHtml(entry.match.group || entry.match.stage || "Match")}</em>
+        </div>
+      `;
+    }).join("");
+    return `<div class="matchPreviewList">${rows || `<div class="empty">Inga matcher hittades.</div>`}</div>`;
   }
 
   function renderLeaderRows(players) {
