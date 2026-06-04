@@ -785,29 +785,25 @@ input {
 }
 
 .seriesResults {
-  display: grid;
-  gap: 5px;
-  margin-top: 6px;
-}
-
-.seriesResults > div {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 54px minmax(0, 1fr);
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
   align-items: center;
-  padding: 5px 6px;
+  margin-top: 6px;
+  padding-top: 7px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
 }
 
 .seriesResults b {
-  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
 }
 
-.seriesResults > div > span:last-child {
-  justify-self: end;
+.seriesResults b:not(:last-child)::after {
+  content: ",";
+  margin-right: 5px;
+  color: var(--muted);
 }
 
 .matchFilter {

@@ -1093,7 +1093,7 @@
                   <div class="series">
                     <span class="${winner === series.awayTeam ? "winner" : ""}">${renderTeamIdentity(series.awayTeam, "teamLogoTiny")} <b>${series.awayWins}</b></span>
                     <span class="${winner === series.homeTeam ? "winner" : ""}">${renderTeamIdentity(series.homeTeam, "teamLogoTiny")} <b>${series.homeWins}</b></span>
-                    ${renderSeriesResults(series.matches)}
+                    ${renderSeriesResults(series)}
                   </div>
                 `;
               }).join("")}
@@ -1105,24 +1105,25 @@
     `;
   }
 
-  function renderSeriesResults(matches) {
-    const rows = (matches || []).slice().sort(function (a, b) {
+  function renderSeriesResults(series) {
+    const rows = (series.matches || []).slice().sort(function (a, b) {
       return parseDate(a.date, a.time) - parseDate(b.date, b.time);
     });
     if (!rows.length) return `<em>Inga matchresultat</em>`;
     return `
       <div class="seriesResults">
         ${rows.map(function (match) {
-          return `
-            <div>
-              <span>${renderTeamIdentity(match.awayTeam, "teamLogoMicro")}</span>
-              <b>${score(match)}</b>
-              <span>${renderTeamIdentity(match.homeTeam, "teamLogoMicro")}</span>
-            </div>
-          `;
+          return `<b>${escapeHtml(seriesScore(match, series.awayTeam, series.homeTeam))}</b>`;
         }).join("")}
       </div>
     `;
+  }
+
+  function seriesScore(match, firstTeam, secondTeam) {
+    const firstScore = match.awayTeam === firstTeam ? match.awayScore : match.homeTeam === firstTeam ? match.homeScore : null;
+    const secondScore = match.awayTeam === secondTeam ? match.awayScore : match.homeTeam === secondTeam ? match.homeScore : null;
+    const suffix = match.overtime ? " OT" : "";
+    return display(firstScore) + "-" + display(secondScore) + suffix;
   }
 
   function renderCupSettings(settings, options) {
