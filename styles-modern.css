@@ -796,6 +796,34 @@ input {
   background: rgba(233, 197, 110, 0.08);
 }
 
+.subTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -2px 0 14px;
+}
+
+.subTabs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.subTabs a:hover,
+.subTabs a.active {
+  border-color: var(--line2);
+  color: var(--gold);
+  background: rgba(233, 197, 110, 0.08);
+}
+
 .dashGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.8fr) minmax(320px, 0.8fr);
