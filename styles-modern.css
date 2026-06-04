@@ -842,7 +842,7 @@ input {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: -2px 0 14px;
+  margin: 0 0 14px;
 }
 
 .subTabs a {
@@ -908,7 +908,7 @@ input {
   margin: 0;
 }
 
-.panelHead a {
+.panelHead > a {
   display: inline-flex;
   align-items: center;
   min-height: 34px;
@@ -921,6 +921,16 @@ input {
   font-weight: 900;
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+.panelHeadTools {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.panelHeadTools .subTabs {
+  margin: 0;
+  justify-content: flex-start;
 }
 
 .fullPagePanel {
@@ -1269,6 +1279,260 @@ input {
   text-align: right;
 }
 
+.matchSchedule {
+  display: grid;
+  gap: 18px;
+}
+
+.matchDay {
+  display: grid;
+  gap: 0;
+}
+
+.matchDayHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px 12px 0 0;
+  background: rgba(5, 8, 13, 0.82);
+  color: var(--muted);
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.matchDayHead strong {
+  color: #fff;
+  font-size: 17px;
+}
+
+.matchDayHead span:last-child {
+  text-align: right;
+}
+
+.matchDayRows {
+  display: grid;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.matchScheduleRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  min-height: 76px;
+  padding: 14px 16px;
+}
+
+.matchScheduleRow + .matchScheduleRow {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.matchScheduleTeam {
+  min-width: 0;
+}
+
+.matchScheduleTeam.home .teamIdentity {
+  justify-content: flex-end;
+}
+
+.matchScheduleScore {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+  text-align: center;
+}
+
+.matchScheduleScore b {
+  color: var(--gold);
+  font-size: 20px;
+}
+
+.matchScheduleScore span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.matchDetailHero {
+  min-width: 0;
+  padding: clamp(18px, 2.4vw, 30px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background:
+    linear-gradient(115deg, rgba(105, 225, 212, 0.1), rgba(5, 8, 13, 0.82) 42%, rgba(233, 197, 110, 0.08)),
+    var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  color: #070a0f;
+  background: var(--gold);
+  font-weight: 900;
+}
+
+.matchDetailScoreboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, auto) minmax(0, 1fr);
+  gap: clamp(14px, 2.5vw, 28px);
+  align-items: center;
+  margin-top: 24px;
+}
+
+.matchDetailTeam {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  min-width: 0;
+  color: var(--text);
+  text-align: center;
+}
+
+.matchDetailTeam .teamLogoHero {
+  margin: 0;
+}
+
+.matchDetailTeam strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: clamp(20px, 2.4vw, 34px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.matchDetailCenter {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  min-width: 0;
+  text-align: center;
+}
+
+.matchDetailCenter span,
+.matchDetailCenter em {
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.matchDetailCenter strong {
+  color: var(--gold);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: clamp(54px, 7vw, 94px);
+  line-height: 0.85;
+  white-space: nowrap;
+}
+
+.matchDetailGrid,
+.matchTeamStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+.matchStatBoard {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.matchStatHead,
+.matchStatRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 0.8fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 11px 14px;
+}
+
+.matchStatHead {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.matchStatHead span:last-child,
+.matchStatRow strong:last-child {
+  text-align: right;
+}
+
+.matchStatRow {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.matchStatRow span {
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.matchTimeline {
+  display: grid;
+  gap: 8px;
+}
+
+.matchEvent {
+  display: grid;
+  grid-template-columns: 58px 82px minmax(90px, 0.5fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.matchEvent span,
+.matchEvent b {
+  color: var(--gold);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.matchEvent.is-penalty b {
+  color: #ffbc74;
+}
+
+.matchEvent strong,
+.matchEvent em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.matchEvent em {
+  color: var(--muted);
+  font-style: normal;
+}
+
+.matchStatsTable th:first-child,
+.matchStatsTable td:first-child {
+  text-align: left;
+}
+
 .leader {
   grid-template-columns: 40px minmax(0, 1fr) minmax(110px, auto) 64px;
 }
@@ -1380,6 +1644,73 @@ input {
 
 .previewLeader .teamIdentityStatic {
   pointer-events: none;
+}
+
+.teamTabs {
+  padding: 0 clamp(18px, 2.2vw, 34px);
+}
+
+.teamTabPanel {
+  display: grid;
+  gap: 14px;
+}
+
+.teamRosterGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.teamRosterCard {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 76px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.teamRosterCard:hover {
+  border-color: var(--line2);
+  background: rgba(233, 197, 110, 0.07);
+}
+
+.teamRosterCard > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.teamRosterCard strong,
+.teamRosterCard em,
+.teamRosterCard b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teamRosterCard em {
+  color: var(--ice);
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.teamRosterCard b {
+  color: var(--gold);
+  font-size: 13px;
+}
+
+.teamStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .previewLeader b {
@@ -2065,5 +2396,57 @@ h2 .countryFlag {
   .playerRow b {
     text-align: left;
     justify-content: flex-start;
+  }
+
+  .matchDayHead {
+    grid-template-columns: 1fr;
+    gap: 2px;
+    padding: 10px 12px;
+    text-align: left;
+  }
+
+  .matchDayHead span {
+    display: none;
+  }
+
+  .matchDayHead span:last-child {
+    text-align: left;
+  }
+
+  .matchScheduleRow {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .matchScheduleTeam.home .teamIdentity {
+    justify-content: flex-start;
+  }
+
+  .matchScheduleScore {
+    justify-items: flex-start;
+    text-align: left;
+  }
+
+  .matchDetailScoreboard,
+  .matchDetailGrid,
+  .matchTeamStatsGrid,
+  .teamStatsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .matchDetailTeam strong {
+    white-space: normal;
+  }
+
+  .matchEvent {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .matchEvent strong,
+  .matchEvent em {
+    white-space: normal;
   }
 }

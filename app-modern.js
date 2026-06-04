@@ -15,10 +15,14 @@
     activeCupStatsMode: "all",
     activeTeam: "",
     activePlayer: "",
-    activeGoalie: ""
+    activeGoalie: "",
+    activeMatchCupId: "",
+    activeMatchId: "",
+    activeCupTeamName: "",
+    activeTeamTab: "roster"
   };
 
-  const routes = new Set(["overview", "cups", "teams", "players", "goalies", "matches", "about"]);
+  const routes = new Set(["overview", "cups", "teams", "players", "goalies", "matches", "match", "about"]);
 
   window.SEC_LOGO_FALLBACK = function (image) {
     const parent = image.closest(".teamLogo");
@@ -199,15 +203,23 @@
     state.view = routes.has(parts[0]) ? parts[0] : "overview";
     state.activeCupId = state.view === "cups" ? decodeURIComponent(parts[1] || "") : "";
     state.activeCupSection = state.view === "cups" ? decodeURIComponent(parts[2] || "") : "";
+    state.activeCupTeamName = state.view === "cups" && state.activeCupSection === "teams" ? decodeURIComponent(parts[3] || "") : "";
     state.activeCupTeamFilter = state.view === "cups" && state.activeCupSection === "matches" ? params.get("team") || "" : "";
     state.activeCupStatsMode = state.view === "cups" && state.activeCupSection === "stats" ? normalizeStatsMode(params.get("mode")) : "all";
     state.activeTeam = state.view === "teams" ? decodeURIComponent(parts[1] || "") : "";
+    state.activeTeamTab = normalizeTeamTab(params.get("tab"));
     state.activePlayer = state.view === "players" ? decodeURIComponent(parts[1] || "") : "";
     state.activeGoalie = state.view === "goalies" ? decodeURIComponent(parts[1] || "") : "";
+    state.activeMatchCupId = state.view === "match" ? decodeURIComponent(parts[1] || "") : "";
+    state.activeMatchId = state.view === "match" ? decodeURIComponent(parts[2] || "") : "";
   }
 
   function normalizeStatsMode(value) {
     return value === "group" || value === "playoffs" || value === "all" ? value : "all";
+  }
+
+  function normalizeTeamTab(value) {
+    return value === "matches" || value === "stats" || value === "history" || value === "roster" ? value : "roster";
   }
 
   function render() {
@@ -308,6 +320,7 @@
   }
 
   function getViewTitle() {
+    if (state.view === "match") return "Match";
     if (state.view === "cups" && state.activeCupId) {
       const cup = state.cups.find(function (entry) { return entry.id === state.activeCupId; });
       if (!cup) return "Cup";
@@ -357,7 +370,7 @@
       .concat(teamHits.map(function (team) { return searchLink("#/teams/" + encodeURIComponent(team.name), "Lag", team.name, team.matches + " matcher"); }))
       .concat(playerHits.map(function (player) { return searchLink("#/players/" + encodeURIComponent(player.name), "Spelare", player.name, player.pts + " poäng"); }))
       .concat(goalieHits.map(function (goalie) { return searchLink("#/goalies/" + encodeURIComponent(goalie.name), "Målvakt", goalie.name, formatPercent(goalie.svp) + " SV%"); }))
-      .concat(matchHits.map(function (entry) { return searchLink("#/matches", entry.cup.code, entry.match.awayTeam + " - " + entry.match.homeTeam, score(entry.match)); }));
+      .concat(matchHits.map(function (entry) { return searchLink(getMatchUrl(entry.cup, entry.match), entry.cup.code, entry.match.awayTeam + " - " + entry.match.homeTeam, score(entry.match)); }));
 
     return `
       <section class="searchdrop">
@@ -374,6 +387,10 @@
     if (state.view === "cups" && state.activeCupId) {
       const cup = state.cups.find(function (entry) { return entry.id === state.activeCupId; });
       if (state.activeCupSection === "tables") return renderCupTablesPage(cup);
+      if (state.activeCupSection === "teams" && state.activeCupTeamName) {
+        const team = state.teams.find(function (entry) { return entry.name === state.activeCupTeamName; }) || { name: state.activeCupTeamName };
+        return renderTeamDetail(model, team, cup);
+      }
       if (state.activeCupSection === "teams") return renderCupTeamsPage(cup);
       if (state.activeCupSection === "bracket") return renderCupBracketPage(cup);
       if (state.activeCupSection === "players") return renderCupPlayersPage(cup);
@@ -391,6 +408,11 @@
     }
     if (state.view === "goalies" && state.activeGoalie) {
       return renderGoalieDetail(model, state.goalies.find(function (goalie) { return goalie.name === state.activeGoalie; }));
+    }
+    if (state.view === "match") {
+      const cup = state.cups.find(function (entry) { return entry.id === state.activeMatchCupId; });
+      const match = cup?.matches.find(function (entry) { return entry.id === state.activeMatchId; });
+      return cup && match ? renderMatchDetail(cup, match) : `<section class="emptyPage">Matchen hittades inte.</section>`;
     }
 
     return {
@@ -647,7 +669,7 @@
       <section class="cupTeamGrid">
         ${rows.map(function (team) {
           return `
-            <a class="teamTile cupTeamTile" href="#/teams/${encodeURIComponent(team.name)}">
+            <a class="teamTile cupTeamTile" href="#/cups/${encodeURIComponent(cup.id)}/teams/${encodeURIComponent(team.name)}">
               ${renderTeamLogo(team.name, "teamLogoTile")}
               <strong>${escapeHtml(team.name)}</strong>
               <em>${team.matches} matcher · ${team.wins} vinster · ${team.goalsFor}-${team.goalsAgainst}</em>
@@ -699,9 +721,8 @@
         description: cup.name + " · spelare och målvakter uppdelat på gruppspel och slutspel."
       })}
       ${renderCupSectionNav(cup)}
-      ${renderCupStatsModeTabs(cup, mode)}
       <section class="statPageGrid">
-        ${panel("Spelare - " + modeLabel, renderCupPlayerStatsTable(playerRows))}
+        ${panelWithTools("Spelare - " + modeLabel, renderCupStatsModeTabs(cup, mode), renderCupPlayerStatsTable(playerRows))}
         ${panel("Målvakter - " + modeLabel, renderCupGoalieStatsTable(goalieRows))}
       </section>
     `;
@@ -762,7 +783,7 @@
       ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
         ${renderCupMatchFilter(cup, teams, selectedTeam)}
-        ${renderMatchRows(rows, rows.length)}
+        ${renderCupMatchSchedule(rows)}
       </section>
     `;
   }
@@ -783,6 +804,310 @@
     `;
   }
 
+  function renderMatchDetail(cup, match) {
+    const parsed = parseMatchStatsSummary(match.statsSummary, match);
+    const playerStats = hasMatchStats(match.playerStats) ? match.playerStats : parsed.playerStats;
+    const goalieStats = hasMatchStats(match.goalieStats) ? match.goalieStats : parsed.goalieStats;
+    const events = parseMatchEvents(match.goalsSummary);
+    return `
+      <section class="matchDetailHero">
+        <a class="backLink" href="#/cups/${encodeURIComponent(cup.id)}/matches">Tillbaka till matcher</a>
+        <div class="crumbs">
+          <a href="#/overview">Start</a>
+          <span>/</span>
+          <a href="#/cups/${encodeURIComponent(cup.id)}">${escapeHtml(cup.code)}</a>
+          <span>/</span>
+          <strong>Match</strong>
+        </div>
+        <div class="matchDetailScoreboard">
+          ${renderMatchDetailTeam(cup, match.awayTeam)}
+          <div class="matchDetailCenter">
+            <span>${escapeHtml(match.group || (isPlayoffMatch(match) ? "Slutspel" : "Gruppspel"))}</span>
+            <strong>${score(match)}</strong>
+            <em>${escapeHtml(formatDate(match.date))}${match.time ? " · " + escapeHtml(match.time) : ""}</em>
+          </div>
+          ${renderMatchDetailTeam(cup, match.homeTeam)}
+        </div>
+      </section>
+      <section class="matchDetailGrid">
+        ${panel("Matchöversikt", renderMatchStatBoard(match, playerStats, goalieStats))}
+        ${panel("Händelser", renderMatchTimeline(events))}
+      </section>
+      <section class="matchTeamStatsGrid">
+        ${renderMatchPlayerSide(match.awayTeam, playerStats.away)}
+        ${renderMatchPlayerSide(match.homeTeam, playerStats.home)}
+      </section>
+      <section class="matchTeamStatsGrid">
+        ${renderMatchGoalieSide(match.awayTeam, goalieStats.away)}
+        ${renderMatchGoalieSide(match.homeTeam, goalieStats.home)}
+      </section>
+    `;
+  }
+
+  function renderMatchDetailTeam(cup, teamName) {
+    return `
+      <a class="matchDetailTeam" href="#/cups/${encodeURIComponent(cup.id)}/teams/${encodeURIComponent(teamName)}">
+        ${renderTeamLogo(teamName, "teamLogoHero")}
+        <strong>${escapeHtml(teamName)}</strong>
+      </a>
+    `;
+  }
+
+  function renderMatchStatBoard(match, playerStats, goalieStats) {
+    const shots = getMatchShots(match, goalieStats);
+    const awayPim = sumMatchRows(playerStats.away, "pim");
+    const homePim = sumMatchRows(playerStats.home, "pim");
+    const rows = [
+      shots ? { label: "Skott", away: shots.away, home: shots.home } : null,
+      { label: "Mål", away: match.awayScore, home: match.homeScore },
+      { label: "PIM", away: awayPim, home: homePim },
+      { label: "Målvaktsräddningar", away: sumMatchRows(goalieStats.away, "sv"), home: sumMatchRows(goalieStats.home, "sv") },
+      { label: "SV%", away: goalieStats.away[0] ? formatPercent(goalieStats.away[0].svp) : "-", home: goalieStats.home[0] ? formatPercent(goalieStats.home[0].svp) : "-" }
+    ].filter(Boolean);
+    return `
+      <div class="matchStatBoard">
+        <div class="matchStatHead"><span>${escapeHtml(match.awayTeam)}</span><span></span><span>${escapeHtml(match.homeTeam)}</span></div>
+        ${rows.map(function (row) {
+          return `<div class="matchStatRow"><strong>${escapeHtml(formatMatchValue(row.away))}</strong><span>${escapeHtml(row.label)}</span><strong>${escapeHtml(formatMatchValue(row.home))}</strong></div>`;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  function renderMatchTimeline(events) {
+    if (!events.length) return `<div class="empty">Ingen matchsummering finns registrerad.</div>`;
+    return `
+      <div class="matchTimeline">
+        ${events.map(function (event) {
+          const typeLabel = event.type === "penalty" ? "Utvisning" : event.type === "goal" ? "Mål" : "Info";
+          const description = event.type === "goal"
+            ? event.player + (event.assists.length ? " (" + event.assists.join(", ") + ")" : "") + (event.tags.length ? " · " + event.tags.join(", ") : "")
+            : event.type === "penalty"
+              ? event.player + (event.penalty ? " - " + event.penalty : "") + (event.pim ? " (" + event.pim + " min)" : "")
+              : event.body;
+          return `
+            <div class="matchEvent is-${escapeHtml(event.type)}">
+              <span>${escapeHtml(event.time || "-")}</span>
+              <b>${escapeHtml(typeLabel)}</b>
+              <strong>${escapeHtml(event.team || "")}</strong>
+              <em>${escapeHtml(description)}</em>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  function renderMatchPlayerSide(teamName, rows) {
+    const sorted = (rows || []).slice().sort(function (a, b) {
+      return number(b.pts) - number(a.pts) || number(b.g) - number(a.g) || number(b.a) - number(a.a) || a.name.localeCompare(b.name, "sv");
+    });
+    return panel(teamName + " - spelare", sorted.length ? `
+      <div class="dataTable matchStatsTable">
+        <table>
+          <thead><tr><th>Spelare</th><th>G</th><th>A</th><th>PTS</th><th>PIM</th></tr></thead>
+          <tbody>${sorted.map(function (row) {
+            return `<tr><td><a href="#/players/${encodeURIComponent(row.name)}">${renderPersonName(row.name)}</a></td><td>${row.g}</td><td>${row.a}</td><td><strong>${row.pts}</strong></td><td>${row.pim}</td></tr>`;
+          }).join("")}</tbody>
+        </table>
+      </div>
+    ` : `<div class="empty">Ingen spelarstatistik finns registrerad.</div>`);
+  }
+
+  function renderMatchGoalieSide(teamName, rows) {
+    const sorted = (rows || []).slice().sort(sortGoalies);
+    return panel(teamName + " - målvakter", sorted.length ? `
+      <div class="dataTable matchStatsTable">
+        <table>
+          <thead><tr><th>Målvakt</th><th>SA</th><th>GA</th><th>SV</th><th>SV%</th></tr></thead>
+          <tbody>${sorted.map(function (row) {
+            return `<tr><td><a href="#/goalies/${encodeURIComponent(row.name)}">${renderPersonName(row.name)}</a></td><td>${row.sa}</td><td>${row.ga}</td><td>${row.sv}</td><td><strong>${formatPercent(row.svp)}</strong></td></tr>`;
+          }).join("")}</tbody>
+        </table>
+      </div>
+    ` : `<div class="empty">Ingen målvaktsstatistik finns registrerad.</div>`);
+  }
+
+  function normalizeMatchStatSides(stats, normalizer) {
+    const empty = { away: [], home: [] };
+    if (!stats) return empty;
+    if (Array.isArray(stats.away) || Array.isArray(stats.home)) {
+      return {
+        away: normalizer(stats.away || []),
+        home: normalizer(stats.home || [])
+      };
+    }
+    return empty;
+  }
+
+  function normalizePlayerRowsForMatch(rows) {
+    return (rows || []).map(function (row) {
+      return {
+        name: text(row.displayName || row.player || row.name || "Okänd spelare"),
+        team: text(row.team),
+        gp: number(row.gp) || 1,
+        g: number(row.g),
+        a: number(row.a),
+        pts: number(row.pts),
+        pim: number(row.pim)
+      };
+    });
+  }
+
+  function normalizeGoalieRowsForMatch(rows) {
+    return (rows || []).map(function (row) {
+      const ga = number(row.ga);
+      const sv = number(row.sv);
+      const sa = number(row.sa) || ga + sv;
+      return finalizeGoalie({
+        name: text(row.displayName || row.player || row.name || "Okänd målvakt"),
+        team: text(row.team),
+        gp: number(row.gp) || 1,
+        sa: sa,
+        ga: ga,
+        sv: sv,
+        svp: number(row.svp),
+        gaa: number(row.gaa) || ga,
+        so: number(row.so)
+      });
+    });
+  }
+
+  function hasMatchStats(stats) {
+    return Boolean(stats && ((stats.away && stats.away.length) || (stats.home && stats.home.length)));
+  }
+
+  function parseMatchStatsSummary(summary, match) {
+    const result = { playerStats: { away: [], home: [] }, goalieStats: { away: [], home: [] } };
+    let currentTeam = "";
+    text(summary).split("|").map(text).filter(Boolean).forEach(function (part) {
+      const header = part.match(/^([^:]+):\s*(.*)$/);
+      if (header && !/^målvakt$/i.test(text(header[1]))) {
+        currentTeam = text(header[1]);
+        part = text(header[2]);
+        if (!part) return;
+      }
+      const side = getMatchStatSide(currentTeam, match);
+      if (!side) return;
+      const goalie = parseMatchGoalieStatLine(part, currentTeam);
+      if (goalie) {
+        result.goalieStats[side].push(goalie);
+        return;
+      }
+      const player = parseMatchPlayerStatLine(part, currentTeam);
+      if (player) result.playerStats[side].push(player);
+    });
+    return result;
+  }
+
+  function parseMatchPlayerStatLine(line, teamName) {
+    const match = text(line).match(/^(.*?)\s+(-?\d+)G\s+(-?\d+)A\s+(-?\d+)PTS\s+(-?\d+)PIM$/i);
+    if (!match) return null;
+    return {
+      name: text(match[1]),
+      team: teamName,
+      gp: 1,
+      g: number(match[2]),
+      a: number(match[3]),
+      pts: number(match[4]),
+      pim: number(match[5])
+    };
+  }
+
+  function parseMatchGoalieStatLine(line, teamName) {
+    const match = text(line).match(/^Målvakt:\s*(.*?)\s+(-|\d+)SA\s+(\d+)GA\s+(\d+)SV\s+(-|[.\d,]+)SV%$/i);
+    if (!match) return null;
+    const ga = number(match[3]);
+    const sv = number(match[4]);
+    const sa = match[2] === "-" ? ga + sv : number(match[2]);
+    return finalizeGoalie({
+      name: text(match[1]),
+      team: teamName,
+      gp: 1,
+      sa: sa,
+      ga: ga,
+      sv: sv,
+      svp: sa ? sv / sa : 0,
+      gaa: ga,
+      so: ga === 0 ? 1 : 0
+    });
+  }
+
+  function getMatchStatSide(teamName, match) {
+    const teamKey = fold(teamName);
+    if (teamKey === fold(match.awayTeam)) return "away";
+    if (teamKey === fold(match.homeTeam)) return "home";
+    return "";
+  }
+
+  function parseMatchEvents(summary) {
+    return text(summary).split("|").map(text).filter(Boolean).map(function (line) {
+      const match = line.match(/^(\d{1,2}:\d{2})\s+(.+)$/);
+      const time = match ? match[1] : "";
+      const body = match ? text(match[2]) : line;
+      const penalty = body.match(/^UTV\s+(.+?)\s+-\s+(.+?)(?:\s+([A-Za-zÅÄÖåäö -]+))?\s+(\d+)\s+min$/i);
+      if (penalty) {
+        return {
+          type: "penalty",
+          time: time,
+          team: text(penalty[1]),
+          player: text(penalty[2]),
+          penalty: text(penalty[3] || ""),
+          pim: number(penalty[4]),
+          body: body
+        };
+      }
+      const goal = body.match(/^(.+?)\s+-\s+(.+)$/);
+      if (goal) {
+        const detail = text(goal[2]);
+        const assistsMatch = detail.match(/^(.*?)\s*\((.*?)\)\s*(.*)$/);
+        const tags = [];
+        let player = detail;
+        let assists = [];
+        let rest = "";
+        if (assistsMatch) {
+          player = text(assistsMatch[1]);
+          assists = assistsMatch[2].split(",").map(text).filter(Boolean);
+          rest = text(assistsMatch[3]);
+        }
+        (rest.match(/\(([^)]+)\)/g) || []).forEach(function (tag) {
+          tags.push(tag.replace(/[()]/g, ""));
+        });
+        return {
+          type: "goal",
+          time: time,
+          team: text(goal[1]),
+          player: text(player.replace(/\s*\([^)]*\)\s*$/, "")),
+          assists: assists,
+          tags: tags,
+          body: body
+        };
+      }
+      return { type: "info", time: time, team: "", player: "", assists: [], tags: [], body: body };
+    });
+  }
+
+  function getMatchShots(match, goalieStats) {
+    if (match.awayShots !== null || match.homeShots !== null) {
+      return { away: match.awayShots, home: match.homeShots };
+    }
+    const awayGoalieSa = sumMatchRows(goalieStats.away, "sa");
+    const homeGoalieSa = sumMatchRows(goalieStats.home, "sa");
+    if (!awayGoalieSa && !homeGoalieSa) return null;
+    return { away: homeGoalieSa, home: awayGoalieSa };
+  }
+
+  function sumMatchRows(rows, key) {
+    return (rows || []).reduce(function (sum, row) {
+      return sum + number(row[key]);
+    }, 0);
+  }
+
+  function formatMatchValue(value) {
+    if (value === null || value === undefined || value === "") return "-";
+    return String(value);
+  }
+
   function renderTeams() {
     return `
       <p class="viewIntro">Alla lag samlade som scanbara brickor. Klicka ett lag för snabb historik.</p>
@@ -800,8 +1125,9 @@
     `;
   }
 
-  function renderTeamDetail(model, team) {
+  function renderTeamDetail(model, team, cup) {
     if (!team) return `<section class="emptyPage">Laget hittades inte.</section>`;
+    return renderTeamDetailModern(model, team, cup);
     const matches = model.allMatches.filter(function (entry) {
       return entry.match.awayTeam === team.name || entry.match.homeTeam === team.name;
     }).slice(0, 16);
@@ -827,6 +1153,196 @@
       </section>
       ${panel("Senaste matcher", renderMatchRows(matches, 16))}
     `;
+  }
+
+  function renderTeamDetailModern(model, team, cup) {
+    const scopedMatches = (cup ? cup.matches.map(function (match) { return { cup: cup, match: match }; }) : model.allMatches)
+      .filter(function (entry) {
+        return entry.match.awayTeam === team.name || entry.match.homeTeam === team.name;
+      })
+      .sort(function (a, b) { return compareMatches(a.match, b.match); });
+    const playerRows = getTeamPlayerRows(team.name, cup);
+    const goalieRows = getTeamGoalieRows(team.name, cup);
+    const roster = buildTeamRosterRows(playerRows, goalieRows);
+    const goalsFor = scopedMatches.reduce(function (sum, entry) {
+      return sum + number(entry.match.awayTeam === team.name ? entry.match.awayScore : entry.match.homeScore);
+    }, 0);
+    const goalsAgainst = scopedMatches.reduce(function (sum, entry) {
+      return sum + number(entry.match.awayTeam === team.name ? entry.match.homeScore : entry.match.awayScore);
+    }, 0);
+    const wins = scopedMatches.filter(function (entry) {
+      const gf = number(entry.match.awayTeam === team.name ? entry.match.awayScore : entry.match.homeScore);
+      const ga = number(entry.match.awayTeam === team.name ? entry.match.homeScore : entry.match.awayScore);
+      return gf > ga;
+    }).length;
+    const base = cup ? "#/cups/" + encodeURIComponent(cup.id) + "/teams/" + encodeURIComponent(team.name) : "#/teams/" + encodeURIComponent(team.name);
+    const activeTab = state.activeTeamTab;
+    return `
+      <section class="detailHero teamDetailHero">
+        <a href="${cup ? "#/cups/" + encodeURIComponent(cup.id) + "/teams" : "#/teams"}">Tillbaka till lag</a>
+        ${renderTeamLogo(team.name, "teamLogoHero")}
+        <h2>${escapeHtml(team.name)}</h2>
+        <p>${cup ? escapeHtml(cup.name) + " · " : ""}${scopedMatches.length} matcher, ${wins} vinster och ${goalsFor}-${goalsAgainst} i mål.</p>
+      </section>
+      <section class="metricGrid compact">
+        ${metric(cup ? "Cup" : "Cuper", cup ? cup.code : String(team.cups || 0), cup ? "vald turnering" : "deltaganden")}
+        ${metric("Matcher", scopedMatches.length, "totalt")}
+        ${metric("Vinster", wins, "registrerade")}
+        ${metric("Mål", goalsFor, "gjorda")}
+      </section>
+      ${renderTeamTabs(base, activeTab)}
+      <section class="fullPagePanel teamTabPanel">
+        ${activeTab === "matches" ? renderTeamAllMatches(scopedMatches) : ""}
+        ${activeTab === "stats" ? renderTeamCurrentStats(playerRows, goalieRows) : ""}
+        ${activeTab === "history" ? renderTeamHistoricalStats(team.name) : ""}
+        ${activeTab === "roster" ? renderTeamRosterPanel(team.name, roster) : ""}
+      </section>
+    `;
+  }
+
+  function renderTeamTabs(base, activeTab) {
+    const tabs = [
+      ["roster", "Laguppställning"],
+      ["matches", "Alla matcher"],
+      ["stats", "Statistik"],
+      ["history", "Historisk statistik"]
+    ];
+    return `
+      <nav class="subTabs teamTabs" aria-label="Lagflikar">
+        ${tabs.map(function (tab) {
+          return `<a class="${activeTab === tab[0] ? "active" : ""}" href="${base}${tab[0] === "roster" ? "" : "?tab=" + tab[0]}">${escapeHtml(tab[1])}</a>`;
+        }).join("")}
+      </nav>
+    `;
+  }
+
+  function renderTeamRosterPanel(teamName, roster) {
+    return `
+      <div class="panelHead"><h3>Laguppställning</h3></div>
+      <div class="teamRosterGrid">
+        ${roster.length ? roster.map(renderTeamRosterCard).join("") : `<div class="empty">Inga spelare hittades för ${escapeHtml(teamName)}.</div>`}
+      </div>
+    `;
+  }
+
+  function renderTeamRosterCard(row) {
+    const href = row.role === "Målvakt" && !row.gp ? "#/goalies/" + encodeURIComponent(row.name) : "#/players/" + encodeURIComponent(row.name);
+    const statLine = [
+      row.gp ? row.gp + " GP" : "",
+      row.pts ? row.pts + " PTS" : "",
+      row.goalieGp ? row.goalieGp + " GP målvakt" : "",
+      row.sa ? formatPercent(row.svp) + " SV%" : ""
+    ].filter(Boolean).join(" · ");
+    return `
+      <a class="teamRosterCard" href="${href}">
+        ${renderPlayerPortrait(row, "previewPortrait")}
+        <span>
+          <strong>${renderPersonName(row.name)}</strong>
+          <em>${escapeHtml(row.role)}</em>
+          <b>${escapeHtml(statLine || "Registrerad")}</b>
+        </span>
+      </a>
+    `;
+  }
+
+  function renderTeamAllMatches(entries) {
+    return `
+      <div class="panelHead"><h3>Alla matcher</h3></div>
+      ${renderMatchRows(entries, entries.length)}
+    `;
+  }
+
+  function renderTeamCurrentStats(playerRows, goalieRows) {
+    return `
+      <div class="teamStatsGrid">
+        ${panel("Utespelare", renderCupPlayerStatsTable(playerRows))}
+        ${panel("Målvakter", renderCupGoalieStatsTable(goalieRows))}
+      </div>
+    `;
+  }
+
+  function renderTeamHistoricalStats(teamName) {
+    const playerRows = getTeamPlayerRows(teamName, null);
+    const goalieRows = getTeamGoalieRows(teamName, null);
+    const cupRows = buildTeamCupRows(teamName);
+    return `
+      <div class="teamStatsGrid">
+        ${panel("Cuphistorik", renderTeamCupTable(cupRows))}
+        ${panel("Historiska utespelare", renderCupPlayerStatsTable(playerRows))}
+        ${panel("Historiska målvakter", renderCupGoalieStatsTable(goalieRows))}
+      </div>
+    `;
+  }
+
+  function getTeamPlayerRows(teamName, cup) {
+    const rows = (cup ? cup.playerRows : state.cups.flatMap(function (entry) { return entry.playerRows || []; }))
+      .filter(function (row) { return row.team === teamName; });
+    return aggregateTeamPlayerRows(rows);
+  }
+
+  function getTeamGoalieRows(teamName, cup) {
+    const rows = (cup ? cup.goalieRows : state.cups.flatMap(function (entry) { return entry.goalieRows || []; }))
+      .filter(function (row) { return row.team === teamName; });
+    return aggregateTeamGoalieRows(rows);
+  }
+
+  function aggregateTeamPlayerRows(rows) {
+    const map = new Map();
+    rows.forEach(function (row) {
+      const key = fold(row.name);
+      if (!map.has(key)) {
+        map.set(key, { name: row.name, team: row.team, playerId: row.playerId || "", gp: 0, g: 0, a: 0, pts: 0, pim: 0 });
+      }
+      const target = map.get(key);
+      target.gp += number(row.gp);
+      target.g += number(row.g);
+      target.a += number(row.a);
+      target.pts += number(row.pts);
+      target.pim += number(row.pim);
+    });
+    return Array.from(map.values()).sort(sortPlayers);
+  }
+
+  function aggregateTeamGoalieRows(rows) {
+    const map = new Map();
+    rows.forEach(function (row) {
+      const key = fold(row.name);
+      if (!map.has(key)) {
+        map.set(key, { name: row.name, team: row.team, playerId: row.playerId || "", gp: 0, sa: 0, ga: 0, sv: 0, svp: 0, gaa: 0, so: 0 });
+      }
+      const target = map.get(key);
+      target.gp += number(row.gp);
+      target.sa += number(row.sa);
+      target.ga += number(row.ga);
+      target.sv += number(row.sv);
+      target.so += number(row.so);
+    });
+    return Array.from(map.values()).map(finalizeGoalie).sort(sortGoalies);
+  }
+
+  function buildTeamRosterRows(playerRows, goalieRows) {
+    const map = new Map();
+    playerRows.forEach(function (row) {
+      const key = fold(row.name);
+      map.set(key, Object.assign({}, row, { role: "Utespelare", goalieGp: 0, sa: 0, sv: 0, ga: 0, svp: 0 }));
+    });
+    goalieRows.forEach(function (row) {
+      const key = fold(row.name);
+      if (!map.has(key)) {
+        map.set(key, { name: row.name, team: row.team, gp: 0, g: 0, a: 0, pts: 0, pim: 0, role: "Målvakt", goalieGp: row.gp, sa: row.sa, sv: row.sv, ga: row.ga, svp: row.svp });
+      } else {
+        const target = map.get(key);
+        target.role = "Utespelare/Målvakt";
+        target.goalieGp = row.gp;
+        target.sa = row.sa;
+        target.sv = row.sv;
+        target.ga = row.ga;
+        target.svp = row.svp;
+      }
+    });
+    return Array.from(map.values()).sort(function (a, b) {
+      return number(b.pts) - number(a.pts) || number(b.goalieGp) - number(a.goalieGp) || a.name.localeCompare(b.name, "sv");
+    });
   }
 
   function renderPlayers() {
@@ -945,37 +1461,100 @@
     `;
   }
 
+  function panelWithTools(title, tools, body) {
+    return `
+      <section class="panel">
+        <div class="panelHead panelHeadTools">
+          <h3>${escapeHtml(title)}</h3>
+          ${tools}
+        </div>
+        ${body}
+      </section>
+    `;
+  }
+
   function renderMatchRows(entries, limit) {
     const rows = entries.slice(0, limit).map(function (entry) {
       return `
-        <div class="matchRow">
+        <a class="matchRow" href="${getMatchUrl(entry.cup, entry.match)}">
           <span>${escapeHtml(entry.cup.code)}</span>
           <strong class="matchTeams">
-            ${renderTeamIdentity(entry.match.awayTeam, "teamLogoInline")}
+            ${renderTeamIdentityStatic(entry.match.awayTeam, "teamLogoInline")}
             <b>${score(entry.match)}</b>
-            ${renderTeamIdentity(entry.match.homeTeam, "teamLogoInline")}
+            ${renderTeamIdentityStatic(entry.match.homeTeam, "teamLogoInline")}
           </strong>
           <em>${escapeHtml(formatDate(entry.match.date))} · ${escapeHtml(entry.match.group || entry.match.stage || "Match")}</em>
-        </div>
+        </a>
       `;
     }).join("");
     return `<div class="matchList">${rows || `<div class="empty">Inga matcher hittades.</div>`}</div>`;
   }
 
+  function renderCupMatchSchedule(entries) {
+    if (!entries.length) return `<div class="empty">Inga matcher hittades.</div>`;
+    const groups = [];
+    const byDate = {};
+    entries.forEach(function (entry) {
+      const key = entry.match.date || "Datum saknas";
+      if (!byDate[key]) {
+        byDate[key] = {
+          label: formatDate(entry.match.date),
+          rows: []
+        };
+        groups.push(byDate[key]);
+      }
+      byDate[key].rows.push(entry);
+    });
+    return `
+      <div class="matchSchedule">
+        ${groups.map(function (group) {
+          return `
+            <section class="matchDay">
+              <header class="matchDayHead">
+                <span>Borta</span>
+                <strong>${escapeHtml(group.label)}</strong>
+                <span>Hemma</span>
+              </header>
+              <div class="matchDayRows">
+                ${group.rows.map(function (entry) {
+                  const label = entry.match.group || entry.match.stage || "Match";
+                  return `
+                    <a class="matchScheduleRow" href="${getMatchUrl(entry.cup, entry.match)}">
+                      <div class="matchScheduleTeam away">${renderTeamIdentityStatic(entry.match.awayTeam, "teamLogoInline")}</div>
+                      <div class="matchScheduleScore">
+                        <b>${score(entry.match)}</b>
+                        <span>${escapeHtml(label)}</span>
+                      </div>
+                      <div class="matchScheduleTeam home">${renderTeamIdentityStatic(entry.match.homeTeam, "teamLogoInline")}</div>
+                    </a>
+                  `;
+                }).join("")}
+              </div>
+            </section>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
   function renderCupMatchPreview(entries) {
     const rows = entries.slice(0, 10).map(function (entry) {
       return `
-        <div class="matchPreviewRow">
+        <a class="matchPreviewRow" href="${getMatchUrl(entry.cup, entry.match)}">
           ${renderTeamLogo(entry.match.awayTeam, "teamLogoInline")}
           <span>${escapeHtml(entry.match.awayTeam)}</span>
           <b>${score(entry.match)}</b>
           ${renderTeamLogo(entry.match.homeTeam, "teamLogoInline")}
           <span>${escapeHtml(entry.match.homeTeam)}</span>
           <em>${escapeHtml(entry.match.group || entry.match.stage || "Match")}</em>
-        </div>
+        </a>
       `;
     }).join("");
     return `<div class="matchPreviewList">${rows || `<div class="empty">Inga matcher hittades.</div>`}</div>`;
+  }
+
+  function getMatchUrl(cup, match) {
+    return "#/match/" + encodeURIComponent(cup.id) + "/" + encodeURIComponent(match.id);
   }
 
   function renderLeaderRows(players) {
@@ -1895,7 +2474,7 @@
   function renderTeamIdentity(teamName, logoClass) {
     const safeName = text(teamName || "Okänt lag");
     return `
-      <a class="teamIdentity" href="#/teams/${encodeURIComponent(safeName)}">
+      <a class="teamIdentity" href="${getTeamHref(safeName)}">
         ${renderTeamLogo(safeName, logoClass || "teamLogoTiny")}
         <span>${escapeHtml(safeName)}</span>
       </a>
@@ -1910,6 +2489,17 @@
         <span>${escapeHtml(safeName)}</span>
       </span>
     `;
+  }
+
+  function getTeamHref(teamName) {
+    const safeName = text(teamName || "Okänt lag");
+    if (state.view === "cups" && state.activeCupId) {
+      return "#/cups/" + encodeURIComponent(state.activeCupId) + "/teams/" + encodeURIComponent(safeName);
+    }
+    if (state.view === "match" && state.activeMatchCupId) {
+      return "#/cups/" + encodeURIComponent(state.activeMatchCupId) + "/teams/" + encodeURIComponent(safeName);
+    }
+    return "#/teams/" + encodeURIComponent(safeName);
   }
 
   function renderPersonName(name) {
@@ -2192,7 +2782,11 @@
           homeTeam: text(match.homeTeam || "Okänt lag"),
           group: text(match.group),
           stage: text(match.stage || "group"),
-          overtime: Boolean(match.overtime)
+          overtime: Boolean(match.overtime),
+          goalsSummary: text(match.goalsSummary || ""),
+          statsSummary: text(match.statsSummary || match.Stats || match.stats || ""),
+          playerStats: normalizeMatchStatSides(match.playerStats, normalizePlayerRowsForMatch),
+          goalieStats: normalizeMatchStatSides(match.goalieStats, normalizeGoalieRowsForMatch)
         };
       });
       const cupDateMeta = getCupDateMeta(matches, cup, index);
