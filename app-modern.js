@@ -432,6 +432,83 @@
     `;
   }
 
+  function renderCupHero(cup, options) {
+    const opts = options || {};
+    const groupMatches = cup.matches.filter(function (match) { return !isPlayoffMatch(match); }).length;
+    const playoffMatches = cup.matches.filter(isPlayoffMatch).length;
+    return `
+      <section class="cupHero ${opts.full ? "full" : "compact"} ${isSummer(cup) ? "summer" : ""}">
+        <div class="cupHeroCopy">
+          <nav class="crumbs" aria-label="Brödsmulor">
+            <a href="#/overview">Start</a>
+            <span>/</span>
+            <a href="#/cups">Cuper</a>
+            <span>/</span>
+            <strong>${escapeHtml(cup.code)}</strong>
+          </nav>
+          <p class="cupKicker">${escapeHtml(cup.code)}</p>
+          <h2>${escapeHtml(opts.title || cup.name)}</h2>
+          <p>${escapeHtml(opts.description || cup.name)}</p>
+          ${opts.full ? `
+            <div class="cupHeroStats">
+              ${cupHeroStat(cup.teams.length, "Lag")}
+              ${cupHeroStat(groupMatches, "Gruppmatcher")}
+              ${cupHeroStat(playoffMatches, "Slutspelsmatcher")}
+            </div>
+          ` : ""}
+        </div>
+        ${opts.full ? `
+          <div class="cupHeroLogo">
+            <img src="./SECLOGGA.png" alt="">
+          </div>
+        ` : ""}
+      </section>
+    `;
+  }
+
+  function cupHeroStat(value, label) {
+    return `<div><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></div>`;
+  }
+
+  function renderCupSpotlight(cup) {
+    const topPlayer = cup.topPlayers[0];
+    const topGoalie = cup.topGoalies[0];
+    return `
+      <section class="cupSpotlight">
+        ${topPlayer ? `
+          <a class="spotlightCard" href="#/players/${encodeURIComponent(topPlayer.name)}">
+            ${renderPlayerPortrait(topPlayer, "spotlightPortrait")}
+            <div>
+              <span>Poängkung</span>
+              <strong>${renderPersonName(topPlayer.name)}</strong>
+              <em>${renderTeamIdentity(topPlayer.team, "teamLogoChip")}</em>
+              <b>${topPlayer.pts} p</b>
+            </div>
+          </a>
+        ` : ""}
+        <div class="spotlightCard">
+          ${cup.winner ? renderTeamLogo(cup.winner, "spotlightLogo") : `<img src="./SECLOGGA.png" alt="">`}
+          <div>
+            <span>Vinnare</span>
+            <strong>${escapeHtml(cup.winner || "Ej klar")}</strong>
+            <em>Finalist: ${escapeHtml(cup.runnerUp || "Ej klar")}</em>
+          </div>
+        </div>
+        ${topGoalie ? `
+          <a class="spotlightCard" href="#/goalies/${encodeURIComponent(topGoalie.name)}">
+            ${renderPlayerPortrait(topGoalie, "spotlightPortrait")}
+            <div>
+              <span>Målvaktskung</span>
+              <strong>${renderPersonName(topGoalie.name)}</strong>
+              <em>${renderTeamIdentity(topGoalie.team, "teamLogoChip")}</em>
+              <b>${formatPercent(topGoalie.svp)}</b>
+            </div>
+          </a>
+        ` : ""}
+      </section>
+    `;
+  }
+
   function renderCupDetail(model, cup) {
     if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
     const rows = cup.matches.slice().sort(compareMatches).slice(0, 14).map(function (match) {
@@ -440,17 +517,12 @@
     const standings = buildStandings(cup);
     const bracket = buildBracket(cup);
     return `
-      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
-        <a href="#/cups">Tillbaka till cuper</a>
-        <h2>${escapeHtml(cup.name)}</h2>
-        <p>${escapeHtml(formatCupDateRange(cup))} · ${cup.matchCount} matcher, ${cup.teams.length} lag, vinnare ${escapeHtml(cup.winner || "ej klar")}.</p>
-      </section>
-      <section class="metricGrid compact">
-        ${metric("Matcher", cup.matchCount, "spelade/listade")}
-        ${metric("Lag", cup.teams.length, "i cupen")}
-        ${metric("Mål", cup.goals, "totalt")}
-        ${metric("Finalist", cup.runnerUp || "Ej klar", "placering")}
-      </section>
+      ${renderCupHero(cup, {
+        title: cup.name,
+        description: "Cupsidan visar översikt, tabeller, lag, topplistor och matcher för den valda turneringen.",
+        full: true
+      })}
+      ${renderCupSpotlight(cup)}
       ${renderCupSectionNav(cup)}
       <section class="sportGrid">
         ${panelWithAction("Tabeller", "Fullständig tabell", "#/cups/" + encodeURIComponent(cup.id) + "/tables", renderStandingsPreview(standings, cup.settings))}
@@ -470,11 +542,10 @@
     if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
     const standings = buildStandings(cup);
     return `
-      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
-        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
-        <h2>Fullständig tabell</h2>
-        <p>${escapeHtml(cup.name)} · ${escapeHtml(formatCupDateRange(cup))} · streck enligt cupinfo.</p>
-      </section>
+      ${renderCupHero(cup, {
+        title: "Fullständig tabell",
+        description: cup.name + " · " + formatCupDateRange(cup) + " · streck enligt cupinfo."
+      })}
       ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
         ${renderStandings(standings, cup.settings, { full: true })}
@@ -486,11 +557,10 @@
     if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
     const bracket = buildBracket(cup);
     return `
-      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
-        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
-        <h2>Fullständigt slutspelsträd</h2>
-        <p>${escapeHtml(cup.name)} · ${bracket.reduce(function (sum, round) { return sum + ((round.series && round.series.length) || 0); }, 0)} serier.</p>
-      </section>
+      ${renderCupHero(cup, {
+        title: "Fullständigt slutspelsträd",
+        description: cup.name + " · " + bracket.reduce(function (sum, round) { return sum + ((round.series && round.series.length) || 0); }, 0) + " serier."
+      })}
       ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
         ${renderBracket(bracket, cup.settings, { full: true })}
@@ -523,11 +593,10 @@
     if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
     const rows = buildCupTeamRows(cup);
     return `
-      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
-        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
-        <h2>Lag</h2>
-        <p>${escapeHtml(cup.name)} · ${rows.length} lag med matcher, mål och resultat i cupen.</p>
-      </section>
+      ${renderCupHero(cup, {
+        title: "Lag",
+        description: cup.name + " · " + rows.length + " lag med matcher, mål och resultat i cupen."
+      })}
       ${renderCupSectionNav(cup)}
       <section class="cupTeamGrid">
         ${rows.map(function (team) {
@@ -547,11 +616,10 @@
   function renderCupPlayersPage(cup) {
     if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
     return `
-      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
-        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
-        <h2>Toppspelare</h2>
-        <p>${escapeHtml(cup.name)} · all spelarstatistik från gruppspel och slutspel.</p>
-      </section>
+      ${renderCupHero(cup, {
+        title: "Toppspelare",
+        description: cup.name + " · all spelarstatistik från gruppspel och slutspel."
+      })}
       ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
         ${renderCupPlayerStatsTable(cup.playerRows)}
@@ -562,11 +630,10 @@
   function renderCupGoaliesPage(cup) {
     if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
     return `
-      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
-        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
-        <h2>Målvakter</h2>
-        <p>${escapeHtml(cup.name)} · räddningsprocent, GAA, räddningar och nollor.</p>
-      </section>
+      ${renderCupHero(cup, {
+        title: "Målvakter",
+        description: cup.name + " · räddningsprocent, GAA, räddningar och nollor."
+      })}
       ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
         ${renderCupGoalieStatsTable(cup.goalieRows)}
@@ -577,11 +644,10 @@
   function renderCupStatsPage(cup) {
     if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
     return `
-      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
-        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
-        <h2>Statistik</h2>
-        <p>${escapeHtml(cup.name)} · spelare och målvakter uppdelat på gruppspel och slutspel.</p>
-      </section>
+      ${renderCupHero(cup, {
+        title: "Statistik",
+        description: cup.name + " · spelare och målvakter uppdelat på gruppspel och slutspel."
+      })}
       ${renderCupSectionNav(cup)}
       <section class="statPageGrid">
         ${panel("Spelare - gruppspel", renderCupPlayerStatsTable(cup.playerStageRows.group))}
@@ -595,11 +661,10 @@
   function renderCupInfoPage(cup) {
     if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
     return `
-      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
-        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
-        <h2>Fullständiga regler</h2>
-        <p>${escapeHtml(cup.name)} · cupinfo, behörighet, BO-format och spelargränser.</p>
-      </section>
+      ${renderCupHero(cup, {
+        title: "Fullständiga regler",
+        description: cup.name + " · cupinfo, behörighet, BO-format och spelargränser."
+      })}
       ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
         ${renderCupSettings(cup.settings, { full: true })}
@@ -622,11 +687,10 @@
       return { cup: cup, match: match };
     });
     return `
-      <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
-        <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
-        <h2>Alla matcher</h2>
-        <p>${escapeHtml(cup.name)} · ${rows.length} av ${cup.matches.length} matcher${selectedTeam ? " för " + escapeHtml(selectedTeam) : ""}.</p>
-      </section>
+      ${renderCupHero(cup, {
+        title: "Alla matcher",
+        description: cup.name + " · " + rows.length + " av " + cup.matches.length + " matcher" + (selectedTeam ? " för " + selectedTeam : "") + "."
+      })}
       ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
         ${renderCupMatchFilter(cup, teams, selectedTeam)}

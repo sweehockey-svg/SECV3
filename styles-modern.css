@@ -418,6 +418,209 @@ input {
   font-weight: 800;
 }
 
+.cupHero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  overflow: hidden;
+  min-height: 252px;
+  padding: 28px clamp(24px, 3vw, 42px);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 16% 0%, rgba(105, 225, 212, 0.14), transparent 36%),
+    linear-gradient(135deg, rgba(28, 57, 88, 0.72), rgba(6, 10, 16, 0.9) 62%),
+    var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.cupHero.full {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  min-height: 420px;
+  align-items: stretch;
+}
+
+.cupHero.compact {
+  min-height: 220px;
+}
+
+.cupHeroCopy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 790px;
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+  margin-bottom: 34px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.crumbs a {
+  color: var(--muted);
+}
+
+.crumbs strong {
+  color: #dbe8e6;
+}
+
+.cupKicker {
+  margin: 0 0 24px;
+  color: var(--ice);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cupHero h2 {
+  max-width: 760px;
+  margin: 0;
+  color: #edf7f8;
+  font-size: clamp(44px, 4.5vw, 70px);
+  line-height: 0.96;
+  text-transform: none;
+}
+
+.cupHero.full h2 {
+  font-size: clamp(48px, 5.6vw, 76px);
+}
+
+.cupHero p:not(.cupKicker) {
+  max-width: 720px;
+  margin: 24px 0 0;
+  color: #c8d6dd;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.cupHeroStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.cupHeroStats div {
+  min-width: 128px;
+  padding: 13px 16px;
+  border: 1px solid rgba(233, 197, 110, 0.28);
+  border-radius: 10px;
+  background: rgba(9, 15, 24, 0.64);
+}
+
+.cupHeroStats strong,
+.cupHeroStats span {
+  display: block;
+}
+
+.cupHeroStats strong {
+  color: var(--gold);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.cupHeroStats span {
+  margin-top: 4px;
+  color: #d8e4e2;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.cupHeroLogo {
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  min-height: 300px;
+  border: 1px solid rgba(233, 197, 110, 0.18);
+  border-radius: 18px;
+  background: rgba(3, 6, 10, 0.5);
+}
+
+.cupHeroLogo img {
+  width: min(74%, 280px);
+  height: auto;
+  filter: drop-shadow(0 24px 34px rgba(0, 0, 0, 0.48));
+}
+
+.cupSpotlight {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.spotlightCard {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  min-height: 124px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.spotlightCard > img,
+.spotlightLogo {
+  width: 72px;
+  height: 72px;
+}
+
+.spotlightLogo {
+  border-radius: 18px;
+}
+
+.spotlightPortrait {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+}
+
+.spotlightCard > div > span {
+  display: block;
+  color: var(--ice);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.spotlightCard strong {
+  display: block;
+  margin-top: 4px;
+  color: #fff;
+  font-size: 18px;
+}
+
+.spotlightCard em {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 6px;
+  color: #d2dedc;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.spotlightCard b {
+  display: block;
+  margin-top: 8px;
+  color: var(--gold);
+}
+
 .actions a,
 .detailHero a {
   display: inline-flex;
@@ -1449,10 +1652,19 @@ h2 .countryFlag {
   }
 
   .hero,
+  .cupHero.full,
   .dashGrid,
   .dashGrid.two,
   .sportGrid {
     grid-template-columns: 1fr;
+  }
+
+  .cupSpotlight {
+    grid-template-columns: 1fr;
+  }
+
+  .cupHeroLogo {
+    min-height: 220px;
   }
 
   .metricGrid,
@@ -1518,6 +1730,31 @@ h2 .countryFlag {
 
   .hero {
     min-height: 0;
+  }
+
+  .cupHero,
+  .cupHero.full,
+  .cupHero.compact {
+    min-height: 0;
+    padding: 22px;
+  }
+
+  .cupHero h2,
+  .cupHero.full h2 {
+    font-size: 44px;
+  }
+
+  .crumbs {
+    margin-bottom: 22px;
+  }
+
+  .cupHeroLogo {
+    display: none;
+  }
+
+  .cupHeroStats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .playerProfileHero {
