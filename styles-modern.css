@@ -1028,16 +1028,29 @@ input {
 }
 
 .previewBracket {
-  display: flex;
+  display: grid;
   grid-template-columns: none;
-  align-items: stretch;
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 4px;
+  gap: 18px;
+  overflow: visible;
+  padding-bottom: 0;
 }
 
 .previewBracket .bracketRound {
-  flex: 0 0 min(320px, 82vw);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  align-items: start;
+  gap: 8px;
+  padding: 10px;
+}
+
+.previewBracket .bracketRound h4 {
+  grid-column: 1 / -1;
+  margin-bottom: 2px;
+}
+
+.previewBracket .series {
+  min-width: 0;
+  margin-top: 0;
 }
 
 .fullBracket {
