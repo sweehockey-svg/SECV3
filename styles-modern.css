@@ -784,6 +784,60 @@ input {
   font-weight: 800;
 }
 
+.seriesResults {
+  display: grid;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.seriesResults > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 54px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 5px 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.seriesResults b {
+  text-align: center;
+}
+
+.seriesResults > div > span:last-child {
+  justify-self: end;
+}
+
+.matchFilter {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
+.matchFilter label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.matchFilter select {
+  min-width: 240px;
+  height: 40px;
+  padding: 0 38px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--text);
+  background: rgba(3, 8, 14, 0.88);
+  font: inherit;
+  text-transform: none;
+}
+
 .matchList,
 .leaderList,
 .cupStack {
@@ -1010,15 +1064,23 @@ input {
 }
 
 .teamLogoInline,
-.teamLogoTiny {
+.teamLogoTiny,
+.teamLogoMicro {
   width: 28px;
   height: 28px;
   border-radius: 8px;
 }
 
 .teamLogoInline::before,
-.teamLogoTiny::before {
+.teamLogoTiny::before,
+.teamLogoMicro::before {
   font-size: 12px;
+}
+
+.teamLogoMicro {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
 }
 
 .teamIdentity {

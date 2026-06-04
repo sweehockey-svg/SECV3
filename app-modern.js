@@ -11,6 +11,7 @@
     query: "",
     activeCupId: "",
     activeCupSection: "",
+    activeCupTeamFilter: "",
     activeTeam: "",
     activePlayer: "",
     activeGoalie: ""
@@ -190,10 +191,14 @@
   }
 
   function readRoute() {
-    const parts = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
+    const hash = location.hash.replace(/^#\/?/, "");
+    const routeAndQuery = hash.split("?");
+    const parts = routeAndQuery[0].split("/").filter(Boolean);
+    const params = new URLSearchParams(routeAndQuery[1] || "");
     state.view = routes.has(parts[0]) ? parts[0] : "overview";
     state.activeCupId = state.view === "cups" ? decodeURIComponent(parts[1] || "") : "";
     state.activeCupSection = state.view === "cups" ? decodeURIComponent(parts[2] || "") : "";
+    state.activeCupTeamFilter = state.view === "cups" && state.activeCupSection === "matches" ? params.get("team") || "" : "";
     state.activeTeam = state.view === "teams" ? decodeURIComponent(parts[1] || "") : "";
     state.activePlayer = state.view === "players" ? decodeURIComponent(parts[1] || "") : "";
     state.activeGoalie = state.view === "goalies" ? decodeURIComponent(parts[1] || "") : "";
@@ -575,18 +580,45 @@
 
   function renderCupMatchesPage(cup) {
     if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
-    const rows = cup.matches.slice().sort(compareMatches).map(function (match) {
+    const teams = cup.teams.slice().sort(function (a, b) {
+      return a.localeCompare(b, "sv");
+    });
+    const selectedTeam = teams.includes(state.activeCupTeamFilter) ? state.activeCupTeamFilter : "";
+    const filteredMatches = selectedTeam
+      ? cup.matches.filter(function (match) {
+        return match.awayTeam === selectedTeam || match.homeTeam === selectedTeam;
+      })
+      : cup.matches;
+    const rows = filteredMatches.slice().sort(compareMatches).map(function (match) {
       return { cup: cup, match: match };
     });
     return `
       <section class="detailHero ${isSummer(cup) ? "summer" : ""}">
         <a href="#/cups/${encodeURIComponent(cup.id)}">Tillbaka till cupen</a>
         <h2>Alla matcher</h2>
-        <p>${escapeHtml(cup.name)} · ${rows.length} registrerade matcher.</p>
+        <p>${escapeHtml(cup.name)} · ${rows.length} av ${cup.matches.length} matcher${selectedTeam ? " för " + escapeHtml(selectedTeam) : ""}.</p>
       </section>
+      ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
+        ${renderCupMatchFilter(cup, teams, selectedTeam)}
         ${renderMatchRows(rows, rows.length)}
       </section>
+    `;
+  }
+
+  function renderCupMatchFilter(cup, teams, selectedTeam) {
+    return `
+      <div class="matchFilter">
+        <label>
+          <span>Lag</span>
+          <select data-cup-team-filter data-cup-id="${escapeHtml(cup.id)}">
+            <option value="">Alla lag</option>
+            ${teams.map(function (team) {
+              return `<option value="${escapeHtml(team)}" ${team === selectedTeam ? "selected" : ""}>${escapeHtml(team)}</option>`;
+            }).join("")}
+          </select>
+        </label>
+      </div>
     `;
   }
 
@@ -995,12 +1027,32 @@
                   <div class="series">
                     <span class="${winner === series.awayTeam ? "winner" : ""}">${renderTeamIdentity(series.awayTeam, "teamLogoTiny")} <b>${series.awayWins}</b></span>
                     <span class="${winner === series.homeTeam ? "winner" : ""}">${renderTeamIdentity(series.homeTeam, "teamLogoTiny")} <b>${series.homeWins}</b></span>
-                    <em>${series.matches.length} matcher</em>
+                    ${renderSeriesResults(series.matches)}
                   </div>
                 `;
               }).join("")}
               ${opts.preview && seriesRows.length > displaySeries.length ? `<div class="previewMore">+${seriesRows.length - displaySeries.length} serier till</div>` : ""}
             </section>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  function renderSeriesResults(matches) {
+    const rows = (matches || []).slice().sort(function (a, b) {
+      return parseDate(a.date, a.time) - parseDate(b.date, b.time);
+    });
+    if (!rows.length) return `<em>Inga matchresultat</em>`;
+    return `
+      <div class="seriesResults">
+        ${rows.map(function (match) {
+          return `
+            <div>
+              <span>${renderTeamIdentity(match.awayTeam, "teamLogoMicro")}</span>
+              <b>${score(match)}</b>
+              <span>${renderTeamIdentity(match.homeTeam, "teamLogoMicro")}</span>
+            </div>
           `;
         }).join("")}
       </div>
@@ -1827,6 +1879,14 @@
           nextInput.focus();
           nextInput.setSelectionRange(nextInput.value.length, nextInput.value.length);
         }
+      });
+    }
+    const teamFilter = document.querySelector("[data-cup-team-filter]");
+    if (teamFilter) {
+      teamFilter.addEventListener("change", function () {
+        const cupId = teamFilter.dataset.cupId || state.activeCupId;
+        const team = teamFilter.value;
+        location.hash = "#/cups/" + encodeURIComponent(cupId) + "/matches" + (team ? "?team=" + encodeURIComponent(team) : "");
       });
     }
   }
