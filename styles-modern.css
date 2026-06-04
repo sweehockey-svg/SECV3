@@ -683,6 +683,14 @@ input {
   min-width: 620px;
 }
 
+.standingRankCol {
+  width: 44px;
+}
+
+.standingTeamCol {
+  width: 38%;
+}
+
 .standing,
 .dataTable {
   overflow-x: auto;
@@ -714,6 +722,11 @@ input {
 .standing td:has(.teamIdentity),
 .dataTable td:has(.teamIdentity) {
   text-align: left;
+}
+
+.sortableStanding th:nth-child(2),
+.sortableStanding td:nth-child(2) {
+  padding-left: 4px;
 }
 
 .standing th,

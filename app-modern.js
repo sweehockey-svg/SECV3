@@ -977,7 +977,9 @@
       ingestStanding(groups.get(groupName), match.homeTeam, match.homeScore, match.awayScore, match.overtime);
     });
 
-    return Array.from(groups.entries()).map(function (entry) {
+    return Array.from(groups.entries()).sort(function (a, b) {
+      return compareGroupNames(a[0], b[0]);
+    }).map(function (entry) {
       return {
         name: entry[0],
         rows: Array.from(entry[1].values()).sort(function (a, b) {
@@ -1013,6 +1015,23 @@
     return renderStandings(groups, settings, { preview: true });
   }
 
+  function compareGroupNames(a, b) {
+    const left = groupSortParts(a);
+    const right = groupSortParts(b);
+    if (left.prefix !== right.prefix) return left.prefix.localeCompare(right.prefix, "sv");
+    if (left.number !== right.number) return left.number - right.number;
+    return text(a).localeCompare(text(b), "sv", { numeric: true });
+  }
+
+  function groupSortParts(value) {
+    const name = text(value);
+    const match = name.match(/^(.*?)(\d+)\s*$/);
+    return {
+      prefix: fold(match ? match[1].trim() : name),
+      number: match ? number(match[2]) : Number.MAX_SAFE_INTEGER
+    };
+  }
+
   function renderStandings(groups, settings, options) {
     if (!groups.length) return `<div class="empty">Ingen gruppstatistik hittades.</div>`;
     const opts = options || {};
@@ -1028,6 +1047,11 @@
             <section class="standing">
               <h4>${escapeHtml(group.name)}</h4>
               <table class="${isFull ? "sortableStanding" : ""}">
+                <colgroup>
+                  ${isFull ? `<col class="standingRankCol">` : ""}
+                  <col class="standingTeamCol">
+                  <col span="6">
+                </colgroup>
                 <thead><tr>${isFull ? `<th><button type="button" data-standing-sort="rank" data-sort-type="number">#</button></th>` : ""}<th>${isFull ? `<button type="button" data-standing-sort="team" data-sort-type="text">Lag</button>` : "Lag"}</th><th>${isFull ? `<button type="button" data-standing-sort="gp" data-sort-type="number">GP</button>` : "GP"}</th><th>${isFull ? `<button type="button" data-standing-sort="w" data-sort-type="number">W</button>` : "W"}</th><th>${isFull ? `<button type="button" data-standing-sort="l" data-sort-type="number">L</button>` : "L"}</th><th>${isFull ? `<button type="button" data-standing-sort="otl" data-sort-type="number">OTL</button>` : "OTL"}</th><th>${isFull ? `<button type="button" data-standing-sort="diff" data-sort-type="number">+/-</button>` : "+/-"}</th><th>${isFull ? `<button type="button" data-standing-sort="pts" data-sort-type="number">PTS</button>` : "PTS"}</th></tr></thead>
                 <tbody>
                   ${rows.map(function (row, index) {
