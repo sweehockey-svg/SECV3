@@ -1157,11 +1157,11 @@
     const isFull = Boolean(opts.full);
     const cut1 = settings?.playoffCut1 || null;
     const cut2 = settings?.playoffCut2 || null;
-    const displayGroups = opts.preview ? groups.slice(0, 2) : groups;
+    const displayGroups = groups;
     return `
       <div class="standingsDeck ${isFull ? "fullStandings" : ""}">
         ${displayGroups.map(function (group) {
-          const rows = opts.preview ? group.rows.slice(0, 8) : group.rows;
+          const rows = group.rows;
           return `
             <section class="standing">
               <h4>${escapeHtml(group.name)}</h4>
@@ -1222,13 +1222,13 @@
   function renderBracket(rounds, settings, options) {
     if (!rounds.length) return `<div class="empty">Inget slutspelsträd hittades för cupen.</div>`;
     const opts = options || {};
-    const displayRounds = opts.preview ? rounds.slice(0, 2) : rounds;
+    const displayRounds = rounds;
     return `
-      <div class="bracket ${opts.full ? "fullBracket" : ""}">
+      <div class="bracket ${opts.full ? "fullBracket" : ""} ${opts.preview ? "previewBracket" : ""}">
         ${displayRounds.map(function (round) {
           const bestOf = getBestOfForRound(round.round, settings);
           const seriesRows = round.series && round.series.length ? round.series : buildPlayoffSeries(round.matches);
-          const displaySeries = opts.preview ? seriesRows.slice(0, 4) : seriesRows;
+          const displaySeries = seriesRows;
           return `
             <section class="bracketRound">
               <h4>${escapeHtml(round.round)}${bestOf ? ` <span class="boBadge">BO${escapeHtml(bestOf)}</span>` : ""}</h4>
