@@ -1666,6 +1666,60 @@ h2 .countryFlag {
   line-height: 1.5;
 }
 
+.sharedRules {
+  display: grid;
+  gap: 10px;
+}
+
+.sharedRuleSection {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sharedRuleSection summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  color: var(--gold);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.sharedRuleSection > div {
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+.sharedRuleSection article {
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sharedRuleSection h4 {
+  margin: 0 0 5px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.sharedRuleSection p,
+.sharedRuleSection li {
+  color: #dbe8e6;
+  line-height: 1.55;
+}
+
+.sharedRuleSection p {
+  margin: 0;
+}
+
+.sharedRuleSection ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
 .boBadge {
   display: inline-grid;
   place-items: center;

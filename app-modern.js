@@ -695,6 +695,9 @@
       <section class="fullPagePanel">
         ${renderCupSettings(cup.settings, { full: true })}
       </section>
+      <section class="fullPagePanel">
+        ${renderSharedSecRules()}
+      </section>
     `;
   }
 
@@ -1352,6 +1355,132 @@
         ${opts.preview && infoItems.length > shownInfo.length ? `<div class="previewMore">+${infoItems.length - shownInfo.length} infodelar till</div>` : ""}
       </div>
     `;
+  }
+
+  function renderSharedSecRules() {
+    const sections = getSharedSecRuleSections();
+    return `
+      <div class="panelHead">
+        <h3>Gemensamma SEC-regler</h3>
+      </div>
+      <div class="sharedRules">
+        ${sections.map(function (section, index) {
+          return `
+            <details class="sharedRuleSection" ${index === 0 ? "open" : ""}>
+              <summary>${escapeHtml(section.title)}</summary>
+              <div>
+                ${section.items.map(function (item) {
+                  return `
+                    <article>
+                      <h4>${escapeHtml(item.heading)}</h4>
+                      <p>${escapeHtml(item.text)}</p>
+                      ${item.bullets ? `<ul>${item.bullets.map(function (bullet) {
+                        return `<li>${escapeHtml(bullet)}</li>`;
+                      }).join("")}</ul>` : ""}
+                    </article>
+                  `;
+                }).join("")}
+              </div>
+            </details>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  function getSharedSecRuleSections() {
+    return [
+      {
+        title: "Medlemsregistrering",
+        items: [
+          { heading: "Allmänt", text: "Alla spelare som deltar i SEC måste ha ett registrerat konto på SportsGamer.gg med sitt PSN-ID eller Gamertag tillagt i sin profil." },
+          { heading: "Kontodetaljer", text: "SportsGamer-kontonamn, PSN-ID, Gamertag och spelarnamn får inte vara stötande, förolämpande, råa eller vulgära. SportsGamers personal kan begära att uppgifter ändras om de anses olämpliga." },
+          { heading: "Acceptera regler", text: "Genom att gå med i ett lag som är registrerat för en cup accepterar spelaren dessa regler." },
+          { heading: "Antal konton", text: "Ingen spelare får ha mer än ett konto på SportsGamer.gg. Kontot kan användas på olika konsoler och i olika ligor eller turneringar så länge spelarens PSN-ID eller Gamertag finns på profilen." },
+          { heading: "Konto i samma hushåll", text: "Om flera spelare använder konton från samma IP-adress, till exempel syskon i samma hem, ska administratör informeras om detta." },
+          { heading: "Playercard", text: "Namn och nummer på SportsGamer-playercard ska stämma med spelet. Alla spelare i ett lag ska ha unika nummer, och korrekt nationalitet och stad ska vara synliga. Ålder är frivilligt." }
+        ]
+      },
+      {
+        title: "Lagregistrering",
+        items: [
+          { heading: "Allmänt", text: "Registrerade svenska, norska och danska medlemmar får registrera lag för SEC. Lagets registrant blir kapten som standard. Lagregistrering är endast möjlig under registreringsperioden." },
+          { heading: "Registrering", text: "Registreringar är slutgiltiga när anmälningstiden har passerat. SportsGamers personal har sista ordet kring placering i divisioner eller grupper." },
+          { heading: "Dra tillbaka en registrering", text: "För att dra tillbaka en registrering ska kaptenen ta bort anmälan och meddela att laget inte längre avser delta. Om laget redan placerats i division ska support kontaktas. Detta kan bara göras innan anmälningstiden gått ut." },
+          { heading: "Logotyper", text: "Genom anmälan samtycker laget till att SportsGamer, SportsGamers dotterbolag och motståndare får använda lagets logotyp för sändnings- och reklamändamål." },
+          { heading: "Sändningsbilder", text: "Genom anmälan samtycker spelare och lag till att inskickade bilder får användas för sändnings- och reklamändamål." },
+          { heading: "Sponsring", text: "Lag får ha sponsorer, men sponsorer får inte stå i konflikt med SportsGamers värderingar, turneringens huvudsponsor eller cupens arrangör. Alkohol, tobak, spel och vuxenunderhållning är inte tillåtet." }
+        ]
+      },
+      {
+        title: "Uppförandekod",
+        items: [
+          { heading: "Allmänt", text: "Medlemmar förväntas behandla varandra med respekt och undvika kränkande språkbruk i cupens konversationer på SportsGamer.gg och i extern kommunikation där bevis och kontext kan lämnas." },
+          { heading: "Försök att kringgå regler", text: "Medlemmar får inte kringgå reglerna, försöka göra det, eller lura SportsGamers personal och Cup Administration." }
+        ]
+      },
+      {
+        title: "Lagledningens ansvar",
+        items: [
+          { heading: "Allmänt", text: "Lagledare är representanter för hela laget och ansvarar för lagets agerande.", bullets: [
+            "Schemalägga matcher.",
+            "Se till att laget alltid följer cupens och turneringens regler.",
+            "Sköta kommunikation med managers och cupadministration i lagets namn.",
+            "Se till att laget slutför sina matcher."
+          ] }
+        ]
+      },
+      {
+        title: "Cupens administration",
+        items: [
+          { heading: "Ansvar", text: "Cupens administration ansvarar för att anordna cupen, upprätthålla reglerna, undersöka överträdelser och lösa tvister mellan spelare och lag." },
+          { heading: "Regeländringar", text: "Cupens administration kan lägga till förtydliganden eller nya regler om ett fall inte täcks av befintliga regler. Efter beslut ska berörda parter få en förklaring kring vilka regler som åberopats." },
+          { heading: "Definition av bestraffning", text: "Spelar- och lagbestraffningar definieras efter allvarlighetsgrad och tidigare beslut kan användas som prejudikat." },
+          { heading: "Majoritetsbeslut", text: "Cupadministrationen beslutar med majoritet och agerar som en enhet efter beslut. Enskilda röster avslöjas inte." },
+          { heading: "Kontakt", text: "Kontakt med cupadministrationen ska ske via supportfunktionen och SEC Support. Använd inte privata meddelanden till enskilda CA-medlemmar för CA-frågor." }
+        ]
+      },
+      {
+        title: "Lagregler",
+        items: [
+          { heading: "Spelare", text: "Lag får endast använda spelare som är listade i den officiella laguppställningen på SportsGamer.gg." },
+          { heading: "WO-matcher", text: "Lag får lämna WO, men varje fall avgörs av CA. Motståndarlaget får walkover-vinst." },
+          { heading: "Annullera matcher", text: "Om en match spelas med en eller flera otillåtna spelare kan CA annullera matcher och tilldela WO-segrar till laget som inte brutit mot reglerna." }
+        ]
+      },
+      {
+        title: "Fair Play",
+        items: [
+          { heading: "Allmänt", text: "Fair Play är grundregeln i alla matcher på SportsGamer.gg. Behandla motståndaren som du själv vill bli behandlad.", bullets: [
+            "Utnyttja inte spelmekanik eller buggar för att ge motståndaren nackdel.",
+            "Distrahera inte motståndaren från spelet genom spam, samtal under match eller liknande."
+          ] }
+        ]
+      },
+      {
+        title: "Buggar",
+        items: [
+          { heading: "Spelare fastnar i animationer", text: "Om spelare eller målvakter fastnar i oavsiktliga animationer ska laget rensa pucken så snart felet upptäcks. Vid oenighet kan videobevis skickas till CA." },
+          { heading: "Slagsmål vid tekning", text: "Spelare får inte initiera slagsmål innan pucken släpps vid tekning." },
+          { heading: "Målvakter lämnar målgården", text: "Målvakter får inte lämna målgården i syfte att störa motståndarens skridskoåkare." },
+          { heading: "Hindra spelare utan puck", text: "Skridskoåkare får inte slå, stöta eller aktivt åka i vägen för spelare som inte har pucken." },
+          { heading: "Fånga spelare i målet", text: "Målvakten får inte försöka hindra en motståndare bakom målet eller i sarghörnet genom att stå i vägen så spelaren inte kan åka därifrån." }
+        ]
+      },
+      {
+        title: "Schemaläggning",
+        items: [
+          { heading: "Schemaläggning", text: "Varje match har en officiell speldag. Lag får flytta matcher om de inte sänds eller är utvalda matcher, men ska kommunicera med motståndare före speldagen och skicka överenskomna ändringar via rescheduling-verktyget." }
+        ]
+      },
+      {
+        title: "Diskvalificering och förbjudna spelare",
+        items: [
+          { heading: "Diskvalificering av lag", text: "Om ett lag diskvalificeras stängs lagkaptener och assisterande kaptener av från cupen. Övriga spelare kan byta lag om de inte var inblandade i diskvalificeringen." },
+          { heading: "Förvärv av förbjudna spelare", text: "Lag som plockar upp spelare som är förbjudna att spela på SportsGamer får allvarliga påföljder. Lagkaptenerna kan stängas av och laget diskvalificeras." }
+        ]
+      }
+    ];
   }
 
   function isPlayoffMatch(match) {
