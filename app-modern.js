@@ -13,6 +13,7 @@
     activeCupSection: "",
     activeCupTeamFilter: "",
     activeCupStatsMode: "all",
+    activeCupGoalieEligibleOnly: false,
     activeTeam: "",
     activePlayer: "",
     activeGoalie: "",
@@ -206,6 +207,7 @@
     state.activeCupTeamName = state.view === "cups" && state.activeCupSection === "teams" ? decodeURIComponent(parts[3] || "") : "";
     state.activeCupTeamFilter = state.view === "cups" && state.activeCupSection === "matches" ? params.get("team") || "" : "";
     state.activeCupStatsMode = state.view === "cups" && state.activeCupSection === "stats" ? normalizeStatsMode(params.get("mode")) : "all";
+    state.activeCupGoalieEligibleOnly = state.view === "cups" && state.activeCupSection === "stats" && params.get("eligible") === "1";
     state.activeTeam = state.view === "teams" ? decodeURIComponent(parts[1] || "") : "";
     state.activeTeamTab = normalizeTeamTab(params.get("tab"));
     state.activePlayer = state.view === "players" ? decodeURIComponent(parts[1] || "") : "";
@@ -753,7 +755,8 @@
     if (!cup) return `<section class="emptyPage">Cupen hittades inte.</section>`;
     const mode = state.activeCupStatsMode || "all";
     const playerRows = mode === "group" ? cup.playerStageRows.group : mode === "playoffs" ? cup.playerStageRows.playoffs : cup.playerRows;
-    const goalieRows = mode === "group" ? cup.goalieStageRows.group : mode === "playoffs" ? cup.goalieStageRows.playoffs : cup.goalieRows;
+    const rawGoalieRows = mode === "group" ? cup.goalieStageRows.group : mode === "playoffs" ? cup.goalieStageRows.playoffs : cup.goalieRows;
+    const goalieRows = state.activeCupGoalieEligibleOnly ? filterEligibleCupGoalies(rawGoalieRows, getMatchesForStatsMode(cup, mode)) : rawGoalieRows;
     const modeLabel = mode === "group" ? "Gruppspel" : mode === "playoffs" ? "Slutspel" : "All statistik";
     return `
       ${renderCupHero(cup, {
@@ -763,9 +766,15 @@
       ${renderCupSectionNav(cup)}
       <section class="statPageGrid">
         ${panelWithTools("Spelare - " + modeLabel, renderCupStatsModeTabs(cup, mode), renderCupPlayerStatsTable(playerRows))}
-        ${panel("MÃƒÂ¥lvakter - " + modeLabel, renderCupGoalieStatsTable(goalieRows))}
+        ${panelWithTools("M\u00e5lvakter - " + modeLabel, renderCupGoalieEligibilityToggle(cup, mode), renderCupGoalieStatsTable(goalieRows))}
       </section>
     `;
+  }
+
+  function getMatchesForStatsMode(cup, mode) {
+    if (mode === "group") return cup.matches.filter(function (match) { return !isPlayoffMatch(match); });
+    if (mode === "playoffs") return cup.matches.filter(isPlayoffMatch);
+    return cup.matches;
   }
 
   function renderCupStatsModeTabs(cup, activeMode) {
@@ -777,10 +786,20 @@
     return `
       <nav class="subTabs" aria-label="StatistiklÃƒÂ¤ge">
         ${modes.map(function (mode) {
-          const href = "#/cups/" + encodeURIComponent(cup.id) + "/stats?mode=" + encodeURIComponent(mode[0]);
+          const href = "#/cups/" + encodeURIComponent(cup.id) + "/stats?mode=" + encodeURIComponent(mode[0]) + (state.activeCupGoalieEligibleOnly ? "&eligible=1" : "");
           return `<a class="${activeMode === mode[0] ? "active" : ""}" href="${href}">${mode[1]}</a>`;
         }).join("")}
       </nav>
+    `;
+  }
+
+  function renderCupGoalieEligibilityToggle(cup, mode) {
+    const href = "#/cups/" + encodeURIComponent(cup.id) + "/stats?mode=" + encodeURIComponent(mode) + (state.activeCupGoalieEligibleOnly ? "" : "&eligible=1");
+    return `
+      <a class="toggleChip ${state.activeCupGoalieEligibleOnly ? "active" : ""}" href="${href}">
+        <span class="toggleBox">${state.activeCupGoalieEligibleOnly ? "✓" : ""}</span>
+        <span>Minst 50% av lagets matcher</span>
+      </a>
     `;
   }
 
@@ -1217,9 +1236,10 @@
     }).length;
     const base = cup ? "#/cups/" + encodeURIComponent(cup.id) + "/teams/" + encodeURIComponent(team.name) : "#/teams/" + encodeURIComponent(team.name);
     const activeTab = state.activeTeamTab;
+    const crumbCup = cup || getLatestTeamCup(team.name);
     return `
       <section class="detailHero teamDetailHero">
-        <a href="${cup ? "#/cups/" + encodeURIComponent(cup.id) + "/teams" : "#/teams"}">Tillbaka till lag</a>
+        ${renderTeamBreadcrumb(team.name, crumbCup)}
         ${renderTeamLogo(team.name, "teamLogoHero")}
         <h2>${escapeHtml(team.name)}</h2>
         <p>${cup ? escapeHtml(cup.name) + " Ã‚Â· " : ""}${scopedMatches.length} matcher, ${wins} vinster och ${goalsFor}-${goalsAgainst} i mÃƒÂ¥l.</p>
@@ -1238,6 +1258,31 @@
         ${activeTab === "roster" ? renderTeamRosterPanel(team.name, roster) : ""}
       </section>
     `;
+  }
+
+  function renderTeamBreadcrumb(teamName, cup) {
+    return `
+      <nav class="crumbs profileCrumbs" aria-label="Br\u00f6dsmulor">
+        <a href="#/cups">Start</a>
+        <span>/</span>
+        <a href="#/cups">Cuper</a>
+        ${cup ? `<span>/</span><a href="#/cups/${encodeURIComponent(cup.id)}">${escapeHtml(cup.code)}</a>` : ""}
+        <span>/</span>
+        <strong>${escapeHtml(teamName)}</strong>
+      </nav>
+    `;
+  }
+
+  function getLatestTeamCup(teamName) {
+    return state.cups.find(function (cup) {
+      return cup.matches.some(function (match) {
+        return match.awayTeam === teamName || match.homeTeam === teamName;
+      }) || cup.playerRows.some(function (row) {
+        return row.team === teamName;
+      }) || cup.goalieRows.some(function (row) {
+        return row.team === teamName;
+      });
+    }) || null;
   }
 
   function renderTeamTabs(base, activeTab) {
@@ -2476,10 +2521,10 @@
     return `
       <div class="dataTable">
         <table>
-          <thead><tr><th>Cup</th><th>Datum</th><th>Lag</th><th>GP</th><th>G</th><th>A</th><th>PTS</th><th>PIM</th></tr></thead>
+          <thead><tr><th>Cup</th><th>Lag</th><th>GP</th><th>G</th><th>A</th><th>PTS</th><th>PIM</th></tr></thead>
           <tbody>
             ${rows.map(function (row) {
-              return `<tr><td><a href="#/cups/${encodeURIComponent(row.cupId)}">${escapeHtml(row.cupCode)}</a></td><td>${escapeHtml(formatCupDateRange(row))}</td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.g}</td><td>${row.a}</td><td><strong>${row.pts}</strong></td><td>${row.pim}</td></tr>`;
+              return `<tr><td><a href="#/cups/${encodeURIComponent(row.cupId)}">${escapeHtml(row.cupCode)}</a></td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.g}</td><td>${row.a}</td><td><strong>${row.pts}</strong></td><td>${row.pim}</td></tr>`;
             }).join("")}
           </tbody>
         </table>
@@ -2723,7 +2768,7 @@
           ${renderPlayerPortrait(person, "playerPortraitHero")}
         </div>
         <div class="profileCopy">
-          <a href="${source === "goalies" ? "#/goalies" : "#/players"}">Tillbaka till ${source === "goalies" ? "m\u00e5lvakter" : "spelare"}</a>
+          ${renderPersonBreadcrumb(parsedPerson.name)}
           <p class="profileLabel">${parsedPerson.country ? `<span class="countryFlag">${countryFlag(parsedPerson.country)}</span>` : ""}<span>Spelarprofil</span></p>
           <h2>${escapeHtml(parsedPerson.name)}</h2>
           <p>${teams[0] ? renderTeamIdentity(teams[0], "teamLogoInline") : ""} <span>${escapeHtml(roleText)} \u00b7 ${escapeHtml(meta)}.</span></p>
@@ -2739,12 +2784,35 @@
         ${goalie ? metric("GAA", formatDecimal(goalie.gaa), "m\u00e5l emot/match") : ""}
         ${goalie ? metric("SV", goalie.sv, "r\u00e4ddningar") : ""}
       </section>
-      <section class="sportGrid personDetailGrid">
-        ${player ? panel("Utespelare - cuphistorik", renderPlayerCupTable(player)) : ""}
-        ${goalie ? panel("M\u00e5lvakt - cuphistorik", renderGoalieCupTable(goalie)) : ""}
-        ${panel("Lagresa", renderMiniTags(teams, "teams"))}
+      <section class="personDetailGrid">
+        <div class="personHistoryStack">
+          ${player ? panel("Utespelare - cuphistorik", renderPlayerCupTable(player)) : ""}
+          ${goalie ? panel("M\u00e5lvakt - cuphistorik", renderGoalieCupTable(goalie)) : ""}
+        </div>
+        <aside class="personTravelSide">
+          ${panel("Lagresa", renderMiniTags(teams, "teams"))}
+        </aside>
       </section>
     `;
+  }
+
+  function renderPersonBreadcrumb(playerName) {
+    return `
+      <nav class="crumbs profileCrumbs" aria-label="Br\u00f6dsmulor">
+        <a href="#/cups">Start</a>
+        <span>/</span>
+        <a href="#/cups">Cuper</a>
+        <span>/</span>
+        <strong>${escapeHtml(playerName)}</strong>
+      </nav>
+    `;
+  }
+
+  function getCupByCode(code) {
+    const key = fold(code);
+    return state.cups.find(function (cup) {
+      return fold(cup.code) === key;
+    }) || null;
   }
 
   function buildPersonBio(player, goalie) {

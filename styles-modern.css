@@ -866,6 +866,40 @@ input {
   background: rgba(233, 197, 110, 0.08);
 }
 
+.toggleChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.toggleChip:hover,
+.toggleChip.active {
+  border-color: var(--line2);
+  color: var(--gold);
+  background: rgba(233, 197, 110, 0.08);
+}
+
+.toggleBox {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid currentColor;
+  border-radius: 5px;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1;
+}
+
 .dashGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.8fr) minmax(320px, 0.8fr);
@@ -2208,6 +2242,25 @@ h2 .countryFlag {
   min-width: 0;
 }
 
+.profileCrumbs {
+  margin: 0 0 22px;
+}
+
+.detailHero .profileCrumbs a {
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--muted);
+  background: transparent;
+  font-weight: 500;
+}
+
+.detailHero .profileCrumbs a:hover {
+  color: #dbe8e6;
+}
+
 .profileLabel {
   display: inline-flex;
   align-items: center;
@@ -2305,6 +2358,24 @@ h2 .countryFlag {
 
 .personMeritList span {
   text-align: center;
+}
+
+.personDetailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(280px, 27vw, 410px);
+  gap: 14px;
+  align-items: start;
+  min-width: 0;
+}
+
+.personHistoryStack {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.personTravelSide {
+  min-width: 0;
 }
 
 .playerPortrait {
@@ -2406,7 +2477,8 @@ h2 .countryFlag {
   .dashGrid.two,
   .sportGrid,
   .playerProfileHero,
-  .personMeritsPanel {
+  .personMeritsPanel,
+  .personDetailGrid {
     grid-template-columns: 1fr;
   }
 
