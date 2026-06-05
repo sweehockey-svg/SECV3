@@ -14,6 +14,8 @@
     activeCupTeamFilter: "",
     activeCupStatsMode: "all",
     activeCupGoalieEligibleOnly: false,
+    activeTeamStatsMode: "all",
+    activeTeamHistoryMode: "all",
     activeTeam: "",
     activePlayer: "",
     activeGoalie: "",
@@ -210,6 +212,8 @@
     state.activeCupGoalieEligibleOnly = state.view === "cups" && state.activeCupSection === "stats" && params.get("eligible") === "1";
     state.activeTeam = state.view === "teams" ? decodeURIComponent(parts[1] || "") : "";
     state.activeTeamTab = normalizeTeamTab(params.get("tab"));
+    state.activeTeamStatsMode = state.activeTeamTab === "stats" ? normalizeStatsMode(params.get("mode")) : "all";
+    state.activeTeamHistoryMode = state.activeTeamTab === "history" ? normalizeStatsMode(params.get("mode")) : "all";
     state.activePlayer = state.view === "players" ? decodeURIComponent(parts[1] || "") : "";
     state.activeGoalie = state.view === "goalies" ? decodeURIComponent(parts[1] || "") : "";
     state.activeMatchCupId = state.view === "match" ? decodeURIComponent(parts[1] || "") : "";
@@ -384,7 +388,7 @@
   }
 
   function searchLink(href, type, title, meta) {
-    return `<a href="${href}"><span>${escapeHtml(type)}</span><strong>${escapeHtml(title)}</strong><em>${escapeHtml(meta)}</em></a>`;
+    return `<a href="${href}" data-search-hit><span>${escapeHtml(type)}</span><strong>${escapeHtml(title)}</strong><em>${escapeHtml(meta)}</em></a>`;
   }
 
   function buildPersonSearchHits(query) {
@@ -1217,21 +1221,21 @@
   function renderTeamDetailModern(model, team, cup) {
     const scopedMatches = (cup ? cup.matches.map(function (match) { return { cup: cup, match: match }; }) : model.allMatches)
       .filter(function (entry) {
-        return entry.match.awayTeam === team.name || entry.match.homeTeam === team.name;
+        return isSameTeamName(entry.match.awayTeam, team.name) || isSameTeamName(entry.match.homeTeam, team.name);
       })
       .sort(function (a, b) { return compareMatches(a.match, b.match); });
     const playerRows = getTeamPlayerRows(team.name, cup);
     const goalieRows = getTeamGoalieRows(team.name, cup);
     const roster = buildTeamRosterRows(playerRows, goalieRows);
     const goalsFor = scopedMatches.reduce(function (sum, entry) {
-      return sum + number(entry.match.awayTeam === team.name ? entry.match.awayScore : entry.match.homeScore);
+      return sum + number(isSameTeamName(entry.match.awayTeam, team.name) ? entry.match.awayScore : entry.match.homeScore);
     }, 0);
     const goalsAgainst = scopedMatches.reduce(function (sum, entry) {
-      return sum + number(entry.match.awayTeam === team.name ? entry.match.homeScore : entry.match.awayScore);
+      return sum + number(isSameTeamName(entry.match.awayTeam, team.name) ? entry.match.homeScore : entry.match.awayScore);
     }, 0);
     const wins = scopedMatches.filter(function (entry) {
-      const gf = number(entry.match.awayTeam === team.name ? entry.match.awayScore : entry.match.homeScore);
-      const ga = number(entry.match.awayTeam === team.name ? entry.match.homeScore : entry.match.awayScore);
+      const gf = number(isSameTeamName(entry.match.awayTeam, team.name) ? entry.match.awayScore : entry.match.homeScore);
+      const ga = number(isSameTeamName(entry.match.awayTeam, team.name) ? entry.match.homeScore : entry.match.awayScore);
       return gf > ga;
     }).length;
     const base = cup ? "#/cups/" + encodeURIComponent(cup.id) + "/teams/" + encodeURIComponent(team.name) : "#/teams/" + encodeURIComponent(team.name);
@@ -1243,12 +1247,13 @@
         <div class="teamHeroMain">
           ${renderTeamLogo(team.name, "teamLogoHero teamHeroLogoLarge")}
           <div>
-            <span class="teamHeroKicker">${escapeHtml((cup || crumbCup)?.code || "SEC")}</span>
             <h2>${escapeHtml(team.name)}</h2>
             <p>${cup ? "Spelare och matcher fr\u00e5n just den h\u00e4r cupen." : `${scopedMatches.length} matcher, ${wins} vinster och ${goalsFor}-${goalsAgainst} i m\u00e5l.`}</p>
+            ${renderTeamHeroStats(cup, team, scopedMatches.length, wins, goalsFor, goalsAgainst)}
           </div>
         </div>
-      </section>      <section class="metricGrid compact">
+      </section>
+      <section class="metricGrid compact teamLegacyMetrics">
         ${metric(cup ? "Cup" : "Cuper", cup ? cup.code : String(team.cups || 0), cup ? "vald turnering" : "deltaganden")}
         ${metric("Matcher", scopedMatches.length, "totalt")}
         ${metric("Vinster", wins, "registrerade")}
@@ -1256,11 +1261,27 @@
       </section>
       ${renderTeamTabs(base, activeTab)}
       <section class="fullPagePanel teamTabPanel">
-        ${activeTab === "matches" ? renderTeamAllMatches(scopedMatches) : ""}
-        ${activeTab === "stats" ? renderTeamCurrentStats(playerRows, goalieRows) : ""}
-        ${activeTab === "history" ? renderTeamHistoricalStats(team.name) : ""}
+        ${activeTab === "matches" ? renderTeamAllMatches(scopedMatches, team.name) : ""}
+        ${activeTab === "stats" ? renderTeamCurrentStats(team.name, cup, base, state.activeTeamStatsMode) : ""}
+        ${activeTab === "history" ? renderTeamHistoricalStats(team.name, base, state.activeTeamHistoryMode) : ""}
         ${activeTab === "roster" ? renderTeamRosterPanel(team.name, roster) : ""}
       </section>
+    `;
+  }
+
+  function renderTeamHeroStats(cup, team, matches, wins, goalsFor, goalsAgainst) {
+    const stats = [
+      { label: cup ? "Cup" : "Cuper", value: cup ? cup.code : String(team.cups || 0) },
+      { label: "Matcher", value: matches },
+      { label: "Vinster", value: wins },
+      { label: "M\u00e5l", value: goalsFor + "-" + goalsAgainst }
+    ];
+    return `
+      <div class="profileHeroStats teamHeroStats" aria-label="Lagstatistik">
+        ${stats.map(function (stat) {
+          return `<span><b>${escapeHtml(stat.value)}</b><em>${escapeHtml(stat.label)}</em></span>`;
+        }).join("")}
+      </div>
     `;
   }
 
@@ -1270,7 +1291,7 @@
         <a href="#/cups">Start</a>
         <span>/</span>
         <a href="#/cups">Cuper</a>
-        ${cup ? `<span>/</span><a href="#/cups/${encodeURIComponent(cup.id)}">${escapeHtml(cup.code)}</a>` : ""}
+        ${cup ? `<span>/</span> <a href="#/cups/${encodeURIComponent(cup.id)}">${escapeHtml(cup.code)}</a>` : ""}
         <span>/</span>
         <strong>${escapeHtml(teamName)}</strong>
       </nav>
@@ -1280,11 +1301,11 @@
   function getLatestTeamCup(teamName) {
     return state.cups.find(function (cup) {
       return cup.matches.some(function (match) {
-        return match.awayTeam === teamName || match.homeTeam === teamName;
+        return isSameTeamName(match.awayTeam, teamName) || isSameTeamName(match.homeTeam, teamName);
       }) || cup.playerRows.some(function (row) {
-        return row.team === teamName;
+        return isSameTeamName(row.team, teamName);
       }) || cup.goalieRows.some(function (row) {
-        return row.team === teamName;
+        return isSameTeamName(row.team, teamName);
       });
     }) || null;
   }
@@ -1334,47 +1355,259 @@
     `;
   }
 
-  function renderTeamAllMatches(entries) {
+  function renderTeamAllMatches(entries, teamName) {
     return `
       <div class="panelHead"><h3>Alla matcher</h3></div>
-      ${renderMatchRows(entries, entries.length)}
+      ${renderTeamMatchRows(entries, teamName, entries.length)}
     `;
   }
 
-  function renderTeamCurrentStats(playerRows, goalieRows) {
+  function renderTeamCurrentStats(teamName, cup, base, mode) {
+    const activeMode = normalizeStatsMode(mode);
+    const playerRows = getTeamStatsPlayerRows(teamName, cup, activeMode);
+    const goalieRows = getTeamStatsGoalieRows(teamName, cup, activeMode);
+    const suffix = activeMode === "all" ? "All statistik" : formatStageLabel(activeMode);
     return `
+      ${renderTeamStatsModeTabs(base, activeMode)}
       <div class="teamStatsGrid">
-        ${panel("Utespelare", renderCupPlayerStatsTable(playerRows))}
-        ${panel("MÃƒÂ¥lvakter", renderCupGoalieStatsTable(goalieRows))}
+        ${panel("Utespelare - " + suffix, renderCupPlayerStatsTable(playerRows))}
+        ${panel("M\u00e5lvakter - " + suffix, renderCupGoalieStatsTable(goalieRows))}
       </div>
     `;
   }
 
-  function renderTeamHistoricalStats(teamName) {
-    const playerRows = getTeamPlayerRows(teamName, null);
-    const goalieRows = getTeamGoalieRows(teamName, null);
+  function renderTeamStatsModeTabs(base, activeMode) {
+    const modes = [
+      ["all", "Allt"],
+      ["group", "Gruppspel"],
+      ["playoffs", "Slutspel"]
+    ];
+    return `
+      <nav class="subTabs statsModeTabs teamStatsModeTabs" aria-label="Statistikdel">
+        ${modes.map(function (mode) {
+          const href = base + "?tab=stats" + (mode[0] === "all" ? "" : "&mode=" + mode[0]);
+          return `<a class="${activeMode === mode[0] ? "active" : ""}" href="${href}">${escapeHtml(mode[1])}</a>`;
+        }).join("")}
+      </nav>
+    `;
+  }
+
+  function renderTeamHistoricalStats(teamName, base, mode) {
+    const activeMode = normalizeStatsMode(mode);
+    const playerRows = getTeamStatsPlayerRows(teamName, null, activeMode);
+    const goalieRows = getTeamStatsGoalieRows(teamName, null, activeMode);
+    const allPlayerRows = getTeamPlayerRows(teamName, null);
+    const allGoalieRows = getTeamGoalieRows(teamName, null);
     const cupRows = buildTeamCupRows(teamName);
-    const roster = buildTeamRosterRows(playerRows, goalieRows);
+    const roster = buildTeamRosterRows(allPlayerRows, allGoalieRows);
     return `
-      ${renderTeamRosterPanel(teamName, roster)}
-      <div class="teamStatsGrid">
-        ${panel("Cuphistorik", renderTeamCupTable(cupRows))}
-        ${panel("Historiska utespelare", renderCupPlayerStatsTable(playerRows))}
-        ${panel("Historiska mÃƒÂ¥lvakter", renderCupGoalieStatsTable(goalieRows))}
+      ${renderTeamHistorySummary(teamName, cupRows, allPlayerRows, allGoalieRows)}
+      ${renderTeamHistoryPeople(teamName, roster)}
+      ${renderTeamHistoryModeTabs(base, activeMode)}
+      <div class="teamStatsGrid teamHistoryTables">
+        ${panel("All-time utespelare", renderTeamAllTimePlayerTable(playerRows))}
+        ${panel("All-time m\u00e5lvakter", renderTeamAllTimeGoalieTable(goalieRows))}
       </div>
     `;
+  }
+
+  function renderTeamHistorySummary(teamName, cupRows, playerRows, goalieRows) {
+    const summary = buildTeamHistorySummary(teamName, cupRows);
+    return `
+      <section class="teamHistoryOverview">
+        <span class="eyebrow">Lagets historik</span>
+        <h3>${escapeHtml(teamName)} i SEC</h3>
+        <div class="teamHistoryOverviewGrid">
+          <article class="teamHistoryIntro">
+            <h4>Cuper och resultat</h4>
+            <p>Laget har deltagit i <strong>${summary.cups}</strong> cuper: <strong>${escapeHtml(summary.cupCodes || "inga registrerade")}</strong>.</p>
+            <p>${summary.titleText}</p>
+            <p>${summary.matches} matcher, ${summary.wins} vinster och ${summary.goalsFor}-${summary.goalsAgainst} i m\u00e5lskillnad.</p>
+          </article>
+          ${renderTeamHistoryTopList("B\u00e4sta utespelare", playerRows.slice().sort(sortPlayers).slice(0, 3), "player")}
+          ${renderTeamHistoryTopList("B\u00e4sta m\u00e5lvakter", goalieRows.slice().sort(sortGoalies).slice(0, 3), "goalie")}
+        </div>
+      </section>
+    `;
+  }
+
+  function buildTeamHistorySummary(teamName, cupRows) {
+    const titles = cupRows.filter(function (row) {
+      return fold(row.cup.winner) === fold(teamName);
+    }).map(function (row) { return row.cup.code; });
+    const runnerUps = cupRows.filter(function (row) {
+      return fold(row.cup.runnerUp) === fold(teamName);
+    }).map(function (row) { return row.cup.code; });
+    const titleText = titles.length
+      ? "M\u00e4stare i " + titles.map(function (code) { return `<strong>${escapeHtml(code)}</strong>`; }).join(", ") + "."
+      : (runnerUps.length ? "Finalist i " + runnerUps.map(function (code) { return `<strong>${escapeHtml(code)}</strong>`; }).join(", ") + "." : "Ingen titel registrerad \u00e4n.");
+    return {
+      cups: cupRows.length,
+      cupCodes: cupRows.map(function (row) { return row.cup.code; }).join(", "),
+      matches: cupRows.reduce(function (sum, row) { return sum + row.matches; }, 0),
+      wins: cupRows.reduce(function (sum, row) { return sum + row.wins; }, 0),
+      goalsFor: cupRows.reduce(function (sum, row) { return sum + row.goalsFor; }, 0),
+      goalsAgainst: cupRows.reduce(function (sum, row) { return sum + row.goalsAgainst; }, 0),
+      titleText: titleText
+    };
+  }
+
+  function renderTeamHistoryTopList(title, rows, type) {
+    return `
+      <article class="teamHistoryTop">
+        <h4>${escapeHtml(title)}</h4>
+        <div>
+          ${rows.length ? rows.map(function (row) {
+            const meta = type === "goalie"
+              ? `${row.gp} GP \u00b7 ${formatPercent(row.svp)} SV% \u00b7 ${row.sv} SV`
+              : `${row.gp} GP \u00b7 ${row.g} G \u00b7 ${row.a} A`;
+            const value = type === "goalie" ? `${row.gp} GP` : `${row.pts} PTS`;
+            const href = type === "goalie" ? "#/goalies/" + encodeURIComponent(row.name) : "#/players/" + encodeURIComponent(row.name);
+            return `
+              <a class="teamHistoryTopRow" href="${href}">
+                <strong>${renderPersonName(row.name)}</strong>
+                <b>${escapeHtml(value)}</b>
+                <em>${escapeHtml(meta)}</em>
+              </a>
+            `;
+          }).join("") : `<span class="empty">Ingen statistik hittades.</span>`}
+        </div>
+      </article>
+    `;
+  }
+
+  function renderTeamHistoryPeople(teamName, roster) {
+    return `
+      <section class="teamHistoryPeople">
+        <span class="eyebrow">Historik</span>
+        <h3>Alla spelare som spelat i ${escapeHtml(teamName)}</h3>
+        <div class="teamHistoryPeopleGrid">
+          ${roster.length ? roster.map(renderTeamHistoryPersonCard).join("") : `<div class="empty">Inga spelare hittades f\u00f6r ${escapeHtml(teamName)}.</div>`}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderTeamHistoryPersonCard(row) {
+    const href = row.gp ? "#/players/" + encodeURIComponent(row.name) : "#/goalies/" + encodeURIComponent(row.name);
+    const skater = row.gp ? `GP ${row.gp} PTS ${row.pts}` : "";
+    const goalie = row.goalieGp ? `G ${row.goalieGp} SV% ${formatPercent(row.svp)}` : "";
+    return `
+      <a class="teamHistoryPersonCard" href="${href}">
+        ${renderPlayerPortrait(row, "previewPortrait")}
+        <span>
+          <strong>${renderPersonName(row.name)}</strong>
+          <em>${escapeHtml(row.role)}</em>
+          <b>${escapeHtml([skater, goalie].filter(Boolean).join(" \u00b7 ") || "Registrerad")}</b>
+        </span>
+      </a>
+    `;
+  }
+
+  function renderTeamHistoryModeTabs(base, activeMode) {
+    const modes = [
+      ["all", "Total"],
+      ["group", "Gruppspel"],
+      ["playoffs", "Slutspel"]
+    ];
+    return `
+      <nav class="subTabs teamHistoryModeTabs" aria-label="Historikdel">
+        ${modes.map(function (mode) {
+          const href = base + "?tab=history" + (mode[0] === "all" ? "" : "&mode=" + mode[0]);
+          return `<a class="${activeMode === mode[0] ? "active" : ""}" href="${href}">${escapeHtml(mode[1])}</a>`;
+        }).join("")}
+      </nav>
+    `;
+  }
+
+  function renderTeamAllTimePlayerTable(rows) {
+    const sorted = rows.slice().sort(sortPlayers);
+    if (!sorted.length) return `<div class="empty">Ingen utespelarstatistik hittades.</div>`;
+    return `
+      <div class="dataTable teamAllTimeTable">
+        <table class="sortableStanding">
+          <thead><tr>
+            ${renderSortHead("name", "Spelare", "text")}
+            ${renderSortHead("gp", "GP")}
+            ${renderSortHead("g", "G")}
+            ${renderSortHead("a", "A")}
+            ${renderSortHead("pts", "PTS")}
+            ${renderSortHead("pim", "PIM")}
+          </tr></thead>
+          <tbody>
+            ${sorted.map(function (row) {
+              return `<tr data-name="${escapeHtml(getPersonDisplayName(row.name))}" data-gp="${row.gp}" data-g="${row.g}" data-a="${row.a}" data-pts="${row.pts}" data-pim="${row.pim}"><td><a href="#/players/${encodeURIComponent(row.name)}">${renderPersonName(row.name)}</a></td><td>${row.gp}</td><td>${row.g}</td><td>${row.a}</td><td><strong>${row.pts}</strong></td><td>${row.pim}</td></tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderTeamAllTimeGoalieTable(rows) {
+    const sorted = rows.slice().sort(sortGoalies);
+    if (!sorted.length) return `<div class="empty">Ingen m\u00e5lvaktsstatistik hittades.</div>`;
+    return `
+      <div class="dataTable teamAllTimeTable">
+        <table class="sortableStanding">
+          <thead><tr>
+            ${renderSortHead("name", "M\u00e5lvakt", "text")}
+            ${renderSortHead("gp", "GP")}
+            ${renderSortHead("sa", "SA")}
+            ${renderSortHead("ga", "GA")}
+            ${renderSortHead("sv", "SV")}
+            ${renderSortHead("svp", "SV%")}
+            ${renderSortHead("gaa", "GAA")}
+            ${renderSortHead("so", "SO")}
+          </tr></thead>
+          <tbody>
+            ${sorted.map(function (row) {
+              return `<tr data-name="${escapeHtml(getPersonDisplayName(row.name))}" data-gp="${row.gp}" data-sa="${row.sa}" data-ga="${row.ga}" data-sv="${row.sv}" data-svp="${formatPercent(row.svp)}" data-gaa="${formatDecimal(row.gaa)}" data-so="${row.so}"><td><a href="#/goalies/${encodeURIComponent(row.name)}">${renderPersonName(row.name)}</a></td><td>${row.gp}</td><td>${row.sa}</td><td>${row.ga}</td><td>${row.sv}</td><td><strong>${formatPercent(row.svp)}</strong></td><td>${formatDecimal(row.gaa)}</td><td>${row.so}</td></tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderSortHead(key, label, type) {
+    return `<th><button type="button" data-standing-sort="${key}" data-sort-type="${type || "number"}">${escapeHtml(label)}</button></th>`;
   }
 
   function getTeamPlayerRows(teamName, cup) {
     const rows = (cup ? cup.playerRows : state.cups.flatMap(function (entry) { return entry.playerRows || []; }))
-      .filter(function (row) { return row.team === teamName; });
+      .filter(function (row) { return isSameTeamName(row.team, teamName); });
     return aggregateTeamPlayerRows(rows);
   }
 
   function getTeamGoalieRows(teamName, cup) {
     const rows = (cup ? cup.goalieRows : state.cups.flatMap(function (entry) { return entry.goalieRows || []; }))
-      .filter(function (row) { return row.team === teamName; });
+      .filter(function (row) { return isSameTeamName(row.team, teamName); });
     return aggregateTeamGoalieRows(rows);
+  }
+
+  function getTeamStatsPlayerRows(teamName, cup, mode) {
+    const activeMode = normalizeStatsMode(mode);
+    if (activeMode === "all") return getTeamPlayerRows(teamName, cup);
+    const rows = (cup ? getCupProfilePlayerRows(cup) : state.cups.flatMap(getCupProfilePlayerRows))
+      .filter(function (row) {
+        return isSameTeamName(row.team, teamName) && normalizeStage(row.stage) === activeMode;
+      });
+    return aggregateTeamPlayerRows(rows);
+  }
+
+  function getTeamStatsGoalieRows(teamName, cup, mode) {
+    const activeMode = normalizeStatsMode(mode);
+    if (activeMode === "all") return getTeamGoalieRows(teamName, cup);
+    const rows = (cup ? getCupProfileGoalieRows(cup) : state.cups.flatMap(getCupProfileGoalieRows))
+      .filter(function (row) {
+        return isSameTeamName(row.team, teamName) && normalizeStage(row.stage) === activeMode;
+      });
+    return aggregateTeamGoalieRows(rows);
+  }
+
+  function isSameTeamName(left, right) {
+    return fold(left) === fold(right);
   }
 
   function aggregateTeamPlayerRows(rows) {
@@ -1584,6 +1817,56 @@
       `;
     }).join("");
     return `<div class="matchList">${rows || `<div class="empty">Inga matcher hittades.</div>`}</div>`;
+  }
+
+  function renderTeamMatchRows(entries, teamName, limit) {
+    const safeTeam = text(teamName);
+    const groups = [];
+    const byDate = {};
+    entries.slice(0, limit).forEach(function (entry) {
+      const key = entry.match.date || "Datum saknas";
+      if (!byDate[key]) {
+        byDate[key] = { label: formatDate(entry.match.date), rows: [] };
+        groups.push(byDate[key]);
+      }
+      byDate[key].rows.push(entry);
+    });
+    if (!groups.length) return `<div class="empty">Inga matcher hittades.</div>`;
+    return `
+      <div class="teamMatchSchedule">
+        ${groups.map(function (group) {
+          return `
+            <section class="teamMatchDay">
+              <header class="teamMatchDayHead">
+                <strong>${escapeHtml(group.label)}</strong>
+                <span>${group.rows.length} ${group.rows.length === 1 ? "match" : "matcher"}</span>
+              </header>
+              <div class="teamMatchGrid">
+                ${group.rows.map(function (entry) { return renderTeamMatchCard(entry, safeTeam); }).join("")}
+              </div>
+            </section>
+          `;
+        }).join("")}
+      </div>
+    `;
+  }
+
+  function renderTeamMatchCard(entry, teamName) {
+    const match = entry.match;
+    const isAway = match.awayTeam === teamName;
+    const teamScore = number(isAway ? match.awayScore : match.homeScore);
+    const opponentScore = number(isAway ? match.homeScore : match.awayScore);
+    const won = teamScore > opponentScore;
+    return `
+      <a class="matchRow teamMatchRow ${won ? "teamMatchWin" : "teamMatchLoss"}" href="${getMatchUrl(entry.cup, match)}">
+        <span class="teamMatchStatus">${won ? "V" : "X"}</span>
+        <strong class="matchTeams">
+          ${renderTeamIdentityStatic(match.awayTeam, "teamLogoInline")}
+          <span class="teamMatchScore"><b>${score(match)}</b><em>${escapeHtml(match.group || match.stage || "Match")}</em></span>
+          ${renderTeamIdentityStatic(match.homeTeam, "teamLogoInline")}
+        </strong>
+      </a>
+    `;
   }
 
   function renderCupMatchSchedule(entries) {
@@ -2436,19 +2719,22 @@
 
   function buildTeamCupRows(teamName) {
     return state.cups.map(function (cup) {
-      const rows = cup.playerRows.filter(function (row) { return row.team === teamName; });
+      const rows = cup.playerRows.filter(function (row) { return isSameTeamName(row.team, teamName); });
       const matches = cup.matches.filter(function (match) {
-        return match.awayTeam === teamName || match.homeTeam === teamName;
+        return isSameTeamName(match.awayTeam, teamName) || isSameTeamName(match.homeTeam, teamName);
       });
       const goalsFor = matches.reduce(function (sum, match) {
-        return sum + number(match.awayTeam === teamName ? match.awayScore : match.homeScore);
+        return sum + number(isSameTeamName(match.awayTeam, teamName) ? match.awayScore : match.homeScore);
+      }, 0);
+      const goalsAgainst = matches.reduce(function (sum, match) {
+        return sum + number(isSameTeamName(match.awayTeam, teamName) ? match.homeScore : match.awayScore);
       }, 0);
       const wins = matches.filter(function (match) {
-        const gf = number(match.awayTeam === teamName ? match.awayScore : match.homeScore);
-        const ga = number(match.awayTeam === teamName ? match.homeScore : match.awayScore);
+        const gf = number(isSameTeamName(match.awayTeam, teamName) ? match.awayScore : match.homeScore);
+        const ga = number(isSameTeamName(match.awayTeam, teamName) ? match.homeScore : match.awayScore);
         return gf > ga;
       }).length;
-      return { cup: cup, players: rows.length, matches: matches.length, wins: wins, goalsFor: goalsFor };
+      return { cup: cup, players: rows.length, matches: matches.length, wins: wins, goalsFor: goalsFor, goalsAgainst: goalsAgainst };
     }).filter(function (row) {
       return row.players || row.matches;
     }).sort(function (a, b) {
@@ -2793,27 +3079,40 @@
             <span class="profileCurrentTeams">${renderProfileCurrentTeams(currentEditionTeams)}</span>
             <span>${escapeHtml(roleText)} \u00b7 ${escapeHtml(meta)}.</span>
           </p>
+          ${renderPersonProfileStats(player, goalie)}
         </div>
         ${renderPersonBioPanel(profileBio)}
       </section>
       ${renderPersonMeritsPanel(profileBio)}
-      <section class="metricGrid compact">
-        ${player ? metric("Po\u00e4ng", player.pts, "utespelare") : ""}
-        ${player ? metric("M\u00e5l", player.g, "gjorda") : ""}
-        ${player ? metric("Assist", player.a, "passningar") : ""}
-        ${goalie ? metric("SV%", formatPercent(goalie.svp), "m\u00e5lvakt") : ""}
-        ${goalie ? metric("GAA", formatDecimal(goalie.gaa), "m\u00e5l emot/match") : ""}
-        ${goalie ? metric("SV", goalie.sv, "r\u00e4ddningar") : ""}
-      </section>
       <section class="personDetailGrid">
         <div class="personHistoryStack">
           ${player ? panel("Utespelare - cuphistorik", renderPlayerCupTable(player)) : ""}
           ${goalie ? panel("M\u00e5lvakt - cuphistorik", renderGoalieCupTable(goalie)) : ""}
         </div>
-        <aside class="personTravelSide">
-          ${panel("Lagresa", renderMiniTags(teamJourney, "teams"))}
-        </aside>
       </section>
+    `;
+  }
+
+
+  function renderPersonProfileStats(player, goalie) {
+    const stats = []
+      .concat(player ? [
+        { label: "Po\u00e4ng", value: player.pts },
+        { label: "M\u00e5l", value: player.g },
+        { label: "Assist", value: player.a }
+      ] : [])
+      .concat(goalie ? [
+        { label: "SV%", value: formatPercent(goalie.svp) },
+        { label: "GAA", value: formatDecimal(goalie.gaa) },
+        { label: "R\u00e4ddningar", value: goalie.sv }
+      ] : []);
+    if (!stats.length) return "";
+    return `
+      <div class="profileHeroStats" aria-label="Profilstatistik">
+        ${stats.map(function (stat) {
+          return `<span><b>${escapeHtml(stat.value)}</b><em>${escapeHtml(stat.label)}</em></span>`;
+        }).join("")}
+      </div>
     `;
   }
 
@@ -3563,6 +3862,11 @@
         }
       });
     }
+    document.querySelectorAll("[data-search-hit]").forEach(function (link) {
+      link.addEventListener("click", function () {
+        state.query = "";
+      });
+    });
     const teamFilter = document.querySelector("[data-cup-team-filter]");
     if (teamFilter) {
       teamFilter.addEventListener("change", function () {
