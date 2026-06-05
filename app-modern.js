@@ -636,7 +636,7 @@
       ${renderCupSectionNav(cup)}
       <section class="sportGrid">
         ${panelWithAction("Tabeller", "FullstÃƒÂ¤ndig tabell", "#/cups/" + encodeURIComponent(cup.id) + "/tables", renderStandingsPreview(standings, cup.settings))}
-        ${panelWithAction("SlutspelstrÃƒÂ¤d", "FullstÃƒÂ¤ndigt trÃƒÂ¤d", "#/cups/" + encodeURIComponent(cup.id) + "/bracket", renderBracketPreview(bracket, cup.settings))}
+        ${panelWithAction("SlutspelstrÃƒÂ¤d", "FullstÃƒÂ¤ndigt trÃƒÂ¤d", "#/cups/" + encodeURIComponent(cup.id) + "/bracket", renderBracketPreview(bracket, cup.settings, cup))}
       </section>
       <section class="dashGrid two">
         ${panelWithAction("Cupinfo", "FullstÃƒÂ¤ndiga regler", "#/cups/" + encodeURIComponent(cup.id) + "/info", renderCupSettings(cup.settings, { preview: true }))}
@@ -673,7 +673,7 @@
       })}
       ${renderCupSectionNav(cup)}
       <section class="fullPagePanel">
-        ${renderBracket(bracket, cup.settings, { full: true })}
+        ${renderBracket(bracket, cup.settings, { full: true, cup: cup })}
       </section>
     `;
   }
@@ -1240,11 +1240,15 @@
     return `
       <section class="detailHero teamDetailHero">
         ${renderTeamBreadcrumb(team.name, crumbCup)}
-        ${renderTeamLogo(team.name, "teamLogoHero")}
-        <h2>${escapeHtml(team.name)}</h2>
-        <p>${cup ? escapeHtml(cup.name) + " Ã‚Â· " : ""}${scopedMatches.length} matcher, ${wins} vinster och ${goalsFor}-${goalsAgainst} i mÃƒÂ¥l.</p>
-      </section>
-      <section class="metricGrid compact">
+        <div class="teamHeroMain">
+          ${renderTeamLogo(team.name, "teamLogoHero teamHeroLogoLarge")}
+          <div>
+            <span class="teamHeroKicker">${escapeHtml((cup || crumbCup)?.code || "SEC")}</span>
+            <h2>${escapeHtml(team.name)}</h2>
+            <p>${cup ? "Spelare och matcher fr\u00e5n just den h\u00e4r cupen." : `${scopedMatches.length} matcher, ${wins} vinster och ${goalsFor}-${goalsAgainst} i m\u00e5l.`}</p>
+          </div>
+        </div>
+      </section>      <section class="metricGrid compact">
         ${metric(cup ? "Cup" : "Cuper", cup ? cup.code : String(team.cups || 0), cup ? "vald turnering" : "deltaganden")}
         ${metric("Matcher", scopedMatches.length, "totalt")}
         ${metric("Vinster", wins, "registrerade")}
@@ -1780,7 +1784,11 @@
     return `
       <div class="tagCloud">
         ${items.slice(0, 80).map(function (item) {
-          return `<a href="${hrefBase}${encodeURIComponent(item)}">${type === "teams" ? renderTeamLogo(item, "teamLogoChip") : ""}<span>${escapeHtml(item)}</span></a>`;
+          const value = typeof item === "object" ? text(item.name) : text(item);
+          const href = type === "teams" && item && typeof item === "object" && item.cupId
+            ? "#/cups/" + encodeURIComponent(item.cupId) + "/teams/" + encodeURIComponent(value)
+            : hrefBase + encodeURIComponent(value);
+          return `<a href="${href}">${type === "teams" ? renderTeamLogo(value, "teamLogoChip") : ""}<span>${escapeHtml(value)}</span></a>`;
         }).join("")}
       </div>
     `;
@@ -1976,8 +1984,8 @@
     });
   }
 
-  function renderBracketPreview(rounds, settings) {
-    return renderBracket(rounds, settings, { preview: true });
+  function renderBracketPreview(rounds, settings, cup) {
+    return renderBracket(rounds, settings, { preview: true, cup: cup });
   }
 
   function renderBracket(rounds, settings, options) {
@@ -1997,9 +2005,9 @@
                 const winner = getSeriesWinner(series);
                 return `
                   <div class="series">
-                    <span class="${winner === series.awayTeam ? "winner" : ""}">${renderTeamIdentity(series.awayTeam, "teamLogoTiny")} <b>${series.awayWins}</b></span>
-                    <span class="${winner === series.homeTeam ? "winner" : ""}">${renderTeamIdentity(series.homeTeam, "teamLogoTiny")} <b>${series.homeWins}</b></span>
-                    ${renderSeriesResults(series)}
+                    <div class="seriesTeam ${winner === series.awayTeam ? "winner" : ""}">${renderTeamIdentity(series.awayTeam, "teamLogoTiny", opts.cup?.id)} <b>${series.awayWins}</b></div>
+                    <div class="seriesTeam ${winner === series.homeTeam ? "winner" : ""}">${renderTeamIdentity(series.homeTeam, "teamLogoTiny", opts.cup?.id)} <b>${series.homeWins}</b></div>
+                    ${renderSeriesResults(series, opts.cup)}
                   </div>
                 `;
               }).join("")}
@@ -2011,7 +2019,7 @@
     `;
   }
 
-  function renderSeriesResults(series) {
+  function renderSeriesResults(series, cup) {
     const rows = (series.matches || []).slice().sort(function (a, b) {
       return parseDate(a.date, a.time) - parseDate(b.date, b.time);
     });
@@ -2019,10 +2027,15 @@
     return `
       <div class="seriesResults">
         ${rows.map(function (match) {
-          return `<b>${escapeHtml(seriesScore(match, series.awayTeam, series.homeTeam))}</b>`;
+          return `<a href="${getSeriesMatchUrl(match, cup)}">${escapeHtml(seriesScore(match, series.awayTeam, series.homeTeam))}</a>`;
         }).join("")}
       </div>
     `;
+  }
+
+  function getSeriesMatchUrl(match, cup) {
+    const cupId = cup?.id || match.cupId || state.activeCupId || "";
+    return "#/match/" + encodeURIComponent(cupId) + "/" + encodeURIComponent(match.id);
   }
 
   function seriesScore(match, firstTeam, secondTeam) {
@@ -2461,7 +2474,7 @@
 
   function renderPlayerCupTable(player) {
     const rows = player.rows.slice().sort(function (a, b) {
-      return compareCupRowsByDate(a, b);
+      return compareProfileRowsByDate(a, b);
     });
     if (!rows.length) return `<div class="empty">Ingen cuphistorik hittades.</div>`;
     return `
@@ -2515,16 +2528,16 @@
 
   function renderPlayerCupTable(player) {
     const rows = player.rows.slice().sort(function (a, b) {
-      return compareCupRowsByDate(a, b);
+      return compareProfileRowsByDate(a, b);
     });
     if (!rows.length) return `<div class="empty">Ingen cuphistorik hittades.</div>`;
     return `
       <div class="dataTable">
         <table>
-          <thead><tr><th>Cup</th><th>Lag</th><th>GP</th><th>G</th><th>A</th><th>PTS</th><th>PIM</th></tr></thead>
+          <thead><tr><th>Cup</th><th>Del</th><th>Lag</th><th>GP</th><th>G</th><th>A</th><th>PTS</th><th>PIM</th></tr></thead>
           <tbody>
             ${rows.map(function (row) {
-              return `<tr><td><a href="#/cups/${encodeURIComponent(row.cupId)}">${escapeHtml(row.cupCode)}</a></td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.g}</td><td>${row.a}</td><td><strong>${row.pts}</strong></td><td>${row.pim}</td></tr>`;
+              return `<tr><td><a href="#/cups/${encodeURIComponent(row.cupId)}">${escapeHtml(row.cupCode)}</a></td><td>${escapeHtml(formatStageLabel(row.stage))}</td><td>${renderTeamIdentity(row.team, "teamLogoTiny", row.cupId)}</td><td>${row.gp}</td><td>${row.g}</td><td>${row.a}</td><td><strong>${row.pts}</strong></td><td>${row.pim}</td></tr>`;
             }).join("")}
           </tbody>
         </table>
@@ -2534,16 +2547,16 @@
 
   function renderGoalieCupTable(goalie) {
     const rows = goalie.rows.slice().sort(function (a, b) {
-      return compareCupRowsByDate(a, b);
+      return compareProfileRowsByDate(a, b);
     });
     if (!rows.length) return `<div class="empty">Ingen malvaktshistorik hittades.</div>`;
     return `
       <div class="dataTable">
         <table>
-          <thead><tr><th>Cup</th><th>Datum</th><th>Lag</th><th>GP</th><th>SA</th><th>GA</th><th>SV</th><th>SV%</th><th>GAA</th><th>SO</th></tr></thead>
+          <thead><tr><th>Cup</th><th>Del</th><th>Lag</th><th>GP</th><th>SA</th><th>GA</th><th>SV</th><th>SV%</th><th>GAA</th><th>SO</th></tr></thead>
           <tbody>
             ${rows.map(function (row) {
-              return `<tr><td><a href="#/cups/${encodeURIComponent(row.cupId)}">${escapeHtml(row.cupCode)}</a></td><td>${escapeHtml(formatCupDateRange(row))}</td><td>${renderTeamIdentity(row.team, "teamLogoTiny")}</td><td>${row.gp}</td><td>${row.sa}</td><td>${row.ga}</td><td>${row.sv}</td><td><strong>${formatPercent(row.svp)}</strong></td><td>${formatDecimal(row.gaa)}</td><td>${row.so}</td></tr>`;
+              return `<tr><td><a href="#/cups/${encodeURIComponent(row.cupId)}">${escapeHtml(row.cupCode)}</a></td><td>${escapeHtml(formatStageLabel(row.stage))}</td><td>${renderTeamIdentity(row.team, "teamLogoTiny", row.cupId)}</td><td>${row.gp}</td><td>${row.sa}</td><td>${row.ga}</td><td>${row.sv}</td><td><strong>${formatPercent(row.svp)}</strong></td><td>${formatDecimal(row.gaa)}</td><td>${row.so}</td></tr>`;
             }).join("")}
           </tbody>
         </table>
@@ -2563,10 +2576,10 @@
     `;
   }
 
-  function renderTeamIdentity(teamName, logoClass) {
+  function renderTeamIdentity(teamName, logoClass, cupId) {
     const safeName = text(teamName || "OkÃƒÂ¤nt lag");
     return `
-      <a class="teamIdentity" href="${getTeamHref(safeName)}">
+      <a class="teamIdentity" href="${getTeamHref(safeName, cupId)}">
         ${renderTeamLogo(safeName, logoClass || "teamLogoTiny")}
         <span>${escapeHtml(safeName)}</span>
       </a>
@@ -2583,8 +2596,11 @@
     `;
   }
 
-  function getTeamHref(teamName) {
+  function getTeamHref(teamName, cupId) {
     const safeName = text(teamName || "OkÃƒÂ¤nt lag");
+    if (cupId) {
+      return "#/cups/" + encodeURIComponent(cupId) + "/teams/" + encodeURIComponent(safeName);
+    }
     if (state.view === "cups" && state.activeCupId) {
       return "#/cups/" + encodeURIComponent(state.activeCupId) + "/teams/" + encodeURIComponent(safeName);
     }
@@ -2751,6 +2767,8 @@
       .concat(player ? Array.from(player.teams || []) : [])
       .concat(goalie ? Array.from(goalie.teams || []) : [])
       .filter(Boolean));
+    const teamJourney = buildPersonTeamJourney(player, goalie);
+    const currentEditionTeams = getPersonCurrentEditionTeams(player, goalie);
     const cups = new Set([]
       .concat(player ? Array.from(player.cups || []) : [])
       .concat(goalie ? Array.from(goalie.cups || []) : []));
@@ -2764,14 +2782,17 @@
     ].filter(Boolean).join(" \u00b7 ");
     return `
       <section class="detailHero playerProfileHero">
+        ${renderPersonBreadcrumb(parsedPerson.name)}
         <div class="profileMedia">
           ${renderPlayerPortrait(person, "playerPortraitHero")}
         </div>
         <div class="profileCopy">
-          ${renderPersonBreadcrumb(parsedPerson.name)}
           <p class="profileLabel">${parsedPerson.country ? `<span class="countryFlag">${countryFlag(parsedPerson.country)}</span>` : ""}<span>Spelarprofil</span></p>
           <h2>${escapeHtml(parsedPerson.name)}</h2>
-          <p>${teams[0] ? renderTeamIdentity(teams[0], "teamLogoInline") : ""} <span>${escapeHtml(roleText)} \u00b7 ${escapeHtml(meta)}.</span></p>
+          <p class="profileMeta">
+            <span class="profileCurrentTeams">${renderProfileCurrentTeams(currentEditionTeams)}</span>
+            <span>${escapeHtml(roleText)} \u00b7 ${escapeHtml(meta)}.</span>
+          </p>
         </div>
         ${renderPersonBioPanel(profileBio)}
       </section>
@@ -2790,12 +2811,74 @@
           ${goalie ? panel("M\u00e5lvakt - cuphistorik", renderGoalieCupTable(goalie)) : ""}
         </div>
         <aside class="personTravelSide">
-          ${panel("Lagresa", renderMiniTags(teams, "teams"))}
+          ${panel("Lagresa", renderMiniTags(teamJourney, "teams"))}
         </aside>
       </section>
     `;
   }
 
+
+  function renderProfileCurrentTeams(items) {
+    if (!items.length) return `<span class="freeAgentPill">Free agent</span>`;
+    return items.map(function (item) {
+      return renderTeamIdentity(item.name, "profileTeamLogo", item.cupId);
+    }).join("");
+  }
+
+  function getPersonCurrentEditionTeams(player, goalie) {
+    const latestKey = getLatestCupEditionKey();
+    if (!latestKey) return [];
+    const seen = new Set();
+    return []
+      .concat(player ? player.rows : [])
+      .concat(goalie ? goalie.rows : [])
+      .filter(function (row) {
+        return getCupEditionKey(row) === latestKey && row.team;
+      })
+      .sort(compareCupRowsByDate)
+      .map(function (row) {
+        return { name: row.team, cupId: row.cupId };
+      })
+      .filter(function (item) {
+        const key = fold(item.name) + "::" + text(item.cupId);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }
+
+  function getLatestCupEditionKey() {
+    return getCupEditionKey(state.cups[0]);
+  }
+
+  function getCupEditionKey(source) {
+    if (!source) return "";
+    const cup = source.id ? source : state.cups.find(function (entry) { return entry.id === source.cupId; });
+    const label = text((cup && (cup.code + " " + cup.name + " " + cup.id)) || (source.cupCode + " " + source.cupId));
+    const family = /sommar/i.test(label) ? "summer" : "sec";
+    const variant = /challenger/i.test(label) ? "challenger" : "";
+    const match = label.match(/(?:SEC|Sommar)\s*(?:Sommar\s*)?(\d+(?:[.,]\d+)?)/i) || label.match(/(\d+(?:[.,]\d+)?)/);
+    const edition = match ? match[1].replace(",", ".") : fold(label);
+    return [family, edition, variant].filter(Boolean).join(":");
+  }
+
+
+  function buildPersonTeamJourney(player, goalie) {
+    const seen = new Set();
+    return []
+      .concat(player ? player.rows : [])
+      .concat(goalie ? goalie.rows : [])
+      .sort(compareCupRowsByDate)
+      .map(function (row) {
+        return { name: row.team, cupId: row.cupId };
+      })
+      .filter(function (item) {
+        const key = fold(item.name);
+        if (!item.name || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }
   function renderPersonBreadcrumb(playerName) {
     return `
       <nav class="crumbs profileCrumbs" aria-label="Br\u00f6dsmulor">
@@ -3355,7 +3438,7 @@
   function buildPlayers(cups) {
     const map = new Map();
     cups.forEach(function (cup) {
-      const rows = cup.playerRows && cup.playerRows.length ? cup.playerRows : collectCupPlayers(cup);
+      const rows = getCupProfilePlayerRows(cup);
       rows.forEach(function (row) {
         const key = fold(row.name);
         if (!map.has(key)) {
@@ -3387,7 +3470,7 @@
   function buildGoalies(cups) {
     const map = new Map();
     cups.forEach(function (cup) {
-      const rows = cup.goalieRows && cup.goalieRows.length ? cup.goalieRows : collectCupGoalies(cup);
+      const rows = getCupProfileGoalieRows(cup);
       rows.forEach(function (row) {
         const key = fold(row.name);
         if (!map.has(key)) {
@@ -3414,6 +3497,35 @@
       });
     });
     return Array.from(map.values()).map(finalizeGoalie).sort(sortGoalies);
+  }
+
+  function getCupProfilePlayerRows(cup) {
+    const staged = []
+      .concat((cup.playerStageRows?.group || []).map(function (row) { return Object.assign({}, row, { stage: "group" }); }))
+      .concat((cup.playerStageRows?.playoffs || []).map(function (row) { return Object.assign({}, row, { stage: "playoffs" }); }));
+    return (staged.length ? staged : (cup.playerRows && cup.playerRows.length ? cup.playerRows : collectCupPlayers(cup))).map(function (row) {
+      return enrichProfileCupRow(row, cup);
+    });
+  }
+
+  function getCupProfileGoalieRows(cup) {
+    const staged = []
+      .concat((cup.goalieStageRows?.group || []).map(function (row) { return Object.assign({}, row, { stage: "group" }); }))
+      .concat((cup.goalieStageRows?.playoffs || []).map(function (row) { return Object.assign({}, row, { stage: "playoffs" }); }));
+    return (staged.length ? staged : (cup.goalieRows && cup.goalieRows.length ? cup.goalieRows : collectCupGoalies(cup))).map(function (row) {
+      return enrichProfileCupRow(row, cup);
+    });
+  }
+
+  function enrichProfileCupRow(row, cup) {
+    return Object.assign({}, row, {
+      cupId: cup.id,
+      cupCode: cup.code,
+      sortOrder: cup.sortOrder,
+      cupStartTimestamp: cup.cupStartTimestamp,
+      cupEndTimestamp: cup.cupEndTimestamp,
+      cupSortTimestamp: cup.cupSortTimestamp
+    });
   }
 
   function buildTeamGoalies(teamName) {
@@ -3560,6 +3672,20 @@
     const dateDiff = number(b.cupSortTimestamp) - number(a.cupSortTimestamp);
     if (dateDiff) return dateDiff;
     return number(b.sortOrder) - number(a.sortOrder);
+  }
+
+  function compareProfileRowsByDate(a, b) {
+    const cupDiff = compareCupRowsByDate(a, b);
+    if (cupDiff) return cupDiff;
+    return stageSortValue(a.stage) - stageSortValue(b.stage);
+  }
+
+  function stageSortValue(stage) {
+    return normalizeStage(stage) === "playoffs" ? 1 : 0;
+  }
+
+  function formatStageLabel(stage) {
+    return normalizeStage(stage) === "playoffs" ? "Slutspel" : "Gruppspel";
   }
 
   function formatDate(value) {
