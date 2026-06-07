@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-06T21:37:51.009Z",
+  "generatedAt": "2026-06-07T13:39:40.532Z",
   "source": {
     "type": "google-sheet",
     "spreadsheetId": "11uT6pvc1aK9W6lXbysanYXsjSdWFmeNlu03OZgBKucU",
@@ -46485,184 +46485,6 @@
       }
     },
     {
-      "id": "20",
-      "sortOrder": 20,
-      "code": "SEC 20",
-      "name": "Svenska eHockey Cupen 20",
-      "badge": "",
-      "placements": {
-        "first": null,
-        "second": null
-      },
-      "settings": null,
-      "matches": [
-        {
-          "date": "Sunday June 14, 2026",
-          "time": "9:00 PM",
-          "awayTeam": "a",
-          "awayScore": 0,
-          "homeScore": 0,
-          "homeTeam": "b",
-          "overtime": false,
-          "stage": "group",
-          "group": "Grupp 1",
-          "goalsSummary": null,
-          "statsSummary": null
-        },
-        {
-          "date": "Sunday June 14, 2026",
-          "time": "9:30 PM",
-          "awayTeam": "b",
-          "awayScore": 0,
-          "homeScore": 0,
-          "homeTeam": "a",
-          "overtime": false,
-          "stage": "group",
-          "group": "Grupp 1",
-          "goalsSummary": null,
-          "statsSummary": null
-        },
-        {
-          "date": "Sunday June 14, 2026",
-          "time": "8:30 PM",
-          "awayTeam": "b",
-          "awayScore": 0,
-          "homeScore": 0,
-          "homeTeam": "c",
-          "overtime": false,
-          "stage": "group",
-          "group": "Grupp 1",
-          "goalsSummary": null,
-          "statsSummary": null
-        },
-        {
-          "date": "Sunday June 14, 2026",
-          "time": "9:00 PM",
-          "awayTeam": "c",
-          "awayScore": 0,
-          "homeScore": 0,
-          "homeTeam": "b",
-          "overtime": false,
-          "stage": "group",
-          "group": "Grupp 1",
-          "goalsSummary": null,
-          "statsSummary": null
-        },
-        {
-          "date": "Sunday June 14, 2026",
-          "time": "9:00 PM",
-          "awayTeam": "d",
-          "awayScore": 0,
-          "homeScore": 0,
-          "homeTeam": "a",
-          "overtime": false,
-          "stage": "group",
-          "group": "Grupp 1",
-          "goalsSummary": null,
-          "statsSummary": null
-        },
-        {
-          "date": "Sunday June 14, 2026",
-          "time": "9:30 PM",
-          "awayTeam": "a",
-          "awayScore": 0,
-          "homeScore": 0,
-          "homeTeam": "d",
-          "overtime": false,
-          "stage": "group",
-          "group": "Grupp 1",
-          "goalsSummary": null,
-          "statsSummary": null
-        },
-        {
-          "date": "Sunday June 14, 2026",
-          "time": "9:00 PM",
-          "awayTeam": "a",
-          "awayScore": 0,
-          "homeScore": 0,
-          "homeTeam": "c",
-          "overtime": false,
-          "stage": "group",
-          "group": "Grupp 1",
-          "goalsSummary": null,
-          "statsSummary": null
-        },
-        {
-          "date": "Sunday June 14, 2026",
-          "time": "9:30 PM",
-          "awayTeam": "c",
-          "awayScore": 0,
-          "homeScore": 0,
-          "homeTeam": "a",
-          "overtime": false,
-          "stage": "group",
-          "group": "Grupp 1",
-          "goalsSummary": null,
-          "statsSummary": null
-        },
-        {
-          "date": "Sunday June 14, 2026",
-          "time": "9:00 PM",
-          "awayTeam": "d",
-          "awayScore": 0,
-          "homeScore": 0,
-          "homeTeam": "c",
-          "overtime": false,
-          "stage": "group",
-          "group": "Grupp 1",
-          "goalsSummary": null,
-          "statsSummary": null
-        },
-        {
-          "date": "Sunday June 14, 2026",
-          "time": "9:30 PM",
-          "awayTeam": "c",
-          "awayScore": 0,
-          "homeScore": 0,
-          "homeTeam": "d",
-          "overtime": false,
-          "stage": "group",
-          "group": "Grupp 1",
-          "goalsSummary": null,
-          "statsSummary": null
-        },
-        {
-          "date": "Sunday June 14, 2026",
-          "time": "8:00 PM",
-          "awayTeam": "b",
-          "awayScore": 0,
-          "homeScore": 0,
-          "homeTeam": "d",
-          "overtime": false,
-          "stage": "group",
-          "group": "Grupp 1",
-          "goalsSummary": null,
-          "statsSummary": null
-        },
-        {
-          "date": "Sunday June 14, 2026",
-          "time": "8:30 PM",
-          "awayTeam": "d",
-          "awayScore": 0,
-          "homeScore": 0,
-          "homeTeam": "b",
-          "overtime": false,
-          "stage": "group",
-          "group": "Grupp 1",
-          "goalsSummary": null,
-          "statsSummary": null
-        }
-      ],
-      "playerStats": {
-        "group": [],
-        "playoffs": []
-      },
-      "goalieStats": {
-        "group": [],
-        "playoffs": []
-      }
-    },
-    {
       "id": "20-div-1",
       "sortOrder": 20.1,
       "code": "SEC 20 DIV 1",
@@ -46721,6 +46543,54 @@
         "info": "Topp 4 till slutspel. <br><br>Cupledningen har beslutat att införa samma förbud mot ett antal spelarförmågor och builds som i ECL ’26: Winter-säsongerna. Detta inkluderar att använda forward-builds som back och vice versa.<br><br>\nUtöver att alla nivåer av de listade förmågorna är förbjudna får spelare (inklusive målvakter) inte heller använda specialtecken eller specialtecken-klasser.<br><br>\nForwards får inte använda defensiva klasser: Defensive Defender, Enforcer Defender, Puck Moving Defender, Two-way Defender.<br><br>\nBackar får inte använda forward-klasser: Dangler, Enforcer, Grinder, Playmaker, Power Forward, Sniper, Two-way Forward."
       },
       "matches": [],
+      "playerStats": {
+        "group": [],
+        "playoffs": []
+      },
+      "goalieStats": {
+        "group": [],
+        "playoffs": []
+      }
+    },
+    {
+      "id": "21",
+      "sortOrder": 21,
+      "code": "SEC 21",
+      "name": "Svenska eHockey Cupen 21",
+      "badge": "",
+      "placements": {
+        "first": null,
+        "second": null
+      },
+      "settings": null,
+      "matches": [
+        {
+          "date": "Sunday June 14, 2026",
+          "time": "9:00 PM",
+          "awayTeam": "a",
+          "awayScore": null,
+          "homeScore": null,
+          "homeTeam": "b",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null,
+          "statsSummary": null
+        },
+        {
+          "date": "Sunday June 14, 2026",
+          "time": "9:30 PM",
+          "awayTeam": "c",
+          "awayScore": null,
+          "homeScore": null,
+          "homeTeam": "d",
+          "overtime": false,
+          "stage": "group",
+          "group": "Grupp 1",
+          "goalsSummary": null,
+          "statsSummary": null
+        }
+      ],
       "playerStats": {
         "group": [],
         "playoffs": []
