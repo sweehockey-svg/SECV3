@@ -2161,10 +2161,10 @@ input {
 
 .cupTileLogo {
   position: absolute;
-  top: 1px;
-  right: 1px;
-  width: 92px;
-  height: 92px;
+  top: 0px;
+  right: 0px;
+  width: 90px;
+  height: 90px;
   object-fit: contain;
   opacity: 0.18;
   filter: saturate(1.05);
