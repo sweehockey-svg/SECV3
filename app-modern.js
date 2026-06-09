@@ -517,6 +517,9 @@
     const hasWinner = Boolean(cup.winner);
     return `
       <a class="cupTile ${isSummer(cup) ? "summer" : ""}" href="#/cups/${encodeURIComponent(cup.id)}">
+        <img class="cupTileLogo" src="${cupLogo}" alt="" loading="lazy" decoding="async">
+<strong>${escapeHtml(cup.code)}</strong>
+        <div class="cupTileStats">
           <b>${cup.matchCount}</b><em>matcher</em>
           <b>${cup.teams.length}</b><em>lag</em>
         </div>
