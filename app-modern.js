@@ -518,7 +518,6 @@
     return `
       <a class="cupTile ${isSummer(cup) ? "summer" : ""}" href="#/cups/${encodeURIComponent(cup.id)}">
         <img class="cupTileLogo" src="${cupLogo}" alt="" loading="lazy" decoding="async">
-<span class="cupTileCode">${escapeHtml(cup.name)}</span>
 <strong>${escapeHtml(cup.code)}</strong>
         <div class="cupTileStats">
           <b>${cup.matchCount}</b><em>matcher</em>
