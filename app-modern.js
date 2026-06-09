@@ -300,7 +300,7 @@
     return `
       <header class="top ${compact ? "compactTop" : ""}">
         <div>
-          <p>${compact ? getCupSectionLabel() : getViewKicker(model)}</p>
+          <p></p>
           ${compact ? "" : `<h1>${getViewTitle()}</h1>`}
         </div>
         <label class="command">
