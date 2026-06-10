@@ -3666,7 +3666,7 @@
   function filterEligibleCupGoalies(goalies, matches) {
     return goalies.filter(function (goalie) {
       const teamGames = countTeamMatches(matches, goalie.team);
-      return teamGames > 0 && number(goalie.gp) >= teamGames * 0.4;
+      return teamGames > 0 && number(goalie.gp) >= teamGames * 0.49;
     });
   }
 
